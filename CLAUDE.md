@@ -5,8 +5,8 @@ This file is read first by any Claude Code session that opens this project. It t
 ladders): one self-contained `index.html`, no build step, no server. It is **completely
 separate from Hearth & Horizon** — never edit anything in the `Hearth and horrison` folder.
 
-This project **is under Git** and has a GitHub remote
-(`github.com/isakvoll-stack/stigespillet`, published via GitHub Pages). Use Git normally.
+This project **is under Git** and has a private GitHub remote (run `git remote -v` to see
+it). Use Git normally.
 
 ---
 
