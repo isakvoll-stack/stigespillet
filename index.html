@@ -1,0 +1,2011 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ladder game 2</title>
+<style>
+  /* ---- THEME (Norwegian cabin / koselig) -------------------------------
+     One warm palette drives the page; the board itself uses the bright,
+     festive colour language of the classic Norwegian stigespill board. */
+  :root{
+    --wood-dark:#3a281b; --wood:#5a3f2b; --wood-light:#6e4f37;
+    --cream:#f6ecd9; --barn-red:#a8362f; --brass:#d4a656;
+    --ink:#2a2018; --shadow:rgba(0,0,0,.35);
+    --p1:#d64541; --p2:#2e86c1; --p3:#27ae60; --p4:#f1c40f;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    font-family:"Segoe UI",system-ui,sans-serif;
+    color:var(--cream);
+    background:
+      radial-gradient(70% 45% at 50% -2%, rgba(255,243,170,.95) 0%, rgba(255,243,170,0) 55%),
+      linear-gradient(180deg, #7cc6ec 0%, #a9dca0 52%, #5fa84f 100%);
+    background-attachment:fixed;
+    display:flex;flex-direction:column;align-items:center;
+    min-height:100%;padding:18px 14px 40px;gap:14px;
+  }
+  header{
+    text-align:center;line-height:1.1;
+    background:linear-gradient(#c79a5c,#a3743f);
+    border:2px solid #6c4a26;border-radius:14px;
+    padding:12px 30px;box-shadow:0 8px 22px rgba(20,40,15,.3), inset 0 1px 0 rgba(255,255,255,.22);
+  }
+  header h1{
+    margin:0;font-family:Georgia,"Times New Roman",serif;
+    font-size:38px;letter-spacing:.5px;color:var(--cream);
+    text-shadow:0 2px 0 var(--wood-dark);
+  }
+  header p{margin:4px 0 0;color:var(--brass);font-size:14px;letter-spacing:2px;text-transform:uppercase}
+
+  .game{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap;justify-content:center}
+  .side{display:flex;flex-direction:column;gap:14px;width:250px;max-width:92vw}
+  .side.left{width:230px}
+
+  /* board */
+  .board-wrap{
+    background:var(--wood-dark);
+    padding:10px;border-radius:14px;
+    box-shadow:0 10px 30px var(--shadow), inset 0 0 0 3px var(--brass);
+  }
+  svg{display:block;width:min(94vh,1030px);height:auto;border-radius:6px}
+
+  /* side panel */
+  .card{
+    background:rgba(38,58,38,.74);border:1px solid rgba(255,243,170,.32);
+    border-radius:12px;padding:14px 16px;backdrop-filter:blur(2px);
+  }
+  .turn-line{display:flex;align-items:center;gap:10px;font-size:20px;font-weight:600}
+  .swatch{width:22px;height:22px;border-radius:6px;border:2px solid var(--wood-dark);flex:none}
+  .turn-sub{margin-top:4px;font-size:13px;color:#d8c7a8;min-height:18px}
+
+  /* dice */
+  .dice-row{display:flex;align-items:center;gap:16px;margin-top:4px}
+  .die{
+    width:74px;height:74px;background:var(--cream);border-radius:14px;
+    display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);gap:4px;padding:11px;
+    cursor:pointer;box-shadow:0 4px 0 #b8a079, 0 6px 12px var(--shadow);
+    transition:transform .08s;user-select:none;
+  }
+  .die:active{transform:translateY(2px)}
+  .die.disabled{opacity:.55;cursor:default;box-shadow:0 4px 0 #b8a079}
+  .die.rolling{animation:wobble .12s linear infinite}
+  @keyframes wobble{0%{transform:rotate(-7deg)}50%{transform:rotate(7deg)}100%{transform:rotate(-7deg)}}
+  .pip{width:13px;height:13px;border-radius:50%;background:var(--ink);align-self:center;justify-self:center;visibility:hidden}
+  .die[data-face="1"] .pip:nth-child(5),
+  .die[data-face="2"] .pip:nth-child(1),.die[data-face="2"] .pip:nth-child(9),
+  .die[data-face="3"] .pip:nth-child(1),.die[data-face="3"] .pip:nth-child(5),.die[data-face="3"] .pip:nth-child(9),
+  .die[data-face="4"] .pip:nth-child(1),.die[data-face="4"] .pip:nth-child(3),.die[data-face="4"] .pip:nth-child(7),.die[data-face="4"] .pip:nth-child(9),
+  .die[data-face="5"] .pip:nth-child(1),.die[data-face="5"] .pip:nth-child(3),.die[data-face="5"] .pip:nth-child(5),.die[data-face="5"] .pip:nth-child(7),.die[data-face="5"] .pip:nth-child(9),
+  .die[data-face="6"] .pip:nth-child(1),.die[data-face="6"] .pip:nth-child(3),.die[data-face="6"] .pip:nth-child(4),.die[data-face="6"] .pip:nth-child(6),.die[data-face="6"] .pip:nth-child(7),.die[data-face="6"] .pip:nth-child(9)
+  {visibility:visible}
+  .roll-hint{font-size:13px;color:#d8c7a8}
+
+  /* buttons + setup */
+  button.btn{
+    font:inherit;font-weight:600;color:var(--cream);cursor:pointer;
+    background:var(--barn-red);border:none;border-radius:9px;padding:10px 14px;
+    box-shadow:0 3px 0 #79231e;transition:transform .08s;
+  }
+  button.btn:active{transform:translateY(2px);box-shadow:0 1px 0 #79231e}
+  button.btn.ghost{background:transparent;border:1px solid var(--brass);box-shadow:none;color:var(--brass)}
+  .seats{display:flex;gap:10px;align-items:center;margin:8px 0}
+  .seat-opt{width:38px;height:38px;font-size:20px;font-weight:700;display:grid;place-items:center;
+    border-radius:9px;border:1px solid var(--brass);cursor:pointer;color:var(--cream);background:transparent}
+  .seat-opt:active{background:var(--brass);color:var(--wood-dark)}
+  .seat-label{flex:1;text-align:center;font-weight:700;font-size:15px}
+
+  /* log */
+  .log{font-size:13px;line-height:1.5;color:#e7d8ba;max-height:150px;overflow-y:auto}
+  .log div{padding:2px 0;border-bottom:1px solid rgba(212,166,86,.12)}
+  .log .win{color:var(--brass);font-weight:700}
+
+  /* title / setup screens */
+  .screen{position:fixed;inset:0;z-index:10;display:none;place-items:center;padding:24px;overflow:auto;
+    background:
+      radial-gradient(70% 50% at 50% 0%, rgba(255,243,170,.95), rgba(255,243,170,0) 60%),
+      linear-gradient(180deg,#7cc6ec 0%, #a9dca0 55%, #5fa84f 100%);}
+  .screen.show{display:grid}
+  .screen .sheet{background:rgba(38,58,38,.88);border:2px solid var(--brass);border-radius:18px;
+    padding:26px 28px;max-width:460px;width:100%;text-align:center;box-shadow:0 22px 60px rgba(0,0,0,.4)}
+  .screen h2{font-family:Georgia,serif;margin:0;font-size:34px;color:var(--cream)}
+  .screen p.sub{margin:4px 0 18px;color:var(--brass);letter-spacing:1px;text-transform:uppercase;font-size:13px}
+  .btn.big{font-size:19px;padding:13px 30px}
+  .setup-count{display:flex;align-items:center;gap:12px;justify-content:center;margin:4px 0 6px}
+  .namelist{display:flex;flex-direction:column;gap:8px;max-height:44vh;overflow:auto;margin:12px 0 18px;padding-right:4px}
+  .namerow{display:flex;align-items:center;gap:10px}
+  .namerow .swatch{width:24px;height:24px;border-radius:6px;flex:none;border:2px solid #241a12}
+  .namerow input{flex:1;font:inherit;padding:8px 10px;border-radius:8px;border:1px solid var(--brass);
+    background:rgba(255,255,255,.94);color:#23331f}
+  .toggle{display:flex;align-items:center;gap:9px;justify-content:center;margin:2px 0 14px;
+    color:var(--cream);font-size:14px;cursor:pointer}
+  .toggle input{width:18px;height:18px;accent-color:var(--barn-red);cursor:pointer}
+
+  /* hidden-rule reveal + bounce/kick choice modals */
+  .modal{position:fixed;inset:0;display:none;place-items:center;background:rgba(20,30,15,.55);z-index:6;padding:20px}
+  .modal.show{display:grid}
+  .modal .box{background:var(--wood);border:2px solid var(--brass);border-radius:16px;
+    padding:24px 28px;max-width:430px;text-align:center;box-shadow:0 16px 50px #000}
+  .modal .ico{font-size:42px;line-height:1;margin-bottom:6px}
+  .modal h3{margin:0 0 4px;font-family:Georgia,serif;color:var(--brass);font-size:24px}
+  .modal .rulename{margin:0 0 12px;color:var(--cream);font-weight:700;font-size:17px}
+  .modal p{margin:0 0 18px;color:var(--cream);font-size:15px;line-height:1.55}
+
+  /* non-blocking bounce/kick choice bar + the sniper aim prompt */
+  .choicebar{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:7;display:none;
+    align-items:center;gap:14px;padding:13px 20px;border-radius:14px;background:rgba(28,20,12,.94);
+    border:2px solid var(--brass);box-shadow:0 10px 30px rgba(0,0,0,.55);animation:pulseGlow 1.1s ease-in-out infinite}
+  .choicebar.show{display:flex}
+  .choicebar span{font-weight:700;color:var(--cream);font-size:16px}
+  .choicebar .btn{font-size:16px;padding:12px 18px}
+  @keyframes pulseGlow{0%,100%{box-shadow:0 10px 30px rgba(0,0,0,.55),0 0 0 0 rgba(212,166,86,.6)}
+                       50%{box-shadow:0 10px 30px rgba(0,0,0,.55),0 0 0 9px rgba(212,166,86,0)}}
+  .prompt{position:fixed;left:50%;top:18px;transform:translateX(-50%);z-index:7;display:none;
+    padding:12px 20px;border-radius:12px;background:rgba(168,54,47,.96);border:2px solid var(--brass);
+    color:#fff;font-weight:700;font-size:16px;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+  .prompt.show{display:block}
+
+  /* fishing minigame */
+  .modal.fish .box{min-width:300px}
+  .fishmeta{color:var(--brass);font-weight:700;margin-bottom:6px}
+  .fishwrap{display:flex;gap:14px;justify-content:center;align-items:flex-end;margin-top:6px}
+  .ftrack{position:relative;width:64px;height:320px;border-radius:10px;overflow:hidden;
+    background:linear-gradient(#9fd8f0,#2f7fb5);border:3px solid #1f6fb0}
+  .fbar{position:absolute;left:0;width:64px;top:120px;height:120px;
+    background:rgba(70,200,110,.5);border-top:3px solid #2e9e54;border-bottom:3px solid #2e9e54}
+  .ffish{position:absolute;left:0;width:64px;height:26px;top:147px;text-align:center;font-size:22px;line-height:26px}
+  .fprog{width:16px;height:320px;border-radius:8px;overflow:hidden;background:rgba(0,0,0,.35);display:flex;align-items:flex-end}
+  .fprogfill{width:100%;height:45%;background:linear-gradient(#ffe27a,#e0a83b)}
+
+  /* whose-turn arrow (bobs above the active token) */
+  .turnarrow{pointer-events:none;animation:arrowBob .85s ease-in-out infinite}
+  @keyframes arrowBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+
+  /* 6-rolled celebration */
+  .sixfx{position:fixed;left:50%;top:40%;transform:translate(-50%,-50%);z-index:8;pointer-events:none;
+    font-family:Georgia,serif;font-weight:800;font-size:52px;color:#ffd23e;opacity:0;
+    text-shadow:0 3px 0 #a8362f, 0 0 20px rgba(255,210,62,.85)}
+  .sixfx.go{animation:sixpop 1s ease-out}
+  @keyframes sixpop{0%{opacity:0;transform:translate(-50%,-50%) scale(.4)}
+    25%{opacity:1;transform:translate(-50%,-50%) scale(1.12)}
+    70%{opacity:1;transform:translate(-50%,-58%) scale(1)}
+    100%{opacity:0;transform:translate(-50%,-78%) scale(1)}}
+  .die.six{animation:diePop .5s ease}
+  @keyframes diePop{0%{transform:scale(1)}45%{transform:scale(1.22)}100%{transform:scale(1)}}
+
+  /* dramatic flash + shake */
+  #flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:9}
+  #flash.go{animation:flashfx .5s ease-out}
+  @keyframes flashfx{0%{opacity:0}10%{opacity:.85}28%{opacity:.12}45%{opacity:.55}100%{opacity:0}}
+  .board-wrap.shake{animation:shakefx .5s}
+  @keyframes shakefx{0%,100%{transform:translate(0,0)}20%{transform:translate(-7px,4px)}
+    40%{transform:translate(6px,-5px)}60%{transform:translate(-5px,-4px)}80%{transform:translate(5px,5px)}}
+  .confetti{position:fixed;top:-14px;width:9px;height:14px;border-radius:2px;z-index:9;
+    pointer-events:none;animation:conffall linear forwards}
+  @keyframes conffall{to{transform:translateY(106vh) rotate(900deg)}}
+
+  /* explosion */
+  .boom{position:fixed;transform:translate(-50%,-50%);font-size:96px;z-index:10;pointer-events:none;animation:boompop .75s ease-out}
+  @keyframes boompop{0%{transform:translate(-50%,-50%) scale(.2);opacity:0}25%{opacity:1}100%{transform:translate(-50%,-50%) scale(1.7);opacity:0}}
+  .spark{position:fixed;width:10px;height:10px;border-radius:50%;z-index:10;pointer-events:none;
+    transform:translate(-50%,-50%);animation:sparkfly .8s ease-out forwards}
+  @keyframes sparkfly{to{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(.2);opacity:0}}
+
+  /* wheel of fortune */
+  .wheelwrap{position:relative;width:240px;height:262px;margin:4px auto 0}
+  #wheelSvg{display:block;margin-top:20px}
+  #wheelSpin{transform-origin:100px 100px}
+  .wheelpointer{position:absolute;top:8px;left:50%;transform:translateX(-50%);font-size:30px;color:#fff;z-index:2;text-shadow:0 0 5px #000}
+
+  /* win banner */
+  .banner{
+    position:fixed;inset:0;display:none;place-items:center;
+    background:rgba(20,12,6,.6);z-index:5;
+  }
+  .banner.show{display:grid}
+  .banner .box{
+    background:var(--wood);border:2px solid var(--brass);border-radius:16px;
+    padding:28px 34px;text-align:center;box-shadow:0 16px 50px #000;
+  }
+  .banner h2{margin:0 0 14px;font-family:Georgia,serif;font-size:32px;color:var(--brass)}
+  .banner .box{max-width:560px}
+  .podium{display:flex;align-items:flex-end;justify-content:center;gap:8px;margin:4px 0 16px}
+  .pcol{display:flex;flex-direction:column;align-items:center;width:74px}
+  .pname{font-size:12px;color:var(--cream);font-weight:700;text-align:center;line-height:1.15;
+    margin-bottom:5px;min-height:30px;display:flex;align-items:flex-end}
+  .pbar{width:58px;border-radius:7px 7px 0 0;color:#1a140d;font-weight:800;font-size:18px;
+    padding-top:5px;border:2px solid rgba(0,0,0,.28);box-shadow:inset 0 -4px rgba(0,0,0,.18)}
+  .lbtitle{font-weight:700;color:var(--brass);font-family:Georgia,serif;margin:2px 0 6px}
+  .lb{display:flex;flex-direction:column;gap:2px;max-height:32vh;overflow:auto;text-align:left}
+  .lbrow{display:flex;gap:8px;align-items:center;font-size:14px;color:var(--cream);
+    padding:3px 6px;border-bottom:1px solid rgba(212,166,86,.12)}
+  .lbrow span{width:52px;color:#cdb892;flex:none}
+  .legend{font-size:12px;color:#cdb892;margin-top:2px;display:flex;gap:14px}
+  .legend b{color:var(--cream)}
+
+  /* ---- cozy cabin atmosphere ---------------------------------------- */
+  body::before{ content:"";position:fixed;inset:0;pointer-events:none;z-index:1;
+    background:radial-gradient(135% 105% at 50% 22%, transparent 58%, rgba(30,70,40,.28) 100%); }
+  header,.game{position:relative;z-index:3}
+  .snow{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:2}
+  /* drifting summer leaves & petals (was snow) */
+  .flake{position:absolute;top:-18px;line-height:1;animation:snowfall linear infinite;will-change:transform}
+  @keyframes snowfall{
+    0%{transform:translateY(-14px) translateX(0) rotate(0deg)}
+    100%{transform:translateY(106vh) translateX(var(--drift,0)) rotate(360deg)} }
+  @media (prefers-reduced-motion:reduce){ .flake{display:none} }
+
+  /* drifting summer clouds */
+  .clouds{position:fixed;left:0;right:0;top:0;height:42vh;pointer-events:none;z-index:2;overflow:hidden}
+  .cloud{position:absolute;width:92px;height:28px;background:rgba(255,255,255,.9);border-radius:30px;
+    box-shadow:26px 7px 0 -3px rgba(255,255,255,.9), -24px 9px 0 -5px rgba(255,255,255,.9);
+    filter:blur(.4px);animation:drift linear infinite;will-change:transform}
+  @keyframes drift{from{transform:translateX(-32vw) scale(var(--s,1))}
+                   to{transform:translateX(132vw) scale(var(--s,1))}}
+  @media (prefers-reduced-motion:reduce){ .cloud{display:none} }
+
+  /* players scoreboard */
+  .score{display:flex;flex-direction:column;gap:6px}
+  .score .row{display:flex;align-items:center;gap:9px;font-size:14px;padding:4px 6px;border-radius:8px}
+  .score .row.active{background:rgba(212,166,86,.18);box-shadow:inset 0 0 0 1px rgba(212,166,86,.45)}
+  .score .name{flex:1}
+  .score .cell{font-variant-numeric:tabular-nums;color:#e7d8ba;font-weight:700;font-size:13px}
+</style>
+</head>
+<body>
+  <div class="snow" id="snow" aria-hidden="true"></div>
+  <div class="clouds" id="clouds" aria-hidden="true"></div>
+  <div class="game">
+    <div class="side left">
+      <div class="card">
+        <div style="font-weight:600;margin-bottom:8px">Players</div>
+        <div class="score" id="score"></div>
+      </div>
+    </div>
+
+    <div class="board-wrap">
+      <svg id="board" viewBox="0 0 1078 1040" aria-label="Ladder game board"></svg>
+    </div>
+
+    <div class="side right">
+      <div class="card">
+        <div class="turn-line">
+          <span class="swatch" id="turnSwatch"></span>
+          <span id="turnName">—</span>
+        </div>
+        <div class="turn-sub" id="turnSub"></div>
+        <div class="dice-row">
+          <div class="die disabled" id="die" data-face="1" title="Roll the die">
+            <span class="pip"></span><span class="pip"></span><span class="pip"></span>
+            <span class="pip"></span><span class="pip"></span><span class="pip"></span>
+            <span class="pip"></span><span class="pip"></span><span class="pip"></span>
+          </div>
+          <div class="roll-hint" id="rollHint">Tap the die<br>or press SPACE</div>
+        </div>
+        <div class="legend">
+          <span><b>Ladder</b> ↑ up</span><span><b>Chute</b> ↓ down</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <button class="btn" id="toSetup" style="width:100%">New game / edit players</button>
+      </div>
+
+      <div class="card">
+        <div style="font-weight:600;margin-bottom:6px">Log</div>
+        <div class="log" id="log"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="screen show" id="screenTitle">
+    <div class="sheet">
+      <svg viewBox="0 0 360 168" style="width:100%;max-width:360px;display:block;margin:0 auto 12px" aria-hidden="true">
+        <!-- hills -->
+        <ellipse cx="250" cy="172" rx="200" ry="58" fill="#6fb85a"/>
+        <ellipse cx="70"  cy="178" rx="180" ry="62" fill="#5fa84f"/>
+        <!-- sun + rays -->
+        <g stroke="#ffd23e" stroke-width="3" stroke-linecap="round">
+          <line x1="56" y1="14" x2="56" y2="2"/><line x1="56" y1="70" x2="56" y2="82"/>
+          <line x1="20" y1="42" x2="8" y2="42"/><line x1="92" y1="42" x2="104" y2="42"/>
+          <line x1="30" y1="16" x2="22" y2="8"/><line x1="82" y1="68" x2="90" y2="76"/>
+          <line x1="82" y1="16" x2="90" y2="8"/><line x1="30" y1="68" x2="22" y2="76"/>
+        </g>
+        <circle cx="56" cy="42" r="20" fill="#ffdf5e"/>
+        <!-- pine -->
+        <g transform="translate(312,64)">
+          <rect x="-4" y="56" width="8" height="20" fill="#6b4a2b"/>
+          <polygon points="0,-2 -22,34 22,34" fill="#2f7a44"/>
+          <polygon points="0,14 -26,58 26,58" fill="#37934f"/>
+        </g>
+        <!-- flagpole + Norwegian flag -->
+        <g transform="translate(96,18)">
+          <rect x="0" y="0" width="3" height="96" fill="#b9925a"/>
+          <g transform="translate(3,2)">
+            <rect width="44" height="31" fill="#ba0c2f"/>
+            <rect x="13" y="0" width="8" height="31" fill="#fff"/>
+            <rect x="0" y="11" width="44" height="9" fill="#fff"/>
+            <rect x="15" y="0" width="4" height="31" fill="#00205b"/>
+            <rect x="0" y="13" width="44" height="4" fill="#00205b"/>
+          </g>
+        </g>
+        <!-- cabin with turf roof -->
+        <g transform="translate(150,58)">
+          <rect x="0" y="34" width="92" height="56" fill="#b23b30" stroke="#7d2820" stroke-width="2"/>
+          <rect x="70" y="2" width="11" height="20" fill="#8a3228" stroke="#7d2820" stroke-width="2"/>
+          <polygon points="-9,36 46,0 101,36" fill="#4b8b3f" stroke="#356128" stroke-width="2"/>
+          <rect x="38" y="56" width="20" height="34" fill="#7d4a26" stroke="#5a3318" stroke-width="1.5"/>
+          <rect x="10" y="48" width="17" height="16" fill="#ffe27a" stroke="#7d2820" stroke-width="2"/>
+          <rect x="66" y="48" width="17" height="16" fill="#ffe27a" stroke="#7d2820" stroke-width="2"/>
+        </g>
+        <!-- cloud -->
+        <g fill="#fff" opacity=".9"><ellipse cx="280" cy="24" rx="20" ry="9"/><ellipse cx="296" cy="20" rx="13" ry="9"/><ellipse cx="266" cy="26" rx="12" ry="7"/></g>
+      </svg>
+      <h2>Ladder game 2</h2>
+      <p class="sub">summer at the cabin</p>
+      <button class="btn big" id="playBtn">Play</button>
+    </div>
+  </div>
+
+  <div class="screen" id="screenSetup">
+    <div class="sheet">
+      <h2>Choose players</h2>
+      <p class="sub">up to 11 players · name them</p>
+      <div class="setup-count">
+        <button class="seat-opt" id="seatMinus">−</button>
+        <div class="seat-label" id="setupCount">2 players</div>
+        <button class="seat-opt" id="seatPlus">+</button>
+      </div>
+      <div class="namelist" id="nameList"></div>
+      <label class="toggle"><input type="checkbox" id="autoMode"> Autonomous mode (the game plays itself)</label>
+      <div style="display:flex;gap:10px;justify-content:center">
+        <button class="btn ghost" id="backBtn">Back</button>
+        <button class="btn big" id="startBtn">Start game</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="banner" id="banner">
+    <div class="box">
+      <h2>Game over</h2>
+      <div id="bannerText"></div>
+      <button class="btn" id="bannerNew">Play again</button>
+    </div>
+  </div>
+
+  <div class="modal" id="reveal">
+    <div class="box">
+      <div class="ico" id="revealIco">✨</div>
+      <h3 id="revealTitle">Rule+ #1</h3>
+      <div class="rulename" id="revealName"></div>
+      <p id="revealText"></p>
+      <button class="btn" id="revealOk">Press Enter to continue</button>
+    </div>
+  </div>
+
+  <div class="choicebar" id="choice">
+    <span id="choiceText"></span>
+    <button class="btn" id="choiceBounce">🦘 Bounce over</button>
+    <button class="btn ghost" id="choiceKick">🦵 Kick back</button>
+  </div>
+  <div class="choicebar" id="tpchoice">
+    <span id="tpText"></span>
+    <button class="btn" id="tpYes">🌀 Teleport (Y)</button>
+    <button class="btn ghost" id="tpNo">Stay (N)</button>
+  </div>
+  <div class="choicebar" id="orange">
+    <span id="orangeText"></span>
+    <button class="btn" id="optWheel">🎡 Wheel (W)</button>
+    <button class="btn" id="optSupport">🤝 Support (S)</button>
+    <button class="btn ghost" id="optGun">🔫 Gun (G)</button>
+  </div>
+  <div class="modal" id="picker">
+    <div class="box">
+      <h3 id="pickerTitle"></h3>
+      <div id="pickerList" style="display:flex;flex-direction:column;gap:8px;min-width:200px"></div>
+    </div>
+  </div>
+  <div class="modal" id="wheel">
+    <div class="box">
+      <h3>Wheel of Fortune</h3>
+      <div class="wheelwrap">
+        <div class="wheelpointer">▼</div>
+        <svg id="wheelSvg" viewBox="0 0 200 200" width="240" height="240"><g id="wheelSpin"></g></svg>
+      </div>
+    </div>
+  </div>
+  <div class="prompt" id="prompt"></div>
+  <div class="sixfx" id="sixfx">6 · ROLL AGAIN!</div>
+  <div id="flash"></div>
+
+  <div class="modal fish" id="fish">
+    <div class="box">
+      <div id="fishReady">
+        <div class="ico">🎣</div>
+        <h3>Get into position</h3>
+        <div class="rulename" id="fishWho"></div>
+        <p>You'll hold the <b>↑ Up arrow</b> to reel. Press <b>Enter</b> when you're ready.</p>
+      </div>
+      <div id="fishPlay" style="display:none">
+        <h3>Fishing!</h3>
+        <div class="fishmeta" id="fishMeta"></div>
+        <p style="margin:0 0 10px">Hold <b>↑</b> to lift the green bar — keep it over the fish!</p>
+        <div class="fishwrap">
+          <div class="ftrack" id="ftrack">
+            <div class="fbar" id="fbar"></div>
+            <div class="ffish" id="ffish">🐟</div>
+          </div>
+          <div class="fprog"><div class="fprogfill" id="fprogfill"></div></div>
+        </div>
+      </div>
+      <div id="fishResult" style="display:none">
+        <div class="ico" id="fishResultIco"></div>
+        <h3 id="fishResultTitle"></h3>
+        <p id="fishResultText"></p>
+        <button class="btn" id="fishResultOk">Press Enter to continue</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+"use strict";
+/* =====================================================================
+   STIGESPILLET — a basic Norwegian snakes-&-ladders to build upon.
+   Layered like the rest of the project: DATA (board, ladders, snakes,
+   theme, strings) is separate from ENGINE (pure rules) and RENDER/UI.
+   ===================================================================== */
+
+/* ---- DATA: board geometry ------------------------------------------ */
+const BOARD = {
+  COLS: 9, ROWS: 10,          // the real Norwegian board: 9x10 = 90 squares
+  get COUNT(){ return this.COLS * this.ROWS; },
+  get WIN(){ return this.COUNT; },
+  MARGIN: 20, CELL: 100,      // SVG units; viewBox is 940 x 1040
+};
+
+/* ---- DATA: rules ---------------------------------------------------- */
+const RULES = {
+  DICE_SIDES: 6,
+  SAFE_TILES: 10,   // the encounter rule (bounce/kick) only applies beyond this tile
+};
+
+/* ---- FEATURES: the rule "layers" — turn any rule on/off here ---------
+   Flip a flag to disable that rule, or set several at once to build a
+   "game mode". Every optional rule checks its flag, so the plain race
+   (move + ladders/chutes + win) always works no matter what is off. */
+const FEATURES = {
+  exactFinish:   true,   // must land exactly on the last square (overshoot bounces back)
+  sixRollsAgain: true,   // rolling a 6 grants another roll
+  encounter:     true,   // bounce / kick when you land on an occupied square past tile 10
+  sniper:        true,   // every 5th round the last-place player gets a one-shot sniper
+  kickWhileDown: true,   // kicking a downed player drops them a row & shames the kicker
+  fishing:       true,   // landing on the dark-blue square triggers a fishing minigame
+  teleport:      true,   // teal squares let you swap places with a random player
+  teleportMalfunction: true, // carrying a fish forces the swap (biased toward the front)
+  lightning:     true,   // very rare: lightning strikes the leader
+  luckyStar:     true,   // very rare: a lucky star sweeps the trailing player forward
+  fateSwap:      true,   // very rare: the leader and last place swap places
+  orange:        true,   // orange squares: choose Wheel / Support / Gun
+  snakeCollision:true,   // sliding down a chute bowls over players in the way
+  freeze:        true,   // icy squares freeze you solid; the frost spreads to adjacent players
+  sound:         true,   // sound effects
+};
+
+/* ---- DATA: ladders & slides (the only place board content lives) ----
+   start -> end.  Ladders go UP (end > start); slides go DOWN.
+   Tile colours are derived from these roles (see cellColor). Note tile 71 is
+   both a ladder top AND a snake tail — a deliberate two-role "conflict" tile. */
+const LADDERS = { 5:17, 11:26, 19:39, 24:42, 37:55, 45:58, 53:71, 61:79, 68:84 };
+const SLIDES  = { 14:3, 27:9, 33:18, 40:13, 48:30, 57:41, 65:50, 73:60, 80:64, 87:71 };
+const LADDER_TOPS = new Set(Object.values(LADDERS));
+const SNAKE_TAILS = new Set(Object.values(SLIDES));
+
+/* ---- DATA: theme + players ----------------------------------------- */
+const PLAYER_COLORS = ["#e6402f","#2e86c1","#27ae60","#f1c40f","#8e44ad","#e67e22",
+                       "#17a2b8","#ff6fb5","#2c3e50","#ecf0f1","#a4c639"]; // supports up to 11
+const MAX_PLAYERS = PLAYER_COLORS.length;
+const CELL_PALETTE  = ["#f6d55c","#f6d55c","#f6d55c","#f6d55c","#6fa8dc",
+                       "#f6d55c","#f6d55c","#f6d55c"]; // plain tiles: yellow, with the blue tiles kept
+// Tile colours by the link role a tile plays (overrides the festive palette).
+const ROLE_COLORS = {
+  ladderBottom: "#3fb45a",   // green        — foot of a ladder
+  ladderTop:    "#b8e6b0",   // light green  — top of a ladder
+  snakeHead:    "#e0453b",   // red          — head of a snake/chute
+  snakeTail:    "#f4aaa4",   // light red    — where a snake/chute drops you
+  conflict:     "#d3b8ec",   // light purple — a tile with two roles
+};
+// Extra accent tiles (plain tiles only): one dark-blue + three orange.
+const SPECIAL_TILES = { 35:"#16306e", 49:"#16306e", 70:"#16306e", 12:"#e67e22", 46:"#e67e22", 77:"#e67e22" };
+const ORANGE_TILES  = [12, 46, 77];                       // orange squares -> Wheel/Support/Gun choice
+const BLUE_COLORS   = new Set(["#6fa8dc", "#16306e"]);    // light + dark blue squares (safe from the Nuke)
+function isBlueTile(cell){ return BLUE_COLORS.has(cellColor(cell)); }
+
+/* ---- DATA: Norwegian UI strings ------------------------------------ */
+const TXT = {
+  turnSuffix: "to move",                       // shown as "<name> to move"
+  rollHint: "Tap the die<br>or press SPACE",
+  rolling: "rolling …",
+  down: "down",
+  getUpHint: "Roll to get up (3+)",
+  climbed: (a,b)=>`climbed the ladder ${a} → ${b}`,
+  slid:    (a,b)=>`slid down ${a} → ${b}`,
+  moved:   (a,b)=>`moved ${a} → ${b}`,
+  overshoot:(n)=>`too high — bouncing back from ${n}`,
+  rollAgain: "rolled a 6 — roll again!",
+  bounced: (n,a,b)=>`${n} bounced on: ${a} → ${b}`,
+  kicked:  (n,a,b)=>`${n} was kicked back: ${a} → ${b}`,
+  won: (name)=>`${name} wins! 🎉`,
+};
+
+/* ---- DATA: hidden rules (each revealed once, the first time it fires) */
+const RULE_INFO = {
+  encounter: {
+    ico: "🦘",
+    name: "Bounce or kick",
+    text: "Past tile 10, landing on a square that someone is already on lets you choose: bounce over their head, or kick one of them back.",
+  },
+  sniper: {
+    ico: "🎯",
+    name: "Sniper",
+    text: "Every 5th round, whoever is in last place gets a one-shot sniper rifle. Aim with the mouse and click — anyone caught on the red beam is knocked down and has to get back up before moving again.",
+  },
+  kickdown: {
+    ico: "😳",
+    name: "Kick a man while he's down",
+    text: "Kick a player who is already down, and they get knocked further back — but the shame catches up with you, and before long you topple over too.",
+  },
+  fishing: {
+    ico: "🎣",
+    name: "Fishing",
+    text: "Land on the dark-blue square and you have to play a fishing minigame. Reel one in and you carry on — but fail and something far bigger drags you back.",
+  },
+  teleport: {
+    ico: "🌀",
+    name: "Teleporter",
+    text: "Land on a teal square and you may teleport — swapping places with another player at random.",
+  },
+  teleportmalf: {
+    ico: "⚡",
+    name: "Faulty teleporter",
+    text: "Step onto a teleporter while carrying a fish and it misfires: you're swapped whether you want it or not, and it tends to fling you toward the front of the pack.",
+  },
+  lightning: {
+    ico: "🌩️",
+    name: "Lightning",
+    text: "Once in a blue moon a storm rolls in and lightning strikes whoever is out in front — knocking them flat and back down the board.",
+  },
+  lucky: {
+    ico: "🌟",
+    name: "Lucky star",
+    text: "Every so often a shooting star takes pity on whoever is trailing in last — sweeping them a good way up the board.",
+  },
+  fate: {
+    ico: "🔃",
+    name: "Reversal of fortune",
+    text: "Now and then fate flips on a whim: the player out in front and the one trailing in last suddenly trade places.",
+  },
+  orange: {
+    ico: "🟧",
+    name: "Orange choice",
+    text: "Land on an orange square and pick your poison: spin the wheel of fortune, support another player, or take your chances with the gun.",
+  },
+  snakehit: {
+    ico: "💥",
+    name: "Pile-up",
+    text: "Slide down a chute and land on other players, and you bowl them over — knocking them down and back. Only the players on the square you land on get hit, not anyone you pass on the way down.",
+  },
+  freeze: {
+    ico: "🧊",
+    name: "Deep freeze",
+    text: "Land on an icy square and you freeze solid — you have to roll a 4 or higher to break free before you can move. Worse, the frost spreads: land on a tile right next to a frozen player and you freeze too.",
+  },
+};
+
+/* ---- ANIMATION timing (ms) ----------------------------------------- */
+const ANIM = { STEP:210, SLIDE:600, DICE:560, HANDOFF:350, AUTO:650 };
+/* ---- DATA: sniper rule tunables ------------------------------------ */
+const SNIPER = { EVERY_ROUNDS:5, HIT_RADIUS:30, GETUP_MIN:3 };
+const SHAME  = { TURNS:3, GETUP_MIN:4 };   // kick-a-man-while-down: shame turns + harder recovery
+const FISH   = { TILES:[35, 49, 70], SPIT_MAX:30 };   // dark-blue squares -> fishing; loss spits you to 1..SPIT_MAX
+const TELEPORTERS  = [22, 66];             // teal teleporter squares (between tile 20 and 80)
+const TELEPORT_COLOR = "#17b5a3";          // teal
+const FREEZE_TILES = [29, 63];             // icy squares — land here and you freeze solid
+const FREEZE_COLOR = "#bfe9ff";            // pale icy blue
+const FREEZE = { GETUP_MIN: 4, ADJ: 1 };   // need 4+ to break free; frost spreads to players within ADJ tiles
+const LIGHTNING = { CHANCE:0.015, BACK:7 };   // ~1.5% per turn: strike the leader, knock them back
+const LUCKY     = { CHANCE:0.012, FORWARD:8 }; // ~1.2% per turn: sweep the last-place player forward
+const FATE      = { CHANCE:0.01 };             // ~1% per turn: leader and last place swap places
+
+/* =====================================================================
+   ENGINE — pure board maths and turn resolution (no DOM).
+   ===================================================================== */
+const TRANSITIONS = Object.assign({}, LADDERS, SLIDES);
+
+function cellCenter(cell){
+  // Boustrophedon: cell 1 bottom-left, snaking up; cell WIN top-left.
+  const i = cell - 1;
+  const rowFromBottom = Math.floor(i / BOARD.COLS);
+  let col = i % BOARD.COLS;
+  if (rowFromBottom % 2 === 1) col = BOARD.COLS - 1 - col;   // reverse odd rows
+  const rowFromTop = BOARD.ROWS - 1 - rowFromBottom;
+  return {
+    x: BOARD.MARGIN + (col + 0.5) * BOARD.CELL,
+    y: BOARD.MARGIN + (rowFromTop + 0.5) * BOARD.CELL,
+  };
+}
+
+// Walk path for a roll. With FEATURES.exactFinish the last square needs an exact
+// roll and an overshoot bounces back; otherwise any overshoot just reaches the end.
+function walkPath(start, roll){
+  if (!FEATURES.exactFinish){
+    const path = [];
+    for (let c = start+1; c <= Math.min(start+roll, BOARD.WIN); c++) path.push(c);
+    return path.length ? path : [start];
+  }
+  const path = []; let p = start, dir = 1;
+  for (let k = 0; k < roll; k++){
+    if (p + dir > BOARD.WIN) dir = -1;   // hit the ceiling -> turn back
+    p += dir; path.push(p);
+  }
+  return path;                            // last entry is the landing cell
+}
+
+function linkAt(cell){
+  if (cell in LADDERS) return { kind:"ladder", to: LADDERS[cell] };
+  if (cell in SLIDES)  return { kind:"slide",  to: SLIDES[cell]  };
+  return null;
+}
+
+// The tile physically one row straight down from `cell` (same column), or null
+// if `cell` is already on the bottom row. Accounts for the boustrophedon path.
+function tileBelow(cell){
+  const i = cell - 1;
+  const rfb = Math.floor(i / BOARD.COLS);
+  if (rfb === 0) return null;
+  let col = i % BOARD.COLS;
+  if (rfb % 2 === 1) col = BOARD.COLS - 1 - col;          // un-snake -> physical column
+  const br = rfb - 1;
+  const cir = (br % 2 === 1) ? (BOARD.COLS - 1 - col) : col;
+  return br * BOARD.COLS + cir + 1;
+}
+
+/* =====================================================================
+   RENDER — build the SVG board once, then move tokens over it.
+   ===================================================================== */
+const SVGNS = "http://www.w3.org/2000/svg";
+const svg = document.getElementById("board");
+let tokenEls = [];
+
+function el(name, attrs, children){
+  const e = document.createElementNS(SVGNS, name);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (children) e.innerHTML = children;
+  return e;
+}
+function cellColor(cell){
+  const roles = [];
+  if (cell in LADDERS)       roles.push("ladderBottom");   // foot of a ladder  -> green
+  if (LADDER_TOPS.has(cell)) roles.push("ladderTop");      // top of a ladder   -> light green
+  if (cell in SLIDES)        roles.push("snakeHead");      // head of a snake   -> red
+  if (SNAKE_TAILS.has(cell)) roles.push("snakeTail");      // tail of a snake   -> light red
+  if (roles.length > 1) return ROLE_COLORS.conflict;       // two roles         -> light purple
+  if (roles.length === 1) return ROLE_COLORS[roles[0]];
+  if (TELEPORTERS.includes(cell)) return TELEPORT_COLOR;   // teal teleporter
+  if (FREEZE_TILES.includes(cell)) return FREEZE_COLOR;    // icy freeze square
+  if (cell in SPECIAL_TILES) return SPECIAL_TILES[cell];   // dark-blue / orange accents
+  const h = (cell * 2654435761) >>> 0;                     // plain tile: yellow/blue scatter
+  return CELL_PALETTE[h % CELL_PALETTE.length];
+}
+
+function drawLadder(x1,y1,x2,y2){
+  const dx=x2-x1, dy=y2-y1, len=Math.hypot(dx,dy);
+  const ux=dx/len, uy=dy/len, px=-uy, py=ux, half=11;
+  const g = el("g", {stroke:"#8a5524","stroke-width":"6","stroke-linecap":"round"});
+  g.appendChild(el("line",{x1:x1+px*half,y1:y1+py*half,x2:x2+px*half,y2:y2+py*half}));
+  g.appendChild(el("line",{x1:x1-px*half,y1:y1-py*half,x2:x2-px*half,y2:y2-py*half}));
+  const rungs = Math.max(2, Math.round(len/34));
+  for (let i=1;i<rungs;i++){
+    const t=i/rungs, cx=x1+dx*t, cy=y1+dy*t;
+    g.appendChild(el("line",{x1:cx+px*half,y1:cy+py*half,x2:cx-px*half,y2:cy-py*half,"stroke-width":"4"}));
+  }
+  return g;
+}
+
+function drawSlide(x1,y1,x2,y2){
+  // a wavy "slide/snake" from head (start) to tail (end)
+  const dx=x2-x1, dy=y2-y1, len=Math.hypot(dx,dy);
+  const ux=dx/len, uy=dy/len, px=-uy, py=ux;
+  const segs = Math.max(6, Math.round(len/26)), amp=13;
+  let d = `M ${x1} ${y1}`;
+  for (let i=1;i<=segs;i++){
+    const t=i/segs, bx=x1+dx*t, by=y1+dy*t;
+    const off = Math.sin(t*Math.PI*3) * amp * (1-t*0.15);
+    d += ` L ${bx+px*off} ${by+py*off}`;
+  }
+  const g = el("g", {});
+  g.appendChild(el("path",{d,fill:"none",stroke:"#2c7a4b","stroke-width":"14","stroke-linecap":"round","opacity":"0.92"}));
+  g.appendChild(el("path",{d,fill:"none",stroke:"#9ad17f","stroke-width":"5","stroke-linecap":"round"}));
+  g.appendChild(el("circle",{cx:x1,cy:y1,r:"13",fill:"#2c7a4b"}));      // head
+  g.appendChild(el("circle",{cx:x1-4,cy:y1-3,r:"2.4",fill:"#fff"}));
+  g.appendChild(el("circle",{cx:x1+4,cy:y1-3,r:"2.4",fill:"#fff"}));
+  return g;
+}
+
+function buildBoard(){
+  svg.innerHTML = "";
+  const C = BOARD.CELL, M = BOARD.MARGIN;
+
+  // frame
+  svg.appendChild(el("rect",{x:2,y:2,width:936,height:1036,rx:10,fill:"#1f6fb0"}));
+  svg.appendChild(el("rect",{x:M-4,y:M-4,width:BOARD.COLS*C+8,height:BOARD.ROWS*C+8,fill:"#1f6fb0"}));
+
+  // cells + numbers
+  for (let cell=1; cell<=BOARD.COUNT; cell++){
+    const {x,y} = cellCenter(cell);
+    const gx = x - C/2, gy = y - C/2;
+    svg.appendChild(el("rect",{x:gx+1,y:gy+1,width:C-2,height:C-2,fill:cellColor(cell),stroke:"#1f6fb0","stroke-width":"1.5"}));
+    svg.appendChild(el("rect",{x:gx+5,y:gy+5,width:26,height:18,rx:4,fill:"rgba(255,255,255,.78)"}));
+    const t = el("text",{x:gx+18,y:gy+19,"text-anchor":"middle","font-size":"14","font-weight":"700",fill:"#2a2018","font-family":"Segoe UI, sans-serif"});
+    t.textContent = cell;
+    svg.appendChild(t);
+  }
+
+  // ladders then slides on top
+  for (const s in LADDERS){ const a=cellCenter(+s), b=cellCenter(LADDERS[s]); svg.appendChild(drawLadder(a.x,a.y,b.x,b.y)); }
+  for (const s in SLIDES){ const a=cellCenter(+s), b=cellCenter(SLIDES[s]); svg.appendChild(drawSlide(a.x,a.y,b.x,b.y)); }
+
+  // start lane (right side) where players wait before entering the board
+  svg.appendChild(el("rect",{x:952,y:20,width:108,height:1000,rx:14,fill:"rgba(20,30,15,.45)",stroke:"#1f6fb0","stroke-width":"2"}));
+  const lab = el("text",{x:1006,y:50,"text-anchor":"middle","font-size":"22","font-weight":"800",
+                         fill:"#f6ecd9","font-family":"Georgia, serif"});
+  lab.textContent = "START";
+  svg.appendChild(lab);
+}
+
+function slotOffset(k, n){
+  // symmetric placement of the k-th of n tokens that share ONE tile; alone = centre
+  if (n <= 1) return {x:0, y:0};
+  const r = Math.min(30, 9 + n*2.6);       // ring grows with the crowd, capped to the cell
+  const a = 2*Math.PI*k/n - Math.PI/2;
+  return { x:r*Math.cos(a), y:r*Math.sin(a) };
+}
+
+function moveTokenTo(i, cell, off){
+  const c = cellCenter(cell), o = off || {x:0, y:0};
+  tokenEls[i].style.transform = `translate(${c.x+o.x}px, ${c.y+o.y}px)`;
+}
+function moveTokenToXY(i, x, y){ tokenEls[i].style.transform = `translate(${x}px, ${y}px)`; }
+
+// Spot in the START lane for the k-th of n players still waiting to enter.
+function startLanePos(k, n){
+  const x = 1006, top = 96, bot = 1000;
+  return { x, y: (n <= 1) ? (top+bot)/2 : top + (bot-top) * k/(n-1) };
+}
+
+// Arrange every token: those still off-board (pos 0) wait in the START lane,
+// the rest share their tile symmetrically.
+function layoutTokens(){
+  const groups = {}, waiting = [];
+  game.players.forEach((p,i)=>{
+    if (p.pos === 0){ waiting.push(i); return; }
+    (groups[p.pos] = groups[p.pos] || []).push(i);
+  });
+  for (const c in groups){
+    const grp = groups[c];
+    grp.forEach((pi,k)=> moveTokenTo(pi, +c, slotOffset(k, grp.length)));
+  }
+  waiting.forEach((pi,k)=>{ const pt = startLanePos(k, waiting.length); moveTokenToXY(pi, pt.x, pt.y); });
+}
+
+// A classic boardgame pawn: cone body + sphere head. The body sits in an inner
+// group so it can tip over (rotate) when the pawn is shot down, independent of
+// the outer translate that moves it around the board.
+function makePawn(color){
+  const g = el("g", {});
+  const dark = "#241a12";
+  g.appendChild(el("ellipse",{cx:0,cy:21,rx:12,ry:3.3,fill:"rgba(0,0,0,.28)"}));            // ground shadow (stays)
+  const body = el("g", {"class":"pawnbody"});
+  body.appendChild(el("path",{d:"M0,-5 C8,-5 9,4 12,16 Q13,21 6,21 L-6,21 Q-13,21 -12,16 C-9,4 -8,-5 0,-5 Z",
+                           fill:color,stroke:dark,"stroke-width":2.4,"stroke-linejoin":"round"})); // cone body
+  body.appendChild(el("circle",{cx:0,cy:-12,r:8.5,fill:color,stroke:dark,"stroke-width":2.4}));  // sphere head
+  body.appendChild(el("ellipse",{cx:-3,cy:-14.5,rx:2.5,ry:3.2,fill:"rgba(255,255,255,.5)"}));    // head glint
+  g.appendChild(body);
+  return g;
+}
+function truncName(s){ s = (s||"").trim(); return s.length > 12 ? s.slice(0,11) + "…" : s; }
+
+// A small name banner above the pawn; long names are clipped so they never
+// blanket the board.
+function addNameLabel(g, name){
+  const t = truncName(name), w = Math.max(24, t.length*6.6 + 10);
+  g.appendChild(el("rect",{x:-w/2,y:-41,width:w,height:15,rx:7,fill:"rgba(28,40,22,.8)"}));
+  const txt = el("text",{x:0,y:-30,"text-anchor":"middle","font-size":"11","font-weight":"700",
+                         fill:"#f6ecd9","font-family":"Segoe UI, sans-serif"});
+  txt.textContent = t;
+  g.appendChild(txt);
+}
+
+function buildTokens(count){
+  tokenEls.forEach(t=>t.remove()); tokenEls = [];
+  for (let i=0;i<count;i++){
+    const g = makePawn(PLAYER_COLORS[i]);
+    addNameLabel(g, game.players[i].name);
+    g.style.transition = `transform ${ANIM.STEP}ms ease-in-out`;
+    svg.appendChild(g); tokenEls.push(g);
+  }
+}
+
+/* =====================================================================
+   GAME STATE + CONTROLLER
+   ===================================================================== */
+let game = null;
+let autonomousMode = false;       // self-playing mode (no manual taps)
+let rulesSeen = {};               // hidden rules already revealed this game
+let choiceResolve = null;         // pending bounce/kick choice resolver
+let revealResolve = null;         // pending rule-reveal resolver
+let spotDark = null, spotHole = null, beamEl = null, beamFrom = {x:0,y:0};  // spotlight + laser
+let arrowEl = null;               // "whose turn" arrow, re-parented onto the active token
+const die = document.getElementById("die");
+const logEl = document.getElementById("log");
+
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
+
+/* ---- SFX: tiny synthesised sound engine (no asset files) ----------- */
+const SFX = (() => {
+  let ctx = null;
+  function ac(){
+    if (!ctx) { try { ctx = new (window.AudioContext||window.webkitAudioContext)(); } catch(e){ return null; } }
+    if (ctx.state === "suspended") ctx.resume();
+    return ctx;
+  }
+  function tone(freq, dur, type, gain, when){
+    const c = ac(); if (!c) return;
+    const t = c.currentTime + (when||0);
+    const o = c.createOscillator(), g = c.createGain();
+    o.type = type || "sine"; o.frequency.setValueAtTime(freq, t);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(gain || 0.2, t + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + dur + 0.03);
+  }
+  const seq = (notes, type, gain, step) => notes.forEach((f,i)=> tone(f, (step||0.1)*1.4, type, gain, i*(step||0.1)));
+  const table = {
+    step:  ()=> tone(460, 0.05, "square", 0.08),
+    dice:  ()=> { for (let i=0;i<5;i++) tone(180+Math.random()*420, 0.05, "square", 0.06, i*0.05); },
+    six:   ()=> seq([523,659,784,1047], "triangle", 0.18, 0.07),
+    ladder:()=> seq([392,494,587,740], "sine", 0.16, 0.05),
+    chute: ()=> seq([740,587,494,392,294], "sine", 0.16, 0.05),
+    bounce:()=> tone(680, 0.12, "sine", 0.18),
+    kick:  ()=> tone(130, 0.18, "sawtooth", 0.22),
+    shoot: ()=> { tone(950, 0.05, "square", 0.2); tone(110, 0.26, "sawtooth", 0.2, 0.04); },
+    fall:  ()=> seq([400,300,200,120], "sawtooth", 0.16, 0.05),
+    catch: ()=> seq([659,880,1047], "triangle", 0.18, 0.07),
+    leviathan: ()=> seq([170,120,90], "sawtooth", 0.24, 0.12),
+    teleport: ()=> { for (let i=0;i<9;i++) tone(380+i*110, 0.05, "sine", 0.12, i*0.03); },
+    thunder: ()=> { tone(70,0.5,"sawtooth",0.3); tone(95,0.4,"triangle",0.22,0.04); for (let i=0;i<4;i++) tone(180+Math.random()*320,0.06,"square",0.13,0.1+i*0.04); },
+    sparkle: ()=> seq([784,988,1175,1568], "triangle", 0.16, 0.05),
+    boom: ()=> { tone(58,0.55,"sawtooth",0.34); tone(82,0.45,"square",0.22,0.03); for (let i=0;i<6;i++) tone(120+Math.random()*520,0.07,"square",0.15,0.05+i*0.03); },
+    spin: ()=> { for (let i=0;i<22;i++) tone(300+i*28,0.04,"square",0.07,i*0.05); },
+    rule:  ()=> seq([660,990], "triangle", 0.16, 0.09),
+    win:   ()=> seq([523,659,784,1047,1319], "triangle", 0.2, 0.1),
+    click: ()=> tone(520, 0.04, "square", 0.1),
+  };
+  return { play: (n) => { if (!FEATURES.sound) return; try { (table[n]||(()=>{}))(); } catch(e){} } };
+})();
+
+function newGame(roster){
+  const count = roster.length;
+  game = {
+    players: roster.map((r,i)=>({
+      name: r.name || `Player ${i+1}`, color: PLAYER_COLORS[i], pos:0,
+      downed:false, frozen:false, sniper:false, finished:false, shame:0, getupMin: SNIPER.GETUP_MIN, fish:0,
+    })),
+    current:0, winner:null, over:false, busy:false, round:1, autonomous: autonomousMode,
+    standings: null, fishStreak: 0,
+  };
+  rulesSeen = {};
+  buildBoard();
+  buildTokens(count);
+  buildOverlays();                // spotlight + laser layers, sitting above the tokens
+  arrowEl = makeArrow();          // fresh "whose turn" arrow for this game
+  layoutTokens();                 // line everyone up in the START lane
+  logEl.innerHTML = "";
+  hideBanner();
+  refreshHUD();
+}
+
+function refreshHUD(){
+  const p = game.players[game.current];
+  document.getElementById("turnSwatch").style.background = p.color;
+  document.getElementById("turnName").textContent = `${p.name} ${TXT.turnSuffix}`;
+  const sub = document.getElementById("turnSub");
+  const hint = document.getElementById("rollHint");
+  if (game.winner){
+    sub.textContent = "";
+    hint.innerHTML = "";
+    die.classList.add("disabled");
+  } else {
+    sub.textContent = game.busy ? TXT.rolling
+      : (p.downed ? (p.frozen ? "frozen 🧊" : TXT.down) : (p.pos >= BOARD.WIN-6 && p.pos > 0 ? "🔥 Almost home!" : ""));
+    hint.innerHTML = game.busy ? "" : (p.downed
+      ? (p.frozen ? `Roll to break free (${p.getupMin}+)` : `Roll to get up (${p.getupMin}+)`)
+      : TXT.rollHint);
+    die.classList.toggle("disabled", game.busy);
+  }
+  updateTurnArrow();
+  refreshBadges();
+  renderScoreboard();
+}
+
+function renderScoreboard(){
+  const box = document.getElementById("score");
+  box.innerHTML = "";
+  game.players.forEach((p,i)=>{
+    const row = document.createElement("div");
+    const isTurn = i === game.current && !game.winner;
+    row.className = "row" + (isTurn ? " active" : "");
+    const medal = p.finished ? (MEDALS[p.place-1] || ("#"+p.place)) : "";
+    const mark = (p.finished ? " "+medal : "") + (p.downed ? (p.frozen ? " 🧊" : " 🤕") : "")
+               + (p.sniper ? " 🎯" : "") + (p.shame>0 ? " 😳" : "")
+               + (p.fish>0 ? " 🐟"+(p.fish>1?p.fish:"") : "");
+    const cellTxt = p.finished ? "done" : (p.pos === 0 ? "—" : "tile " + p.pos);
+    row.innerHTML =
+      `<span class="swatch" style="background:${p.color}"></span>` +
+      `<span class="name">${p.name}${mark}</span>` +
+      `<span class="cell">${cellTxt}</span>`;
+    box.appendChild(row);
+  });
+}
+
+function makeSnow(n){
+  const c = document.getElementById("snow");
+  c.innerHTML = "";
+  const glyphs = ["🍃","🌿","🌼","🦋","✿"];
+  for (let i=0;i<n;i++){
+    const f = document.createElement("div");
+    f.className = "flake";
+    f.textContent = glyphs[Math.floor(Math.random()*glyphs.length)];
+    f.style.left = (Math.random()*100) + "vw";
+    f.style.fontSize = (12 + Math.random()*14) + "px";
+    f.style.opacity = (0.55 + Math.random()*0.4).toFixed(2);
+    const dur = 9 + Math.random()*10;
+    f.style.animationDuration = dur + "s";
+    f.style.animationDelay = (-Math.random()*dur) + "s";
+    f.style.setProperty("--drift", (Math.random()*60 - 30) + "px");
+    c.appendChild(f);
+  }
+}
+
+function makeClouds(n){
+  const wrap = document.getElementById("clouds");
+  wrap.innerHTML = "";
+  for (let i=0;i<n;i++){
+    const d = document.createElement("div");
+    d.className = "cloud";
+    d.style.top = (2 + Math.random()*30) + "vh";
+    d.style.setProperty("--s", (0.65 + Math.random()*0.95).toFixed(2));
+    const dur = 48 + Math.random()*44;
+    d.style.animationDuration = dur + "s";
+    d.style.animationDelay = (-Math.random()*dur) + "s";
+    d.style.opacity = (0.6 + Math.random()*0.3).toFixed(2);
+    wrap.appendChild(d);
+  }
+}
+
+function log(msg, cls){
+  const d = document.createElement("div");
+  if (cls) d.className = cls;
+  d.innerHTML = msg;
+  logEl.prepend(d);
+}
+
+function setDie(v){ die.setAttribute("data-face", v); }
+
+async function roll(){
+  if (!game || game.winner || game.busy) return;
+  if (document.querySelector(".screen.show") || document.querySelector(".modal.show")) return;
+  game.busy = true; refreshHUD();
+  die.classList.add("rolling");
+  SFX.play("dice");
+  const end = performance.now() + ANIM.DICE;
+  while (performance.now() < end){ setDie(1+Math.floor(Math.random()*RULES.DICE_SIDES)); await sleep(70); }
+  die.classList.remove("rolling");
+  const value = 1 + Math.floor(Math.random()*RULES.DICE_SIDES);
+  setDie(value);
+  if (value === RULES.DICE_SIDES && FEATURES.sixRollsAgain) sixEffect();
+  await sleep(160);
+  if (game.players[game.current].downed) await resolveGetUp(value);
+  else await moveCurrent(value);
+}
+
+async function moveCurrent(rollValue){
+  const p = game.players[game.current];
+  const count = game.players.length;
+  const i = game.current;
+  const from = p.pos === 0 ? 1 : p.pos;        // first move walks from square 1
+  const path = walkPath(p.pos === 0 ? 0 : p.pos, rollValue);
+  const landed = path[path.length-1];
+  const overshot = path.some(c=>c===BOARD.WIN) && landed !== BOARD.WIN;
+
+  // step the active token cell by cell (centred while in transit)
+  for (const c of path){
+    p.pos = c;
+    moveTokenTo(i, c);
+    SFX.play("step");
+    renderScoreboard();
+    await sleep(ANIM.STEP);
+  }
+  if (overshot) log(TXT.overshoot(BOARD.WIN));
+
+  // apply a ladder or slide on the landing square
+  if (!(await applyLink(p, i))) log(TXT.moved(from, landed));
+  layoutTokens(); renderScoreboard();
+
+  // reached the finish? first one out wins; the game ends and ranks everyone
+  if (p.pos === BOARD.WIN){ finishPlayer(p); return; }
+
+  // dark-blue square -> fishing minigame (then the turn is over)
+  if (FEATURES.fishing && FISH.TILES.includes(p.pos)){
+    await runFishing(p);
+    if (game.over) return;
+    await endTurn(); return;
+  }
+
+  // teal square -> teleporter (then the turn is over)
+  if (FEATURES.teleport && TELEPORTERS.includes(p.pos)){
+    await runTeleporter(p);
+    if (game.over) return;
+    await endTurn(); return;
+  }
+
+  // orange square -> Wheel / Support / Gun choice (then the turn is over)
+  if (FEATURES.orange && ORANGE_TILES.includes(p.pos)){
+    await runOrange(p);
+    if (game.over) return;
+    await endTurn(); return;
+  }
+
+  // icy square (or landing next to a frozen player) -> freeze (then the turn is over)
+  if (FEATURES.freeze && await tryFreeze(p)){
+    if (game.over) return;
+    await endTurn(); return;
+  }
+
+  // hidden encounter rule (bounce / kick) — may chain, and a bounce can win
+  if (FEATURES.encounter){
+    await resolveEncounters(p);
+    if (game.over) return;
+  }
+
+  // a 6 earns another roll for the same player; otherwise end the turn
+  if (FEATURES.sixRollsAgain && rollValue === RULES.DICE_SIDES){
+    log(TXT.rollAgain);
+    game.busy = false; refreshHUD(); maybeAuto();
+  } else {
+    await endTurn();
+  }
+}
+
+/* ---- helpers: player index, board overlays (spotlight + laser) ----- */
+function idxOf(p){ return game.players.indexOf(p); }
+
+function buildOverlays(){
+  const defs = el("defs", {});
+  const mask = el("mask", {id:"spotmask"});
+  mask.appendChild(el("rect",{x:0,y:0,width:940,height:1040,fill:"#fff"}));
+  spotHole = el("circle",{cx:470,cy:520,r:95,fill:"#000"});
+  mask.appendChild(spotHole);
+  defs.appendChild(mask);
+  svg.appendChild(defs);
+  spotDark = el("rect",{x:0,y:0,width:940,height:1040,fill:"rgba(0,0,0,.5)",mask:"url(#spotmask)"});
+  spotDark.style.transition = "opacity .25s"; spotDark.style.opacity = "0"; spotDark.style.pointerEvents = "none";
+  svg.appendChild(spotDark);
+  beamEl = el("line",{x1:0,y1:0,x2:0,y2:0,stroke:"#ff2b2b","stroke-width":"4","stroke-linecap":"round",opacity:"0"});
+  beamEl.style.pointerEvents = "none"; beamEl.style.filter = "drop-shadow(0 0 5px #ff0000)";
+  svg.appendChild(beamEl);
+}
+// "Whose turn" arrow: a bobbing chevron that lives inside the active token's
+// group, so it follows that player around and hops to the next on hand-off.
+function makeArrow(){
+  const g = el("g", {"class":"turnarrow"});
+  g.appendChild(el("path",{d:"M-10,-60 L10,-60 L0,-47 Z", fill:"#ffd23e",
+                           stroke:"#241a12","stroke-width":"2.2","stroke-linejoin":"round"}));
+  return g;
+}
+function updateTurnArrow(){
+  if (!arrowEl || !game) return;
+  if (game.winner){ if (arrowEl.parentNode) arrowEl.remove(); return; }
+  const g = tokenEls[game.current];
+  if (g && arrowEl.parentNode !== g) g.appendChild(arrowEl);
+}
+
+function showSpotlight(cell){ const c=cellCenter(cell); spotHole.setAttribute("cx",c.x); spotHole.setAttribute("cy",c.y); spotDark.style.opacity="1"; }
+function hideSpotlight(){ if (spotDark) spotDark.style.opacity="0"; }
+function showBeamFrom(cell){ beamFrom = cellCenter(cell); beamEl.style.opacity="1"; }
+function updateBeam(tx,ty){
+  const dx=tx-beamFrom.x, dy=ty-beamFrom.y, len=Math.hypot(dx,dy)||1;
+  beamEl.setAttribute("x1",beamFrom.x); beamEl.setAttribute("y1",beamFrom.y);
+  beamEl.setAttribute("x2", beamFrom.x+dx/len*1500); beamEl.setAttribute("y2", beamFrom.y+dy/len*1500);
+}
+function hideBeam(){ if (beamEl) beamEl.style.opacity="0"; }
+function svgPoint(evt){ const r=svg.getBoundingClientRect(); return { x:(evt.clientX-r.left)/r.width*940, y:(evt.clientY-r.top)/r.height*1040 }; }
+function showPrompt(t){ const p=document.getElementById("prompt"); p.textContent=t; p.classList.add("show"); }
+function hidePrompt(){ document.getElementById("prompt").classList.remove("show"); }
+
+/* ---- finishing (top-3 podium) / ladder-or-slide / encounter -------- */
+const MEDALS = ["🥇","🥈","🥉"];
+// The first player to the exit wins; the game then ends and everyone is ranked:
+// place 1 = the winner, the rest by how far up the board they are.
+function finishPlayer(p){
+  game.over = true; game.winner = p;
+  const rest = game.players.filter(q => q !== p).sort((a,b) => b.pos - a.pos);
+  game.standings = [p, ...rest];
+  game.standings.forEach((q,idx) => { q.place = idx + 1; });
+  SFX.play("win");
+  log(`${p.name} reached the exit and wins! 🥇`, "win");
+  showStandings();
+  game.busy = false; refreshHUD();
+}
+
+async function applyLink(p, idx){       // climb a ladder / slide a chute at p's square
+  const link = linkAt(p.pos);
+  if (!link) return false;
+  const from = p.pos;
+  await sleep(120);
+  p.pos = link.to;
+  tokenEls[idx].style.transition = `transform ${ANIM.SLIDE}ms ease-in-out`;
+  layoutTokens();
+  await sleep(ANIM.SLIDE);
+  tokenEls[idx].style.transition = `transform ${ANIM.STEP}ms ease-in-out`;
+  SFX.play(link.kind === "ladder" ? "ladder" : "chute");
+  log(link.kind==="ladder" ? TXT.climbed(from,link.to) : TXT.slid(from,link.to));
+  if (link.kind === "slide" && FEATURES.snakeCollision) await snakeCollision(p, from, link.to);
+  return true;
+}
+
+async function resolveEncounters(p){
+  const i = idxOf(p);
+  let guard = 0;
+  while (true){
+    if (++guard > 400) return;          // safety net against pathological chains
+    const cell = p.pos;
+    if (cell <= RULES.SAFE_TILES || cell === BOARD.WIN) return;
+    const others = game.players.filter(q => q !== p && q.pos === cell);
+    if (others.length === 0) return;
+    await revealRuleOnce("encounter");
+    const choice = await getEncounterChoice(p, others);
+    if (choice === "bounce"){
+      p.pos = cell + 1;
+      SFX.play("bounce");
+      layoutTokens(); renderScoreboard();
+      log(TXT.bounced(p.name, cell, p.pos));
+      await sleep(ANIM.STEP + 60);
+      await applyLink(p, i);            // a bounce onto a ladder/chute takes effect
+      renderScoreboard();
+      if (p.pos === BOARD.WIN){ finishPlayer(p); return; }
+      // loop: a fresh head on the next square earns another choice
+    } else {
+      const victim = others[(Math.random()*others.length)|0];   // kick ONE random occupant
+      SFX.play("kick");
+      if (victim.downed && FEATURES.kickWhileDown){
+        // KICK A MAN WHILE HE'S DOWN: drop them straight down a row, shame the kicker
+        await revealRuleOnce("kickdown");
+        const from = victim.pos, below = tileBelow(from);
+        if (below !== null){
+          victim.pos = below;
+          layoutTokens(); renderScoreboard();
+          log(TXT.kicked(victim.name, from, below));
+          await sleep(ANIM.STEP + 40);
+          await applyLink(victim, idxOf(victim));   // ladders/chutes at the new tile apply
+        }
+        p.shame = SHAME.TURNS;
+        refreshBadges();
+        log(`${p.name} kicked a man while down — SHAME! 😳`);
+      } else {
+        await kickBack(victim);
+        await applyLink(victim, idxOf(victim));      // kicked onto a ladder/chute takes effect
+      }
+      layoutTokens(); renderScoreboard();
+      return;                           // kicker stays put; encounter resolved
+    }
+  }
+}
+
+async function kickBack(t){
+  const start = t.pos;
+  while (true){
+    t.pos = Math.max(1, t.pos - 1);
+    layoutTokens(); renderScoreboard();
+    await sleep(ANIM.STEP + 30);
+    if (t.pos <= RULES.SAFE_TILES) break;                  // safe inside the first 10 tiles
+    const blocked = game.players.some(q => q !== t && q.pos === t.pos);
+    if (!blocked) break;                                   // reached a free square
+    // else that occupant auto-kicks them another step back
+  }
+  log(TXT.kicked(t.name, start, t.pos));
+}
+
+function getEncounterChoice(p, others){
+  return new Promise(res => {
+    if (game.autonomous){ res("bounce"); return; }         // auto-bounce when self-playing
+    showSpotlight(p.pos);                                  // light up the one who must choose
+    const names = others.map(o => o.name).join(", ");
+    document.getElementById("choiceText").innerHTML =
+      `<b style="color:${p.color}">${p.name}</b> landed on ${names}!`;
+    document.getElementById("choice").classList.add("show");
+    choiceResolve = (c) => {
+      document.getElementById("choice").classList.remove("show");
+      hideSpotlight(); choiceResolve = null; res(c);
+    };
+  });
+}
+
+function revealRuleOnce(key){
+  return new Promise(res => {
+    if (rulesSeen[key]){ res(); return; }
+    rulesSeen[key] = true;
+    SFX.play("rule");
+    const num = Object.keys(rulesSeen).length;          // discovery order: 1st, 2nd, ...
+    const info = RULE_INFO[key];
+    document.getElementById("revealIco").textContent = info.ico;
+    document.getElementById("revealTitle").textContent = `Rule+ #${num}`;
+    document.getElementById("revealName").textContent = info.name;
+    document.getElementById("revealText").textContent = info.text;
+    document.getElementById("reveal").classList.add("show");
+    revealResolve = () => {
+      document.getElementById("reveal").classList.remove("show");
+      revealResolve = null; res();
+    };
+    if (game.autonomous) setTimeout(() => { if (revealResolve) revealResolve(); }, 3800);
+  });
+}
+
+/* ---- sniper rule (every 5th round the last place gets one shot) ----- */
+function grantSniperIfDue(){
+  if (!FEATURES.sniper) return;
+  if (game.round % SNIPER.EVERY_ROUNDS !== 0) return;
+  const active = game.players.filter(p => !p.finished);
+  if (!active.length) return;
+  const minPos = Math.min(...active.map(p => p.pos));
+  const lasts = active.filter(p => p.pos === minPos);
+  const chosen = lasts[(Math.random()*lasts.length)|0];
+  chosen.sniper = true;
+  log(`Round ${game.round}: ${chosen.name} got a sniper rifle! 🎯`, "win");
+  renderScoreboard();
+}
+
+async function useSniper(shooter){
+  await revealRuleOnce("sniper");
+  showSpotlight(shooter.pos);
+  showBeamFrom(shooter.pos);
+  if (game.autonomous){
+    const targets = game.players.filter(q => q !== shooter && q.pos > 0 && !q.finished);
+    const aim = targets.length ? cellCenter(targets[(Math.random()*targets.length)|0].pos) : {x:470,y:120};
+    updateBeam(aim.x, aim.y);
+    await sleep(700);
+    await fireSniper(shooter, aim.x, aim.y);
+  } else {
+    svg.style.cursor = "crosshair";
+    showPrompt("🎯 Aim with the mouse and click to shoot!");
+    await new Promise(res => {
+      const mm = e => { const q = svgPoint(e); updateBeam(q.x, q.y); };
+      const cl = async e => { const q = svgPoint(e); cleanup(); await fireSniper(shooter, q.x, q.y); res(); };
+      function cleanup(){ svg.removeEventListener("mousemove", mm); svg.removeEventListener("click", cl); hidePrompt(); svg.style.cursor=""; }
+      svg.addEventListener("mousemove", mm);
+      svg.addEventListener("click", cl);
+    });
+  }
+  hideBeam(); hideSpotlight();
+  shooter.sniper = false;
+}
+
+async function fireSniper(shooter, tx, ty){
+  const from = cellCenter(shooter.pos);
+  const dx = tx-from.x, dy = ty-from.y, len = Math.hypot(dx,dy)||1, ux = dx/len, uy = dy/len;
+  updateBeam(tx, ty);
+  beamEl.setAttribute("stroke-width", "7");
+  SFX.play("shoot");
+  const hit = [];
+  game.players.forEach(q => {
+    if (q === shooter || q.pos <= 0 || q.finished) return;
+    const c = cellCenter(q.pos);
+    const proj = (c.x-from.x)*ux + (c.y-from.y)*uy;
+    if (proj <= 0) return;                                 // behind the shooter
+    const px = from.x+ux*proj, py = from.y+uy*proj;
+    if (Math.hypot(c.x-px, c.y-py) <= SNIPER.HIT_RADIUS) hit.push(q);
+  });
+  await sleep(150);
+  hit.forEach(q => { q.downed = true; updateDowned(idxOf(q)); });
+  if (hit.length){ SFX.play("boom"); explode(); }
+  renderScoreboard();
+  log(hit.length ? `${shooter.name} shot and hit: ${hit.map(q=>q.name).join(", ")} 💥` : `${shooter.name} missed!`);
+  await sleep(600);
+  beamEl.setAttribute("stroke-width", "4");
+}
+
+function updateDowned(i){
+  const body = tokenEls[i] && tokenEls[i].querySelector(".pawnbody");
+  if (!body) return;
+  body.style.transformBox = "fill-box";
+  body.style.transformOrigin = "50% 90%";
+  body.style.transition = "transform .45s cubic-bezier(.4,1.5,.5,1)";
+  // frozen players stay bolt upright (encased in ice); only knocked-down players topple
+  const pl = game.players[i];
+  body.style.transform = (pl.downed && !pl.frozen) ? "rotate(78deg)" : "rotate(0deg)";
+}
+
+// Icy sheen + snowflake badge on a frozen pawn (cleared when they break free).
+function updateFrozen(i){
+  const g = tokenEls[i]; if (!g) return;
+  const frozen = game.players[i].frozen;
+  const body = g.querySelector(".pawnbody");
+  if (body) body.style.filter = frozen
+    ? "saturate(.5) brightness(1.2) drop-shadow(0 0 5px #8fd4ff)" : "";
+  let ice = g.querySelector(".icebadge");
+  if (frozen){
+    if (!ice){
+      ice = el("text",{"class":"icebadge",x:0,y:-50,"text-anchor":"middle","font-size":"16"});
+      ice.textContent = "❄️"; g.appendChild(ice);
+    }
+  } else if (ice){ ice.remove(); }
+}
+
+// "SHAME" badge that floats above a player who kicked a man while down.
+function updateShame(i){
+  const g = tokenEls[i]; if (!g) return;
+  let badge = g.querySelector(".shamebadge");
+  if (game.players[i].shame > 0){
+    if (!badge){
+      badge = el("g", {"class":"shamebadge"});
+      badge.appendChild(el("rect",{x:-27,y:-80,width:54,height:16,rx:8,fill:"rgba(170,40,40,.96)",stroke:"#fff","stroke-width":"1"}));
+      const t = el("text",{x:0,y:-68,"text-anchor":"middle","font-size":"11","font-weight":"800",fill:"#fff","font-family":"Segoe UI, sans-serif"});
+      t.textContent = "SHAME"; badge.appendChild(t);
+      g.appendChild(badge);
+    }
+  } else if (badge){ badge.remove(); }
+}
+function refreshBadges(){ if (game) game.players.forEach((_,i)=>updateShame(i)); }
+
+/* ---- turn flow: start (sniper?) / end (next + round + sniper grant) - */
+async function startTurn(){
+  if (!game || game.over) return;
+  const cur = game.players[game.current];
+  // shame countdown -> the kicker eventually collapses (and needs a harder roll to rise)
+  if (cur.shame > 0){
+    cur.shame--;
+    refreshBadges();
+    if (cur.shame === 0){
+      cur.downed = true; cur.getupMin = SHAME.GETUP_MIN; updateDowned(game.current);
+      SFX.play("fall");
+      log(`${cur.name}'s shame caught up — they collapse! (needs ${SHAME.GETUP_MIN}+ to rise)`);
+      refreshHUD();
+    }
+  }
+  // very rare storm — strikes whoever is in the lead
+  if (FEATURES.lightning && Math.random() < LIGHTNING.CHANCE){
+    game.busy = true; refreshHUD();
+    await strikeLightning();
+    game.busy = false; refreshHUD();
+  }
+  // very rare lucky star — sweeps whoever is in last forward
+  if (FEATURES.luckyStar && Math.random() < LUCKY.CHANCE){
+    game.busy = true; refreshHUD();
+    await strikeLucky();
+    game.busy = false; refreshHUD();
+  }
+  // very rare reversal of fortune — leader and last place swap
+  if (FEATURES.fateSwap && Math.random() < FATE.CHANCE){
+    game.busy = true; refreshHUD();
+    await strikeFate();
+    game.busy = false; refreshHUD();
+  }
+  if (cur.sniper && !cur.downed){
+    game.busy = true; refreshHUD();
+    await useSniper(cur);
+    game.busy = false; refreshHUD();
+  }
+  maybeAuto();
+}
+
+async function endTurn(){
+  if (game.over) return;
+  await sleep(ANIM.HANDOFF);
+  const n = game.players.length, prev = game.current;
+  let c = prev;
+  do { c = (c + 1) % n; } while (game.players[c].finished && c !== prev);
+  game.current = c;
+  if (c <= prev){ game.round++; grantSniperIfDue(); }      // wrapped past the end -> new round
+  game.busy = false; refreshHUD();
+  await startTurn();
+}
+
+async function resolveGetUp(value){
+  const p = game.players[game.current];
+  const wasFrozen = p.frozen;
+  if (value >= (p.getupMin || SNIPER.GETUP_MIN)){
+    p.downed = false; p.frozen = false; p.getupMin = SNIPER.GETUP_MIN;
+    updateDowned(game.current); updateFrozen(game.current);
+    if (FEATURES.sixRollsAgain && value === RULES.DICE_SIDES){
+      log(wasFrozen ? `${p.name} smashed free on a 6 — rolls again!` : `${p.name} got up on a 6 — rolls again!`);
+      game.busy = false; refreshHUD(); maybeAuto();         // stand, then roll to move
+    } else {
+      log(wasFrozen ? `${p.name} broke free from the ice (rolled ${value})` : `${p.name} got up (rolled ${value})`);
+      await endTurn();
+    }
+  } else {
+    log(wasFrozen ? `${p.name} is still frozen solid (rolled ${value})` : `${p.name} couldn't get up (rolled ${value})`);
+    await endTurn();
+  }
+}
+
+function maybeAuto(){
+  if (game && game.autonomous && !game.winner && !game.busy){
+    setTimeout(() => {
+      if (game && game.autonomous && !game.winner && !game.busy
+          && !document.querySelector(".modal.show")) roll();
+    }, ANIM.AUTO);
+  }
+}
+
+// Celebratory flash when a 6 is rolled (and the roll-again rule is on).
+function sixEffect(){
+  SFX.play("six");
+  const fx = document.getElementById("sixfx");
+  fx.classList.remove("go"); void fx.offsetWidth; fx.classList.add("go");
+  die.classList.remove("six"); void die.offsetWidth; die.classList.add("six");
+  setTimeout(()=>die.classList.remove("six"), 600);
+}
+
+// A burst of confetti for the win.
+function confettiBurst(n){
+  for (let i=0;i<(n||90);i++){
+    const d = document.createElement("div");
+    d.className = "confetti";
+    d.style.left = (Math.random()*100) + "vw";
+    d.style.background = PLAYER_COLORS[i % PLAYER_COLORS.length];
+    const dur = 2.2 + Math.random()*2.2;
+    d.style.animationDuration = dur + "s";
+    d.style.animationDelay = (Math.random()*0.6) + "s";
+    document.body.appendChild(d);
+    setTimeout(()=> d.remove(), (dur+1)*1000);
+  }
+}
+
+// Dramatic white flash + board shake for big moments.
+function flashScreen(){
+  const f = document.getElementById("flash");
+  f.classList.remove("go"); void f.offsetWidth; f.classList.add("go");
+  const bw = document.querySelector(".board-wrap");
+  if (bw){ bw.classList.remove("shake"); void bw.offsetWidth; bw.classList.add("shake"); }
+}
+
+// Screen-centre explosion: a big pop + flying sparks + flash. (Caller plays sound.)
+function explode(){
+  const cx = window.innerWidth/2, cy = window.innerHeight/2;
+  const pop = document.createElement("div");
+  pop.className = "boom"; pop.textContent = "💥";
+  pop.style.left = cx+"px"; pop.style.top = cy+"px";
+  document.body.appendChild(pop); setTimeout(()=> pop.remove(), 750);
+  const cols = ["#ffd23e","#e0453b","#ff8c42","#ffffff"];
+  for (let i=0;i<26;i++){
+    const d = document.createElement("div"); d.className = "spark";
+    d.style.left = cx+"px"; d.style.top = cy+"px";
+    const ang = Math.random()*Math.PI*2, dist = 90+Math.random()*240;
+    d.style.setProperty("--dx", (Math.cos(ang)*dist)+"px");
+    d.style.setProperty("--dy", (Math.sin(ang)*dist)+"px");
+    d.style.background = cols[i % cols.length];
+    document.body.appendChild(d); setTimeout(()=> d.remove(), 850);
+  }
+  flashScreen();
+}
+
+/* ---- fishing minigame (dark-blue square) --------------------------- */
+// Difficulty scales with the current catch streak: streak 0 = manageable,
+// streak 2 (3rd attempt) highly difficult, streak 4 (5th) extremely so.
+function fishParams(streak){
+  return {
+    barH:      Math.max(22, 96 - streak*20),    // smaller catch zone, shrinks fast
+    fishSpeed: 130 + streak*60,                 // faster, friskier fish
+    retarget:  Math.max(0.28, 0.65 - streak*0.10), // changes direction more often
+    drain:     0.30 + streak*0.08,              // meter drains faster
+    fill:      0.40,                            // and fills slower
+  };
+}
+function showFishPhase(ph){
+  document.getElementById("fishReady").style.display  = ph==="ready"  ? "block" : "none";
+  document.getElementById("fishPlay").style.display   = ph==="play"   ? "block" : "none";
+  document.getElementById("fishResult").style.display = ph==="result" ? "block" : "none";
+}
+
+// Party prelude: "Get into position, NAME" — dismissed with Enter.
+function getReady(name){
+  document.getElementById("fishWho").textContent = name;
+  showFishPhase("ready");
+  document.getElementById("fish").classList.add("show");
+  return new Promise(res => {
+    const h = e => { if (e.code === "Enter"){ e.preventDefault(); document.removeEventListener("keydown",h); res(); } };
+    document.addEventListener("keydown", h);
+  });
+}
+
+// The minigame: HOLD the Up arrow to lift the green bar and keep it over the
+// fish; fill the meter to win, empty it to lose. Returns true on a catch.
+function fishingGame(streak){
+  showFishPhase("play");
+  const TH = 320, fishH = 26, P = fishParams(streak);
+  document.getElementById("fishMeta").textContent =
+    "Catch #" + (streak+1) + (streak>=4 ? " — EXTREME!" : streak>=2 ? " — tricky!" : "");
+  const bar = document.getElementById("fbar"), fish = document.getElementById("ffish"),
+        prog = document.getElementById("fprogfill");
+  bar.style.height = P.barH + "px";
+  let barTop = (TH - P.barH)/2, v = 0;
+  let fishTop = (TH - fishH)/2, fishTarget = fishTop, retT = 0, p = 0.38, holding = false;
+  return new Promise(res => {
+    const kd = e => { if (e.code === "ArrowUp"){ e.preventDefault(); holding = true; } };
+    const ku = e => { if (e.code === "ArrowUp"){ e.preventDefault(); holding = false; } };
+    document.addEventListener("keydown", kd); document.addEventListener("keyup", ku);
+    let last = performance.now(), raf;
+    function finish(won){
+      cancelAnimationFrame(raf);
+      document.removeEventListener("keydown", kd); document.removeEventListener("keyup", ku);
+      res(won);
+    }
+    function frame(now){
+      const dt = Math.min(0.05, (now-last)/1000); last = now;
+      v += 620*dt; if (holding) v -= 1280*dt;       // gravity vs. reel (twitchier)
+      barTop += v*dt;
+      if (barTop < 0){ barTop = 0; v = 0; }
+      if (barTop > TH-P.barH){ barTop = TH-P.barH; v = 0; }
+      retT -= dt; if (retT <= 0){ retT = P.retarget; fishTarget = Math.random()*(TH-fishH); }
+      fishTop += Math.sign(fishTarget-fishTop) * Math.min(Math.abs(fishTarget-fishTop), P.fishSpeed*dt);
+      const fc = fishTop + fishH/2;
+      p += (fc >= barTop && fc <= barTop+P.barH) ? P.fill*dt : -P.drain*dt;
+      bar.style.top = barTop+"px"; fish.style.top = fishTop+"px"; prog.style.height = (p*100)+"%";
+      if (p >= 1){ finish(true); return; }
+      if (p <= 0){ finish(false); return; }
+      raf = requestAnimationFrame(frame);
+    }
+    raf = requestAnimationFrame(frame);
+  });
+}
+
+function fishingResult(won){
+  showFishPhase("result");
+  document.getElementById("fishResultIco").textContent   = won ? "🐟" : "🌊";
+  document.getElementById("fishResultTitle").textContent = won ? "You caught a fish!" : "Leviathan!";
+  document.getElementById("fishResultText").textContent  = won
+    ? "Reel it in and carry on." : "A monster swallowed you and spat you back near the start.";
+  return new Promise(res => {
+    const done = () => { document.removeEventListener("keydown", h); document.getElementById("fish").classList.remove("show"); res(); };
+    const h = e => { if (e.code === "Enter"){ e.preventDefault(); done(); } };
+    document.addEventListener("keydown", h);
+    document.getElementById("fishResultOk").onclick = done;
+  });
+}
+
+async function runFishing(p){
+  await revealRuleOnce("fishing");
+  const streak = game.fishStreak || 0;
+  let won;
+  if (game.autonomous){
+    won = Math.random() < Math.max(0.12, 0.85 - streak*0.18);   // self-play: harder as streak grows
+  } else {
+    await getReady(p.name);
+    won = await fishingGame(streak);
+    await fishingResult(won);
+  }
+  if (won){
+    p.fish = (p.fish||0) + 1; game.fishStreak = streak + 1;
+    SFX.play("catch");
+    log(`${p.name} caught a fish! 🐟`);
+  } else {
+    game.fishStreak = 0;
+    p.pos = 1 + Math.floor(Math.random()*FISH.SPIT_MAX);
+    layoutTokens();
+    SFX.play("leviathan"); explode();
+    log(`${p.name} was hit by a leviathan and spat out at tile ${p.pos}! 🌊`);
+  }
+  renderScoreboard();
+}
+
+/* ---- teleporter (teal square): swap places with another player ----- */
+function weightedPick(items, weights){
+  let total = weights.reduce((a,b)=>a+b, 0), r = Math.random()*total;
+  for (let i=0;i<items.length;i++){ r -= weights[i]; if (r <= 0) return items[i]; }
+  return items[items.length-1];
+}
+function teleportSwap(p, forwardBias){
+  const others = game.players.filter(q => q !== p && !q.finished);
+  if (!others.length) return null;
+  const target = forwardBias
+    ? weightedPick(others, others.map(q => 1 + Math.max(0, q.pos - p.pos)*2))   // bias toward players ahead
+    : others[(Math.random()*others.length)|0];
+  const tmp = p.pos; p.pos = target.pos; target.pos = tmp;                       // swap places
+  SFX.play("teleport");
+  layoutTokens(); renderScoreboard();
+  log(`${p.name} ⇄ ${target.name}`);
+  return target;
+}
+
+let tpResolve = null;
+function teleportChoice(p){
+  return new Promise(res => {
+    showSpotlight(p.pos);
+    document.getElementById("tpText").innerHTML =
+      `<b style="color:${p.color}">${p.name}</b> stepped onto a teleporter!`;
+    document.getElementById("tpchoice").classList.add("show");
+    tpResolve = (yes) => {
+      document.getElementById("tpchoice").classList.remove("show");
+      hideSpotlight(); tpResolve = null; res(yes);
+    };
+  });
+}
+
+async function runTeleporter(p){
+  await revealRuleOnce("teleport");
+  const hasFish = (p.fish||0) > 0;
+  if (hasFish && FEATURES.teleportMalfunction){
+    await revealRuleOnce("teleportmalf");
+    log(`${p.name}'s fish jams the teleporter!`);
+    teleportSwap(p, true);                 // forced, biased toward the front
+    await sleep(540);
+    return;
+  }
+  const use = game.autonomous ? (Math.random() < 0.6) : await teleportChoice(p);
+  if (use){ teleportSwap(p, false); await sleep(540); }
+  else log(`${p.name} left the teleporter alone.`);
+}
+
+/* ---- lightning (very rare): strike the leader ---------------------- */
+async function strikeLightning(){
+  await revealRuleOnce("lightning");
+  const active = game.players.filter(p => !p.finished && p.pos > 0);
+  if (!active.length) return;
+  const top = Math.max(...active.map(p => p.pos));
+  const victim = active.find(p => p.pos === top);          // the front-runner
+  SFX.play("thunder"); explode();
+  victim.pos = Math.max(1, victim.pos - LIGHTNING.BACK);
+  victim.downed = true; victim.getupMin = SNIPER.GETUP_MIN; updateDowned(idxOf(victim));
+  layoutTokens(); renderScoreboard();
+  log(`🌩️ Lightning struck ${victim.name} — knocked flat and back to tile ${victim.pos}!`);
+  await sleep(750);
+}
+
+/* ---- lucky star (very rare): sweep the trailing player forward ----- */
+async function strikeLucky(){
+  const active = game.players.filter(p => !p.finished && p.pos > 0);
+  if (active.length < 2) return;                           // need someone to be "behind"
+  await revealRuleOnce("lucky");
+  const bottom = Math.min(...active.map(p => p.pos));
+  const lucky = active.find(p => p.pos === bottom);        // the trailing player
+  SFX.play("sparkle");
+  lucky.pos = Math.min(BOARD.WIN - 1, lucky.pos + LUCKY.FORWARD);   // never auto-wins
+  layoutTokens(); renderScoreboard();
+  log(`🌟 A lucky star swept ${lucky.name} forward to tile ${lucky.pos}!`);
+  await sleep(700);
+}
+
+/* ---- reversal of fortune (very rare): leader <-> last swap ---------- */
+async function strikeFate(){
+  const active = game.players.filter(p => !p.finished && p.pos > 0);
+  if (active.length < 2) return;
+  const top = Math.max(...active.map(p => p.pos)), bot = Math.min(...active.map(p => p.pos));
+  if (top === bot) return;                                 // everyone level — nothing to swap
+  await revealRuleOnce("fate");
+  const leader = active.find(p => p.pos === top), last = active.find(p => p.pos === bot);
+  SFX.play("teleport"); flashScreen();
+  const tmp = leader.pos; leader.pos = last.pos; last.pos = tmp;
+  layoutTokens(); renderScoreboard();
+  log(`🔃 Reversal of fortune! ${leader.name} and ${last.name} swapped places!`);
+  await sleep(750);
+}
+
+/* ---- orange square: Wheel / Support / Gun -------------------------- */
+function downPlayer(pl){ pl.downed = true; pl.getupMin = SNIPER.GETUP_MIN; updateDowned(idxOf(pl)); }
+function freezePlayer(pl){
+  pl.downed = true; pl.frozen = true; pl.getupMin = FREEZE.GETUP_MIN;
+  const i = idxOf(pl); updateDowned(i); updateFrozen(i);
+}
+
+// Freeze the active player if they landed on an icy square, or onto a tile
+// right next to a frozen player (the frost spreads). Returns true if frozen.
+async function tryFreeze(p){
+  if (p.frozen) return false;
+  const onIce = FREEZE_TILES.includes(p.pos);
+  const nearFrozen = game.players.some(q => q !== p && q.frozen && !q.finished
+    && q.pos > 0 && Math.abs(q.pos - p.pos) <= FREEZE.ADJ);
+  if (!onIce && !nearFrozen) return false;
+  await revealRuleOnce("freeze");
+  freezePlayer(p);
+  SFX.play("fall"); layoutTokens(); renderScoreboard();
+  log(onIce
+    ? `🧊 ${p.name} stepped onto the ice and froze solid! (needs ${FREEZE.GETUP_MIN}+ to break free)`
+    : `🧊 ${p.name} froze — too close to a frozen player! (needs ${FREEZE.GETUP_MIN}+ to break free)`);
+  await sleep(700);
+  return true;
+}
+
+// Sliding down a chute from `head` to `tail` bowls over anyone in the way.
+async function snakeCollision(slider, head, tail){
+  const hits = game.players.filter(q => q !== slider && !q.finished && q.pos > 0
+    && q.pos === tail);
+  if (!hits.length) return;
+  await revealRuleOnce("snakehit");
+  explode(); SFX.play("boom");
+  hits.forEach(q => { q.pos = Math.max(1, q.pos - 5); downPlayer(q); });
+  layoutTokens(); renderScoreboard();
+  log(`💥 ${slider.name} bowled over ${hits.map(h=>h.name).join(", ")} sliding down!`);
+  await sleep(750);
+}
+
+// Walk a player N spaces (bounce-aware), apply a ladder/chute, check the win.
+async function advancePlayer(pl, n){
+  const idx = idxOf(pl);
+  const path = walkPath(pl.pos === 0 ? 0 : pl.pos, n);
+  for (const c of path){ pl.pos = c; moveTokenTo(idx, c); SFX.play("step"); await sleep(ANIM.STEP*0.7); }
+  await applyLink(pl, idx);
+  layoutTokens(); renderScoreboard();
+  if (pl.pos === BOARD.WIN){ finishPlayer(pl); return true; }
+  return false;
+}
+
+let orangeResolve = null;
+function orangeChoice(p){
+  return new Promise(res => {
+    showSpotlight(p.pos);
+    document.getElementById("orangeText").innerHTML =
+      `<b style="color:${p.color}">${p.name}</b> — Wheel, Support or Gun?`;
+    document.getElementById("orange").classList.add("show");
+    orangeResolve = (c) => {
+      document.getElementById("orange").classList.remove("show");
+      hideSpotlight(); orangeResolve = null; res(c);
+    };
+  });
+}
+
+let pickResolve = null;
+function pickPlayer(title, candidates){
+  return new Promise(res => {
+    document.getElementById("pickerTitle").textContent = title;
+    const list = document.getElementById("pickerList"); list.innerHTML = "";
+    candidates.forEach(q => {
+      const b = document.createElement("button");
+      b.className = "btn"; b.textContent = q.name; b.style.background = q.color; b.style.boxShadow = "none";
+      b.onclick = () => { document.getElementById("picker").classList.remove("show"); pickResolve = null; res(q); };
+      list.appendChild(b);
+    });
+    pickResolve = res;
+    document.getElementById("picker").classList.add("show");
+  });
+}
+
+async function gunRoulette(p){
+  SFX.play("click");
+  const r = 1 + Math.floor(Math.random()*6);
+  if (r === 1){                                   // 1/6: the top three go down
+    explode(); SFX.play("boom");
+    const top3 = game.players.filter(q => !q.finished && q.pos > 0)
+                   .sort((a,b)=> b.pos - a.pos).slice(0,3);
+    top3.forEach(downPlayer); layoutTokens(); renderScoreboard();
+    log(`🔫 BANG! The frontrunners drop: ${top3.map(q=>q.name).join(", ")}`);
+  } else if (r <= 3){                             // 2/6: you shoot yourself
+    explode(); SFX.play("boom");
+    downPlayer(p); layoutTokens(); renderScoreboard();
+    log(`🔫 BANG! ${p.name} shot themselves and collapses.`);
+  } else {                                        // 3/6: nothing
+    SFX.play("click"); log(`🔫 *click* — nothing happens.`);
+  }
+  await sleep(750);
+}
+
+const WHEEL_LABELS = ["☢️","🔙","➡️","🚀","✖"];   // nuke / start / next / +15 / nothing
+const WHEEL_COLORS = ["#d64541","#8e44ad","#2e86c1","#27ae60","#7f8c8d"];
+function wpol(cx,cy,r,deg){ const a = (deg-90)*Math.PI/180; return [cx+r*Math.cos(a), cy+r*Math.sin(a)]; }
+function buildWheel(){
+  const g = document.getElementById("wheelSpin"); if (!g) return;
+  g.innerHTML = "";
+  for (let i=0;i<5;i++){
+    const [x1,y1] = wpol(100,100,92,i*72), [x2,y2] = wpol(100,100,92,(i+1)*72);
+    g.appendChild(el("path",{ d:`M100,100 L${x1.toFixed(1)},${y1.toFixed(1)} A92,92 0 0 1 ${x2.toFixed(1)},${y2.toFixed(1)} Z`,
+                              fill:WHEEL_COLORS[i], stroke:"#1a140d", "stroke-width":"2" }));
+    const [lx,ly] = wpol(100,100,60,i*72+36);
+    const t = el("text",{ x:lx.toFixed(1), y:(ly+8).toFixed(1), "text-anchor":"middle", "font-size":"26" });
+    t.textContent = WHEEL_LABELS[i]; g.appendChild(t);
+  }
+  g.appendChild(el("circle",{ cx:"100", cy:"100", r:"11", fill:"#f6ecd9", stroke:"#1a140d", "stroke-width":"2" }));
+}
+function showWheel(idx){
+  return new Promise(res => {
+    const g = document.getElementById("wheelSpin");
+    g.style.transition = "none"; g.style.transform = "rotate(0deg)";
+    void document.getElementById("wheelSvg").getBoundingClientRect();          // reflow before the spin
+    document.getElementById("wheel").classList.add("show");
+    SFX.play("spin");
+    const target = 360*6 + (360 - (idx*72 + 36));     // many turns, then land segment idx under the pointer
+    requestAnimationFrame(()=> {
+      g.style.transition = "transform 5s cubic-bezier(.15,.85,.1,1)";          // fast -> slower -> slower
+      g.style.transform = `rotate(${target}deg)`;
+    });
+    setTimeout(()=> { SFX.play("six"); setTimeout(()=> { document.getElementById("wheel").classList.remove("show"); res(); }, 800); }, 5100);
+  });
+}
+async function spinWheel(p){
+  const idx = Math.floor(Math.random()*5);
+  const pick = ["nuke","start","next","move15","nothing"][idx];   // 1/5 each
+  await showWheel(idx);
+  if (pick === "nuke"){
+    explode(); SFX.play("boom");
+    const victims = game.players.filter(q => !q.finished && q.pos > 0 && !isBlueTile(q.pos));
+    victims.forEach(downPlayer); layoutTokens(); renderScoreboard();
+    log(`☢️ NUKE! Everyone not on a blue tile is knocked down.`);
+    await sleep(850);
+  } else if (pick === "start"){
+    SFX.play("chute"); p.pos = 1; layoutTokens(); renderScoreboard();
+    log(`🎡 The wheel sends ${p.name} back to the start!`); await sleep(650);
+  } else if (pick === "next"){
+    log(`🎡 ${p.name} edges to the next square.`); await advancePlayer(p, 1);
+  } else if (pick === "move15"){
+    log(`🎡 ${p.name} rockets 15 spaces forward!`); await advancePlayer(p, 15);
+  } else {
+    SFX.play("click"); log(`🎡 The wheel lands on nothing.`); await sleep(500);
+  }
+}
+
+async function runSupport(p){
+  const others = game.players.filter(q => q !== p && !q.finished);
+  if (!others.length){ log(`${p.name} has no one to support.`); return; }
+  const target = game.autonomous
+    ? others[(Math.random()*others.length)|0]
+    : await pickPlayer(`${p.name}: who moves +5?`, others);
+  if (!target) return;
+  SFX.play("sparkle");
+  log(`🤝 ${p.name} supports ${target.name} — forward 5!`);
+  await advancePlayer(target, 5);
+}
+
+async function runOrange(p){
+  await revealRuleOnce("orange");
+  const opt = game.autonomous
+    ? ["wheel","support","gun"][Math.floor(Math.random()*3)]
+    : await orangeChoice(p);
+  if (opt === "gun") await gunRoulette(p);
+  else if (opt === "support") await runSupport(p);
+  else await spinWheel(p);
+}
+
+/* ---- banner / final standings -------------------------------------- */
+function showStandings(){
+  const s = game.standings;
+  const heights = {1:96, 2:74, 3:58, 4:42, 5:42};
+  // podium order across the screen: 4th · 2nd · 1st · 3rd · 5th (sides only if enough)
+  const order = [4,2,1,3,5].filter(pl => s.length >= pl);
+  let pod = '<div class="podium">';
+  order.forEach(pl => {
+    const p = s[pl-1];
+    pod += `<div class="pcol${pl<=3?" top3":""}">` +
+             `<div class="pname">${MEDALS[pl-1]||""} ${p.name}</div>` +
+             `<div class="pbar" style="height:${heights[pl]}px;background:${p.color}">${pl}</div>` +
+           `</div>`;
+  });
+  pod += '</div>';
+  let lb = '<div class="lbtitle">Leaderboard</div><div class="lb">';
+  s.forEach((p,idx) => {
+    lb += `<div class="lbrow"><span>${idx+1}. ${MEDALS[idx]||""}</span>` +
+          `<b style="color:${p.color}">${p.name}</b></div>`;
+  });
+  lb += '</div>';
+  document.getElementById("bannerText").innerHTML = pod + lb;
+  document.getElementById("banner").classList.add("show");
+  confettiBurst();
+}
+function hideBanner(){ document.getElementById("banner").classList.remove("show"); }
+
+/* ---- setup controls ------------------------------------------------ */
+let chosenSeats = 2;
+let setupNames = [];
+
+/* ---- screen flow: title -> setup -> game --------------------------- */
+function showScreen(which){
+  document.getElementById("screenTitle").classList.toggle("show", which==="title");
+  document.getElementById("screenSetup").classList.toggle("show", which==="setup");
+  // "game" simply hides both overlays, revealing the board underneath
+}
+
+function openSetup(){
+  if (game){                          // prefill the form from the current roster
+    chosenSeats = game.players.length;
+    setupNames = game.players.map(p=>p.name);
+  }
+  buildSetup();
+  showScreen("setup");
+}
+
+function buildSetup(){
+  document.getElementById("setupCount").textContent = chosenSeats + " players";
+  const list = document.getElementById("nameList");
+  list.innerHTML = "";
+  for (let i=0;i<chosenSeats;i++){
+    const row = document.createElement("div"); row.className = "namerow";
+    const sw = document.createElement("span"); sw.className = "swatch";
+    sw.style.background = PLAYER_COLORS[i];
+    const inp = document.createElement("input"); inp.type = "text"; inp.maxLength = 18;
+    inp.value = setupNames[i] != null ? setupNames[i] : ("Player " + (i+1));
+    inp.placeholder = "Player " + (i+1);
+    inp.oninput = ()=>{ setupNames[i] = inp.value; };
+    row.append(sw, inp); list.appendChild(row);
+  }
+}
+
+function startFromSetup(){
+  const roster = [];
+  for (let i=0;i<chosenSeats;i++){
+    const nm = (setupNames[i] || "").trim() || ("Player " + (i+1));
+    roster.push({ name: nm });
+  }
+  autonomousMode = document.getElementById("autoMode").checked;
+  newGame(roster);
+  showScreen("game");
+  startTurn();                     // begin (handles a first-turn sniper, then auto if enabled)
+}
+
+/* ---- wire up ------------------------------------------------------- */
+die.addEventListener("click", roll);
+document.addEventListener("keydown", e=>{
+  if (document.getElementById("fish").classList.contains("show")) return;   // minigame owns its keys
+  if (document.getElementById("picker").classList.contains("show")) return; // pick via buttons
+  if (document.getElementById("wheel").classList.contains("show")) return;  // wheel is spinning
+  if (document.getElementById("orange").classList.contains("show")){
+    if (e.code === "KeyW"){ if (orangeResolve) orangeResolve("wheel"); }
+    else if (e.code === "KeyS"){ if (orangeResolve) orangeResolve("support"); }
+    else if (e.code === "KeyG"){ if (orangeResolve) orangeResolve("gun"); }
+    return;
+  }
+  if (document.getElementById("reveal").classList.contains("show")){
+    if (e.code === "Enter"){ e.preventDefault(); if (revealResolve) revealResolve(); }
+    else if (e.code === "Space"){ e.preventDefault(); }   // Space must NOT skip a rule reveal
+    return;
+  }
+  if (document.getElementById("choice").classList.contains("show")){
+    if (e.code === "KeyB"){ if (choiceResolve) choiceResolve("bounce"); }
+    else if (e.code === "KeyK"){ if (choiceResolve) choiceResolve("kick"); }
+    return;
+  }
+  if (document.getElementById("tpchoice").classList.contains("show")){
+    if (e.code === "KeyY"){ if (tpResolve) tpResolve(true); }
+    else if (e.code === "KeyN"){ if (tpResolve) tpResolve(false); }
+    return;
+  }
+  if (document.querySelector(".screen.show")) return;       // not while a menu is open
+  if (e.target && e.target.tagName === "INPUT") return;     // not while typing a name
+  if (e.code === "Space" || e.code === "Enter"){ e.preventDefault(); roll(); }
+});
+
+document.getElementById("revealOk").addEventListener("click", ()=>{ if (revealResolve) revealResolve(); });
+document.getElementById("choiceBounce").addEventListener("click", ()=>{ if (choiceResolve) choiceResolve("bounce"); });
+document.getElementById("choiceKick").addEventListener("click", ()=>{ if (choiceResolve) choiceResolve("kick"); });
+document.getElementById("tpYes").addEventListener("click", ()=>{ if (tpResolve) tpResolve(true); });
+document.getElementById("tpNo").addEventListener("click", ()=>{ if (tpResolve) tpResolve(false); });
+document.getElementById("optWheel").addEventListener("click", ()=>{ if (orangeResolve) orangeResolve("wheel"); });
+document.getElementById("optSupport").addEventListener("click", ()=>{ if (orangeResolve) orangeResolve("support"); });
+document.getElementById("optGun").addEventListener("click", ()=>{ if (orangeResolve) orangeResolve("gun"); });
+["pointerdown","keydown"].forEach(ev => document.addEventListener(ev, ()=>SFX.play("click"), { once:true }));
+
+document.getElementById("playBtn").addEventListener("click", openSetup);
+document.getElementById("toSetup").addEventListener("click", openSetup);
+document.getElementById("backBtn").addEventListener("click", ()=>showScreen("title"));
+document.getElementById("seatMinus").addEventListener("click", ()=>{ chosenSeats=Math.max(2,chosenSeats-1); buildSetup(); });
+document.getElementById("seatPlus").addEventListener("click", ()=>{ chosenSeats=Math.min(MAX_PLAYERS,chosenSeats+1); buildSetup(); });
+document.getElementById("startBtn").addEventListener("click", startFromSetup);
+document.getElementById("bannerNew").addEventListener("click", ()=>{
+  newGame(game.players.map(p=>({ name:p.name })));          // replay the same roster
+  startTurn();
+});
+
+makeSnow(38);
+makeClouds(5);
+buildWheel();
+showScreen("title");
+</script>
+</body>
+</html>

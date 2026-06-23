@@ -1,0 +1,197 @@
+# The Ladder Game — Rules
+
+A summer-themed Norwegian *stigespill* (snakes & ladders). Single self-contained
+`index.html` — double-click to play. 2–11 players, hotseat (share one device).
+
+---
+
+## Goal
+Be the **first** player to land **exactly** on the final square (**tile 90**) —
+that player **wins**. The game then ends and everyone is ranked: 1st is the
+winner, and the rest are ordered by how far up the board they are. The end screen
+shows a **podium** (1st 🥇 in the centre, 2nd 🥈 and 3rd 🥉 either side, with 4th
+and 5th on the sides when there are enough players) followed by a full
+**leaderboard**.
+
+## The board
+- **9 × 10 = 90 tiles**, numbered 1 (bottom-left) → 90 (top-left) in a
+  boustrophedon (snaking) path.
+- **Ladders** carry you up; **chutes** slide you down. The set is balanced:
+  ladders skip **124 tiles up** in total and chutes skip **124 down**, so over
+  the whole board they cancel out.
+
+## A turn
+1. The current player (shown by the **bobbing arrow** above their pawn) taps the
+   die or presses **SPACE / ENTER**.
+2. The pawn steps forward that many tiles.
+3. If it ends on a ladder or chute, it climbs / slides.
+4. Then any optional rules below resolve, and play passes to the next player.
+
+Multiple pawns share a tile **symmetrically** (centred when alone, fanned out in
+a ring when crowded). Each pawn shows the player's name above it (long names are
+clipped).
+
+---
+
+## Core rule
+
+### Exact finish (bounce-back)
+You must land **exactly** on tile 90. If a roll would overshoot, you bounce back
+the leftover steps (e.g. on 88, a roll of 5 goes 89 → 90 → 89 → 88).
+*Toggle: `FEATURES.exactFinish`. Off = any overshoot just reaches 90 and wins.*
+
+---
+
+## Optional rules (each can be toggled in code)
+
+### Roll a 6 → roll again
+Rolling a 6 lets the same player roll again (with a little celebration effect).
+Chains if you keep rolling 6s.
+*Toggle: `FEATURES.sixRollsAgain`.*
+
+### Encounter — bounce or kick (hidden rule)
+Only **past tile 10** (the first 10 tiles are a safe zone). If you land on a tile
+that already has another player on it, you choose:
+- **Bounce over** — hop **+1 forward**. If you land on *another* occupied tile,
+  you choose again (it can chain down a row, and can even bounce onto tile 90 to
+  win).
+- **Kick back** — knock **one random** occupant of that tile **−1 back**. If they
+  land on another occupied tile they are **auto-kicked further back**, cascading
+  until they reach a free tile or the safe first-10 tiles.
+
+A bounce or a kick that ends on a ladder or chute **triggers it** (climb / slide).
+The first time this rule fires, a popup explains it (**Enter** to continue —
+Space won't skip it).
+*Toggle: `FEATURES.encounter`.*
+
+### Sniper (hidden rule)
+Every **5th round** (round 5, 10, 15 …) the player in **last place** gets a
+**one-shot sniper rifle**. On their turn, before rolling, a **red laser** follows
+the mouse — **click to fire**. Every player on the beam is **knocked down**
+(aim at empty space to skip the shot).
+
+A knocked-down player, on their next turn, rolls to **get up** instead of moving:
+- **3 or more** → they stand up. Their turn then ends with no move — **unless they
+  rolled a 6**, in which case they stand and roll again to move.
+- **2 or less** → they stay down and try again next turn.
+
+*Toggle: `FEATURES.sniper`. (A round = one full pass through the players still in play.)*
+
+### Kick a man while he's down (hidden rule)
+If, on a **kick**, the player you kick is **already lying down**:
+- They are kicked **straight to the tile directly below them** (one row down). Any
+  ladder / chute on that tile still applies.
+- **Shame** follows you: the word **"SHAME"** hovers over you for **3 of your
+  turns**, and then **you collapse** too — and getting up now needs **4 or more**
+  (instead of 3).
+
+*Toggle: `FEATURES.kickWhileDown`.*
+
+### Fishing (hidden rule)
+Land on the **dark-blue square** and you play a quick **fishing minigame**. Like
+all minigames it opens with a **"Get into position, NAME"** screen — press
+**Enter** once the right player is at the keyboard. Then **hold the ↑ Up arrow**
+to lift the green bar and keep it over the fish until the meter fills (a **catch**:
+you keep a 🐟 and stay put). Let the meter empty and a **leviathan** swallows you
+and spits you onto a **random tile near the start (1–30)**.
+
+It's tricky even the first time, and **every catch in a row makes the next one
+harder** (a 3rd straight attempt is brutal); a miss resets it to the base
+difficulty. *Controls: only the **↑ Up arrow** — no mouse / space / enter.*
+
+*Toggle: `FEATURES.fishing`. Trigger tiles = `FISH.TILES` (35, 49 & 70 — the dark-blue squares).*
+
+### Teleporter (hidden rule)
+Two **teal squares** are teleporters. Land on one and you may **teleport — swapping
+places with another player at random** (**Y** to do it, **N** to stay put).
+
+### Faulty teleporter (hidden rule)
+Step onto a teleporter **while carrying a fish** and it **misfires**: you're swapped
+whether you want it or not, and it's **more likely to fling you toward a player
+further up the board**.
+
+*Toggles: `FEATURES.teleport`, `FEATURES.teleportMalfunction`. Teleporter tiles =
+`TELEPORTERS` (22 & 66).*
+
+### Lightning (very rare)
+Once in a blue moon (about **1.5% of turns**) a storm strikes the player in the
+**lead** — knocking them **down** and **back** down the board, with a flash of
+lightning and a clap of thunder. Mercifully rare.
+
+*Toggle: `FEATURES.lightning` (chance/distance in `LIGHTNING`).*
+
+### Lucky star (very rare)
+The flip side of lightning: once in a while (about **1.2% of turns**) a shooting
+star favours whoever is **in last place**, sweeping them a good way up the board
+(never far enough to win outright). A rare comeback for the underdog.
+
+*Toggle: `FEATURES.luckyStar` (chance/distance in `LUCKY`).*
+
+### Reversal of fortune (very rare)
+About **1% of turns**, fate flips on a whim and the player **in the lead** trades
+places with the player **in last** — an instant, dramatic shake-up of the order.
+
+*Toggle: `FEATURES.fateSwap` (chance in `FATE`).*
+
+### Orange choice — Wheel / Support / Gun (hidden rule)
+Land on an **orange square** and pick one of three:
+- **🎡 Wheel** — spin the wheel of fortune; each slice is **1-in-5**: **Nuke**
+  (knocks down everyone *not* standing on a blue tile), **back to start**,
+  **forward one square**, **forward 15 squares**, or **nothing**.
+- **🤝 Support** — choose another player and move **them** forward 5.
+- **🔫 Gun** — Russian roulette: **1-in-6** the three frontrunners go down,
+  **2-in-6** you shoot yourself down, otherwise **nothing**.
+
+*Toggle: `FEATURES.orange`. Orange tiles = `ORANGE_TILES` (12, 46, 77).* The Wheel
+shows a real wheel that spins for ~5 seconds (fast, then slowing) before landing.
+
+### Pile-up (hidden rule)
+**Slide down a chute into other players** and you bowl them over: anyone in the
+chute's path is knocked **down** and back a space, and whoever sits at the **very
+bottom** of the chute is hit the hardest (knocked further back).
+
+*Toggle: `FEATURES.snakeCollision`.*
+
+---
+
+## Sound &amp; spectacle
+Light **synthesised sound effects** throughout (dice, steps, ladders/chutes,
+bounce/kick, sniper, fishing, teleporter, wins …) — no audio files, so it stays one
+self-contained page. Toggle with `FEATURES.sound`. On the big dramatic moments
+(nukes, the gun, lightning, the leviathan, sniper hits, pile-ups) you also get
+**explosions, screen flashes and shakes**, and **confetti** rains down on the win.
+
+---
+
+## Autonomous mode
+A checkbox on the setup screen. The game then **plays itself** — auto-rolls, auto-
+resolves every choice (always bounces; auto-aims the sniper at a random target),
+and auto-dismisses popups. Good for a hands-off / streamed game.
+
+---
+
+## Toggling rules from code (the rule "layers")
+All rules are layered so you can switch them on/off, or combine them into "game
+modes" later. Edit the `FEATURES` block near the top of the `<script>` in
+`index.html`:
+
+```js
+const FEATURES = {
+  exactFinish:   true,   // exact landing on 90 (overshoot bounces back)
+  sixRollsAgain: true,   // a 6 grants another roll
+  encounter:     true,   // bounce / kick on an occupied tile past tile 10
+  sniper:        true,   // every 5th round, last place gets a one-shot sniper
+  kickWhileDown: true,   // kicking a downed player drops them a row & shames the kicker
+};
+```
+
+The plain race (move → ladders/chutes → win) always works regardless of what is
+turned off. Other tunables live nearby: `RULES` (dice sides, safe-zone size),
+`SNIPER` (how often, hit radius, get-up threshold), `LADDERS` / `SLIDES`
+(board content), and `ANIM` (timing).
+
+## Controls
+- **SPACE / ENTER** or click the die — roll.
+- **B / K** — bounce / kick when the choice bar is up.
+- **Enter** — dismiss a hidden-rule popup.
+- **Mouse + click** — aim and fire the sniper.
