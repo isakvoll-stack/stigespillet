@@ -11,7 +11,20 @@ See `LOG.md` for the running session history.
 
 ## Active
 
-(empty — everything below shipped 2026-06-24; pull from Ideas next)
+### Animation polish (Isak's notes, 2026-06-24)
+- [ ] **Gun cutscene needs a LOT of work.** The revolver + muzzle-flash + boom is
+      placeholder-tier. Wants a proper sequence (draw/aim/cock/fire, real recoil,
+      bullet/impact, reaction on the victims) — rethink, don't just tweak.
+- [ ] **Leviathan cutscene needs a LOT of work.** The 🐙 + waves popping up is weak.
+      Wants a real sea-monster set-piece (water rising, the beast emerging and
+      seizing/dragging the player under) — rethink from scratch.
+- [ ] **Lightning needs some work.** Decent base (clouds/rumble/bolt/crack) but not
+      there yet — improve the storm build-up, the bolt itself, and the impact.
+
+### Other
+- [x] **Teleport chain bug fixed (2026-06-24)** — choosing to teleport no longer makes
+      the swapped-in player re-teleport off the teal tile (and so on). A swap now does
+      exactly one swap; `resolveLanding(..., skipTeleport)` stops the cascade. Verified.
 
 ---
 

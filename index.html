@@ -1655,6 +1655,7 @@ function fishingResult(won){
 }
 
 // A sea monster surges up where the player stood, then drags them off (boom).
+// TODO(polish): placeholder cutscene — needs a LOT of work (real water + beast seizing the player).
 async function leviathanFx(cell){
   const s = cellToScreen(cell);
   ["🌊","💦","🌊"].forEach((g,i)=>{
@@ -1738,16 +1739,17 @@ async function runTeleporter(p){
     log(`${p.name}'s fish jams the teleporter!`);
     const tgt = teleportSwap(p, true);     // forced, biased toward the front
     await sleep(540);
-    if (tgt){ await resolveLanding(tgt); await resolveLanding(p); }
+    if (tgt){ await resolveLanding(tgt, 0, true); await resolveLanding(p, 0, true); }  // no re-teleport
     return;
   }
   const use = game.autonomous ? (Math.random() < 0.6) : await teleportChoice(p);
-  if (use){ const tgt = teleportSwap(p, false); await sleep(540); if (tgt){ await resolveLanding(tgt); await resolveLanding(p); } }
+  if (use){ const tgt = teleportSwap(p, false); await sleep(540); if (tgt){ await resolveLanding(tgt, 0, true); await resolveLanding(p, 0, true); } }
   else log(`${p.name} left the teleporter alone.`);
 }
 
 /* ---- lightning (very rare): strike the leader ---------------------- */
 // Storm clouds roll in, thunder rumbles, then a bolt cracks down onto a tile.
+// TODO(polish): needs some work — improve the storm build-up, the bolt, and the impact.
 async function lightningFx(cell){
   const storm = document.getElementById("storm");
   for (let i=0;i<5;i++){
@@ -1898,7 +1900,7 @@ async function snakeCollision(slider, head, tail, depth){
    orange Wheel/Support/Gun choice). The depth cap stops ladder<->chute<->
    teleport chains from looping forever. */
 const LANDING_MAX_DEPTH = 6;
-async function resolveLanding(pl, depth){
+async function resolveLanding(pl, depth, skipTeleport){
   depth = depth || 0;
   if (!game || game.over || !pl || pl.finished) return;
   if (depth >= LANDING_MAX_DEPTH) return;
@@ -1913,14 +1915,16 @@ async function resolveLanding(pl, depth){
   // icy tile / frost spread — freezing ends the cascade (they're stuck solid)
   if (FEATURES.freeze && !pl.frozen && await tryFreeze(pl)) return;
 
-  // teleporter — arriving here off your own turn forces the swap
-  if (FEATURES.teleport && TELEPORTERS.includes(pl.pos)){
+  // teleporter — arriving here off your own turn forces the swap. A player who was
+  // just SWAPPED onto a teal tile must NOT teleport again (skipTeleport), otherwise
+  // swaps chain forever (A↔B, then B on the teal ↔ C, then C ↔ D, …).
+  if (!skipTeleport && FEATURES.teleport && TELEPORTERS.includes(pl.pos)){
     await revealRuleOnce("teleport");
     const target = teleportSwap(pl, false);
     await sleep(540);
     if (target){
-      await resolveLanding(target, depth+1);
-      await resolveLanding(pl, depth+1);
+      await resolveLanding(target, depth+1, true);   // both swap partners: no re-teleport
+      await resolveLanding(pl, depth+1, true);
     }
     return;
   }
@@ -1968,6 +1972,7 @@ function pickPlayer(title, candidates){
 }
 
 // A revolver appears, cocks, then muzzle-flashes + explodes on each target tile.
+// TODO(polish): placeholder cutscene — needs a LOT of work (proper draw/aim/recoil/impact).
 async function gunFx(targetCells){
   const gun = document.createElement("div"); gun.className = "gunfx"; gun.textContent = "🔫";
   gun.style.left = "50%"; gun.style.top = "42%";
@@ -2077,7 +2082,7 @@ async function freezeFromRandom(p){
 async function randomTeleport(p){
   await revealRuleOnce("teleport");
   const tgt = teleportSwap(p, false); await sleep(540);
-  if (tgt){ await resolveLanding(tgt); await resolveLanding(p); }
+  if (tgt){ await resolveLanding(tgt, 0, true); await resolveLanding(p, 0, true); }  // no re-teleport
 }
 async function randomWheelEffect(p){
   const effects = [
