@@ -9,55 +9,41 @@ See `LOG.md` for the running session history.
 
 ---
 
-## Active — requested 2026-06-23/24 (autonomous build)
+## Active
 
-### Effects & animations
-- [ ] **Explosions follow the target.** They were always screen-centre. Centre each
-      explosion on the *targeted player's tile* — specifically where they stood
-      **before** the effect moved/knocked them. (`explode(cell)` + `cellToScreen`.)
-- [ ] **Lightning animation.** Clouds roll in → rumbling thunder → a lightning bolt
-      strikes the leader's tile with a sharp crack. Then the existing knock-back.
-- [ ] **Lucky star animation (~4s).** A star flies across the screen, scoops up the
-      last-place player, and carries them to their destination tile over ~4 seconds.
-- [ ] **Nuke sequence.** Classic nuclear air-raid siren → wait ~5s → a nuke descends
-      from above, ~3s to impact → giant explosion → screen fades to **white for 4s**
-      → board revealed again.
-- [ ] **Gun animation.** Add a visual to the gun/roulette outcome (draw, muzzle
-      flash, bang at the victims) instead of a bare centre explosion.
-- [ ] **Leviathan animation.** Add a sea-monster visual on a failed catch (the wave/
-      monster rising at the player's tile, dragging them off) instead of a bare boom.
-
-### Wheel of Fortune
-- [ ] **Add the missing 6th slot = "RANDOM".** Lands → fire a random effect from the
-      whole game: any wheel outcome (nuke / back-to-start / next / +15 / nothing),
-      the gun, randomly support a player, lightning, gain a fish, get frozen, the
-      star, the swap, a random teleport — and any other effect in the game.
-- [ ] **Fix pointer accuracy.** The arrow didn't line up with the landed slot. Put
-      the pointer inside the wheel SVG (pixel-aligned to centre) and make the spin
-      math land the chosen segment exactly under it.
-
-### Probability tuning
-- [ ] **Make swap, star and lightning ~3× rarer** than they currently are
-      (per-turn random chances ÷ 3). Swap is otherwise fine as-is.
-
-### Fishing
-- [ ] **Slightly easier and longer.** Bigger catch zone, calmer fish, gentler drain,
-      slower fill so a round lasts a bit longer. Keep the streak ramp, just softer.
-
-### Passive tile activation (knock-around triggers)
-- [ ] **Tiles activate when you're moved onto them — even off-turn.** When a player is
-      knocked/moved by lightning, a chute pile-up, the star, swap, teleport, kick,
-      gun, wheel, etc. and lands on an *event/movement/trap* tile, it triggers:
-      ladders, chutes (incl. pile-ups), ice (freeze), teleporters.
-      **Do NOT** trigger time-consuming/interactive tiles passively: the fishing
-      minigame (dark-blue) and the orange Wheel/Support/Gun choice.
-      Needs a cascade depth guard so chains can't loop forever.
+(empty — everything below shipped 2026-06-24; pull from Ideas next)
 
 ---
 
 ## Done
+
+### 2026-06-24 autonomous build
+- [x] **Explosions follow the target** — `explode(cell)` + `cellToScreen()`; centred on
+      the victim's tile (where they stood before being moved). All call sites updated.
+- [x] **Lightning animation** — clouds roll in, rumble, jagged bolt + crack on the
+      leader's tile, then the knock-back.
+- [x] **Lucky star animation (~4s)** — star flies in, scoops the trailing player,
+      carries them to the destination tile with a sparkle trail.
+- [x] **Nuke sequence** — air-raid siren → ~5s → ~3s descent → giant blast → 4s
+      white-out → board revealed.
+- [x] **Gun animation** — revolver draws/cocks, muzzle flash + explosion on each victim.
+- [x] **Leviathan animation** — waves + sea-monster rise at the player's tile on a miss.
+- [x] **Wheel RANDOM slot (6th)** — fires any effect in the game (wheel outcomes, gun,
+      support, lightning, gain-fish, freeze, star, swap, random teleport).
+- [x] **Wheel pointer accuracy** — pointer baked into the SVG; spin math generalised to
+      N slots so it lands exactly under the pointer.
+- [x] **Swap / star / lightning ~3× rarer** — per-turn chances ÷ 3 in the DATA block.
+- [x] **Fishing easier + longer** — bigger zone, calmer fish, gentler drain, slower fill.
+- [x] **Passive tile activation** — `resolveLanding()`: ladders/chutes/ice/teleporters
+      fire when a player is moved onto them off-turn (kick, pile-up, swap, teleport,
+      lightning, star, wheel/support). Fishing + orange stay manual. Depth-capped (6).
+
+### Earlier
 - [x] Project privacy pass (repo→private, username de-hardcoded, no-reply commit email).
 - [x] `CLAUDE.md` collaboration guide created (layering + commit/push-at-session-end).
+
+> ⚠ Not yet verified in a live browser (no local JS runtime). Needs a play-test:
+> see "Verify next session" in `LOG.md`.
 
 ## Ideas / later
 - Optional PNG board skin to match the classic photo.
