@@ -22,6 +22,10 @@ See `LOG.md` for the running session history.
       there yet — improve the storm build-up, the bolt itself, and the impact.
 
 ### Other
+- [x] **Wheel reworked (2026-06-24)** — removed the "nothing" slot (now 5 slots); RANDOM
+      is a distinct magenta. RANDOM effects now all target the spinner ("you"): lightning
+      hits you, the star carries you, the swap trades you with the leader or trailer,
+      plus a "you get picked off" down. Pointer still accurate; verified headless, 0 errors.
 - [x] **Teleport chain bug fixed (2026-06-24)** — choosing to teleport no longer makes
       the swapped-in player re-teleport off the teal tile (and so on). A swap now does
       exactly one swap; `resolveLanding(..., skipTeleport)` stops the cascade. Verified.

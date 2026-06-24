@@ -1773,12 +1773,9 @@ async function lightningFx(cell){
   storm.classList.remove("show");
 }
 
-async function strikeLightning(){
-  await revealRuleOnce("lightning");
-  const active = game.players.filter(p => !p.finished && p.pos > 0);
-  if (!active.length) return;
-  const top = Math.max(...active.map(p => p.pos));
-  const victim = active.find(p => p.pos === top);          // the front-runner
+// Strike one specific player with lightning (fx + knock-back + landing).
+async function lightningStrike(victim){
+  if (!victim || victim.finished || victim.pos <= 0) return;
   const fromTile = victim.pos;
   await lightningFx(fromTile);                             // clouds → thunder → bolt + crack
   explode(fromTile);                                       // burst where they stood
@@ -1788,6 +1785,13 @@ async function strikeLightning(){
   log(`🌩️ Lightning struck ${victim.name} — knocked flat and back to tile ${victim.pos}!`);
   await sleep(500);
   await resolveLanding(victim);                            // the new tile fires too
+}
+async function strikeLightning(){                          // the rare event: hits the leader
+  await revealRuleOnce("lightning");
+  const active = game.players.filter(p => !p.finished && p.pos > 0);
+  if (!active.length) return;
+  const top = Math.max(...active.map(p => p.pos));
+  await lightningStrike(active.find(p => p.pos === top));
 }
 
 /* ---- lucky star (very rare): sweep the trailing player forward ----- */
@@ -1821,12 +1825,9 @@ async function starFx(lucky, destCell){
   layoutTokens();
 }
 
-async function strikeLucky(){
-  const active = game.players.filter(p => !p.finished && p.pos > 0);
-  if (active.length < 2) return;                           // need someone to be "behind"
-  await revealRuleOnce("lucky");
-  const bottom = Math.min(...active.map(p => p.pos));
-  const lucky = active.find(p => p.pos === bottom);        // the trailing player
+// Sweep one specific player forward with the lucky star (fx + landing).
+async function luckySweep(lucky){
+  if (!lucky || lucky.finished) return;
   const dest = Math.min(BOARD.WIN - 1, lucky.pos + LUCKY.FORWARD);   // never auto-wins
   await starFx(lucky, dest);                               // ~4s fly-across + carry
   renderScoreboard();
@@ -1834,22 +1835,42 @@ async function strikeLucky(){
   await sleep(300);
   await resolveLanding(lucky);                             // the new tile fires too
 }
+async function strikeLucky(){                              // the rare event: helps the trailer
+  const active = game.players.filter(p => !p.finished && p.pos > 0);
+  if (active.length < 2) return;                           // need someone to be "behind"
+  await revealRuleOnce("lucky");
+  const bottom = Math.min(...active.map(p => p.pos));
+  await luckySweep(active.find(p => p.pos === bottom));
+}
 
 /* ---- reversal of fortune (very rare): leader <-> last swap ---------- */
-async function strikeFate(){
+// Swap two specific players' places (fx + landing for both).
+async function fateSwapPlayers(a, b){
+  if (!a || !b || a === b) return;
+  SFX.play("teleport"); flashScreen();
+  const tmp = a.pos; a.pos = b.pos; b.pos = tmp;
+  layoutTokens(); renderScoreboard();
+  log(`🔃 Reversal of fortune! ${a.name} and ${b.name} swapped places!`);
+  await sleep(750);
+  await resolveLanding(a); if (game.over) return;         // landing tiles fire after the swap
+  await resolveLanding(b);
+}
+async function strikeFate(){                               // the rare event: leader <-> last
   const active = game.players.filter(p => !p.finished && p.pos > 0);
   if (active.length < 2) return;
   const top = Math.max(...active.map(p => p.pos)), bot = Math.min(...active.map(p => p.pos));
   if (top === bot) return;                                 // everyone level — nothing to swap
   await revealRuleOnce("fate");
-  const leader = active.find(p => p.pos === top), last = active.find(p => p.pos === bot);
-  SFX.play("teleport"); flashScreen();
-  const tmp = leader.pos; leader.pos = last.pos; last.pos = tmp;
-  layoutTokens(); renderScoreboard();
-  log(`🔃 Reversal of fortune! ${leader.name} and ${last.name} swapped places!`);
-  await sleep(750);
-  await resolveLanding(leader); if (game.over) return;   // landing tiles fire after the swap
-  await resolveLanding(last);
+  await fateSwapPlayers(active.find(p => p.pos === top), active.find(p => p.pos === bot));
+}
+// RANDOM-wheel variant: YOU swap with either the current leader or the trailer.
+async function fateSwapYou(p){
+  const others = game.players.filter(q => !q.finished && q.pos > 0 && q !== p);
+  if (!others.length) return;
+  const top = Math.max(...others.map(q => q.pos)), bot = Math.min(...others.map(q => q.pos));
+  const other = (Math.random() < 0.5) ? others.find(q => q.pos === top) : others.find(q => q.pos === bot);
+  await revealRuleOnce("fate");
+  await fateSwapPlayers(p, other);
 }
 
 /* ---- orange square: Wheel / Support / Gun -------------------------- */
@@ -2008,9 +2029,9 @@ async function gunRoulette(p){
   await sleep(500);
 }
 
-const WHEEL_LABELS = ["☢️","🔙","➡️","🚀","✖","🎲"];   // nuke / start / next / +15 / nothing / RANDOM
-const WHEEL_COLORS = ["#d64541","#8e44ad","#2e86c1","#27ae60","#7f8c8d","#e67e22"];
-const WHEEL_PICKS  = ["nuke","start","next","move15","nothing","random"];
+const WHEEL_LABELS = ["☢️","🔙","➡️","🚀","🎲"];   // nuke / back-to-start / next / +15 / RANDOM
+const WHEEL_COLORS = ["#d64541","#8e44ad","#2e86c1","#27ae60","#e84393"];  // RANDOM = magenta, stands out
+const WHEEL_PICKS  = ["nuke","start","next","move15","random"];
 function wpol(cx,cy,r,deg){ const a = (deg-90)*Math.PI/180; return [cx+r*Math.cos(a), cy+r*Math.sin(a)]; }
 function buildWheel(){
   const g = document.getElementById("wheelSpin"); if (!g) return;
@@ -2084,21 +2105,30 @@ async function randomTeleport(p){
   const tgt = teleportSwap(p, false); await sleep(540);
   if (tgt){ await resolveLanding(tgt, 0, true); await resolveLanding(p, 0, true); }  // no re-teleport
 }
+// RANDOM-wheel "you get picked off": a shot downs the spinner where they stand.
+async function downYou(p){
+  await gunFx([p.pos]);
+  downPlayer(p); layoutTokens(); renderScoreboard();
+  log(`🎲🎯 Random: ${p.name} gets picked off and goes down!`);
+  await sleep(400);
+}
 async function randomWheelEffect(p){
+  // Every random effect centres on YOU (the spinner): lightning hits you, the star
+  // carries you, the swap trades you with the leader or the trailer, etc.
   const effects = [
     ()=> nukeEveryone("🎲 "),
     async()=>{ SFX.play("chute"); p.pos = 1; layoutTokens(); renderScoreboard(); log(`🎲 Random: ${p.name} back to start!`); await sleep(600); await resolveLanding(p); },
     async()=>{ log(`🎲 Random: ${p.name} inches forward.`); await advancePlayer(p, 1); },
     async()=>{ log(`🎲 Random: ${p.name} leaps 15 spaces!`); await advancePlayer(p, 15); },
-    async()=>{ SFX.play("click"); log(`🎲 Random: … nothing happens.`); await sleep(500); },
     ()=> gunRoulette(p),
     ()=> runSupport(p),
-    ()=> strikeLightning(),
+    async()=>{ await revealRuleOnce("lightning"); await lightningStrike(p); },     // strikes YOU
     async()=>{ p.fish = (p.fish||0) + 1; SFX.play("catch"); renderScoreboard(); log(`🎲🐟 Random: ${p.name} gains a fish!`); await sleep(500); },
     ()=> freezeFromRandom(p),
-    ()=> strikeLucky(),
-    ()=> strikeFate(),
+    async()=>{ await revealRuleOnce("lucky"); await luckySweep(p); },              // carries YOU
+    ()=> fateSwapYou(p),                                                            // YOU swap w/ leader or trailer
     ()=> randomTeleport(p),
+    ()=> downYou(p),                                                                // YOU get picked off
   ];
   await effects[(Math.random()*effects.length)|0]();
 }
@@ -2112,7 +2142,6 @@ async function spinWheel(p){
   else if (pick === "next"){ log(`🎡 ${p.name} edges to the next square.`); await advancePlayer(p, 1); }
   else if (pick === "move15"){ log(`🎡 ${p.name} rockets 15 spaces forward!`); await advancePlayer(p, 15); }
   else if (pick === "random"){ log(`🎲 The wheel lands on RANDOM!`); await randomWheelEffect(p); }
-  else { SFX.play("click"); log(`🎡 The wheel lands on nothing.`); await sleep(500); }
 }
 
 async function runSupport(p){
