@@ -15,9 +15,23 @@ See `LOG.md` for the running session history.
 - [ ] **Gun cutscene needs a LOT of work.** The revolver + muzzle-flash + boom is
       placeholder-tier. Wants a proper sequence (draw/aim/cock/fire, real recoil,
       bullet/impact, reaction on the victims) — rethink, don't just tweak.
-- [ ] **Leviathan cutscene needs a LOT of work.** The 🐙 + waves popping up is weak.
-      Wants a real sea-monster set-piece (water rising, the beast emerging and
-      seizing/dragging the player under) — rethink from scratch.
+- [ ] **Leviathan cutscene — rebuild to this exact vision (Isak, 2026-06-25).**
+      > ⚠ KEEP THIS DESCRIPTION FOREVER — do **not** delete it even after the cutscene
+      > is built. It is the canonical spec for how the leviathan should look.
+
+      A **blue serpentine leviathan** — long snake-like body, styled like a **Chinese
+      dragon** — flies/undulates **across the screen**. As it passes the targeted
+      player it **swallows them**, and then **exits off the other side of the screen**.
+      The feel: the leviathan didn't come *for* the player — it just happened to be
+      passing, the player happened to be in its way, and it **took the chance** (casual,
+      opportunistic gulp on the way through).
+
+      Then, once it's gone, it **peeks its head back in** from the edge, **rears up**,
+      and **spits the player back out** — the player goes **flying** to the new square
+      they're sent to (the spit-out tile). Land them there, then the usual
+      `resolveLanding` on the new tile.
+
+      (Current placeholder = gloom + water + tentacles + 🐙 + token dunk. Replace it.)
 - [ ] **Lightning needs some work.** Decent base (clouds/rumble/bolt/crack) but not
       there yet — improve the storm build-up, the bolt itself, and the impact.
 
