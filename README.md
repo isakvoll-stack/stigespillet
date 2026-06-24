@@ -44,10 +44,13 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
-Recently shipped (2026-06-24): target-centred explosions; lightning / lucky-star /
-nuke / gun / leviathan animations; a 6th **RANDOM** wheel slot with an accurate
-pointer; swap/star/lightning made 3× rarer; easier+longer fishing; and tiles that
-activate when you're knocked/moved onto them (even off-turn).
-**Not yet play-tested in a browser — see the verify checklist in `Next/LOG.md`.**
+Recently shipped (2026-06-25): the **leviathan cutscene rebuilt** as a blue serpentine
+Chinese-dragon that undulates across the screen, gulps the player in passing, then peeks
+back, rears up, and spits them flying to their new tile (tunables in the `LEVI` DATA
+block). Earlier (2026-06-24): target-centred explosions; lightning / lucky-star / nuke /
+gun animations; a 6th **RANDOM** wheel slot with an accurate pointer; swap/star/lightning
+made 3× rarer; easier+longer fishing; and tiles that activate when you're knocked/moved
+onto them (even off-turn).
+**Cutscenes are machine-verified (headless Chrome) but still want a human eyeball for feel.**
 
 Still ideas: PNG board skin, smarter bots, more variant rules, art/sound polish.

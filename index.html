@@ -238,28 +238,29 @@
   .gunsmoke{position:fixed;z-index:14;font-size:38px;pointer-events:none;transform:translate(-50%,-50%);animation:smokeup 1s ease-out forwards}
   @keyframes smokeup{0%{opacity:.75;transform:translate(-50%,-50%) scale(.6)}100%{opacity:0;transform:translate(-50%,-170%) scale(1.6)}}
 
-  /* leviathan cutscene */
-  .seawater{position:fixed;z-index:12;width:34px;height:34px;pointer-events:none;border-radius:50%;
-    background:radial-gradient(circle, rgba(46,150,184,.9), rgba(18,76,120,.15) 70%);
-    transform:translate(-50%,-50%) scale(0);transition:transform .45s ease-out}
-  .seawater.up{transform:translate(-50%,-50%) scale(7.5)}
-  .tentacle{position:fixed;z-index:13;width:17px;height:96px;pointer-events:none;border-radius:9px 9px 6px 6px;
-    background:linear-gradient(#2a8a72,#0c352c);box-shadow:0 0 11px rgba(24,90,78,.6);transform-origin:50% 100%;
-    transform:translate(-50%,-100%) scaleY(0) rotate(var(--rot,0deg));transition:transform .42s cubic-bezier(.2,.8,.3,1)}
-  .tentacle.up{transform:translate(-50%,-100%) scaleY(1) rotate(var(--rot,0deg))}
-  .tentacle.sway{animation:tsway .7s ease-in-out infinite alternate}
-  @keyframes tsway{from{transform:translate(-50%,-100%) scaleY(1) rotate(calc(var(--rot,0deg) - 9deg))}
-    to{transform:translate(-50%,-100%) scaleY(1) rotate(calc(var(--rot,0deg) + 9deg))}}
-  .seabeast{position:fixed;z-index:14;font-size:96px;pointer-events:none;opacity:0;
-    transform:translate(-50%,40px) scale(.4);filter:drop-shadow(0 8px 14px rgba(0,0,0,.55));
-    transition:transform .5s cubic-bezier(.2,.8,.3,1), opacity .4s;will-change:transform}
-  .seabeast.up{opacity:1;transform:translate(-50%,-62%) scale(1.3)}
-  .seabeast.wig{animation:bwig .5s ease-in-out infinite alternate}
-  @keyframes bwig{from{transform:translate(-53%,-62%) scale(1.3) rotate(-7deg)}
-    to{transform:translate(-47%,-62%) scale(1.3) rotate(7deg)}}
-  .splashdrop{position:fixed;z-index:14;width:10px;height:10px;border-radius:50%;background:#7fd0ff;
-    pointer-events:none;transform:translate(-50%,-50%);animation:splashfly .8s ease-out forwards}
-  @keyframes splashfly{to{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(.3);opacity:0}}
+  /* leviathan cutscene — blue serpentine Chinese-dragon serpent */
+  .leviseg{position:fixed;z-index:13;border-radius:50%;pointer-events:none;transform:translate(-50%,-50%);
+    background:radial-gradient(circle at 38% 30%, #cfeaff, #3aa6ff 55%, #1166cc 100%);
+    box-shadow:0 0 13px rgba(64,170,255,.6), inset 0 -4px 8px rgba(8,48,110,.55)}
+  .levihead{position:fixed;z-index:14;pointer-events:none;transform:translate(-50%,-50%);
+    width:66px;height:66px;border-radius:56% 56% 48% 48%;
+    background:radial-gradient(circle at 42% 28%, #e2f1ff, #3aa6ff 52%, #0e5bbf 100%);
+    box-shadow:0 0 24px rgba(64,170,255,.85), inset 0 -6px 11px rgba(8,48,110,.6)}
+  .levihead i{position:absolute;display:block}
+  .levihead .eye{top:30%;width:12px;height:12px;border-radius:50%;background:#fff;box-shadow:0 0 5px #cfefff}
+  .levihead .eye::after{content:"";position:absolute;left:50%;top:56%;width:5px;height:5px;border-radius:50%;background:#10243a;transform:translate(-50%,-50%)}
+  .levihead .eye.l{left:17%}.levihead .eye.r{right:17%}
+  .levihead .horn{top:-13px;width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:17px solid #d8ecff}
+  .levihead .horn.l{left:20%}.levihead .horn.r{right:20%}
+  .levihead .whisk{top:52%;height:3px;width:42px;background:linear-gradient(90deg,rgba(216,236,255,0),#d8ecff);border-radius:3px}
+  .levihead .whisk.l{right:92%;transform:rotate(7deg);transform-origin:right}
+  .levihead .whisk.r{left:92%;transform:rotate(-7deg) scaleX(-1);transform-origin:left}
+  .levihead .maw{left:50%;bottom:6%;width:28px;height:13px;border-radius:0 0 16px 16px;background:#0a2748;transform:translateX(-50%)}
+  .leviflier{position:fixed;z-index:15;width:30px;height:30px;border-radius:50%;pointer-events:none;
+    transform:translate(-50%,-50%);border:2px solid rgba(8,20,40,.4);box-shadow:0 5px 12px rgba(0,0,0,.5), inset 0 -4px 6px rgba(0,0,0,.25)}
+  .leviripple{position:fixed;z-index:12;border-radius:50%;pointer-events:none;transform:translate(-50%,-50%) scale(0);
+    border:3px solid rgba(150,210,255,.6);animation:leviripple .7s ease-out forwards}
+  @keyframes leviripple{to{transform:translate(-50%,-50%) scale(3.4);opacity:0}}
 
   /* wheel of fortune */
   .wheelwrap{position:relative;width:240px;height:262px;margin:4px auto 0}
@@ -680,6 +681,16 @@ const ANIM = { STEP:210, SLIDE:600, DICE:560, HANDOFF:350, AUTO:650 };
 const SNIPER = { EVERY_ROUNDS:5, HIT_RADIUS:30, GETUP_MIN:3 };
 const SHAME  = { TURNS:3, GETUP_MIN:4 };   // kick-a-man-while-down: shame turns + harder recovery
 const FISH   = { TILES:[35, 49, 70], SPIT_MAX:30 };   // dark-blue squares -> fishing; loss spits you to 1..SPIT_MAX
+/* ---- DATA: leviathan cutscene (blue serpentine Chinese-dragon serpent) ---- */
+const LEVI = {
+  SEGMENTS:18, SEG_GAP:30,            // body length: how many trailing segments + spacing (px) between them
+  SEG_HEAD:30, SEG_TAIL:7,            // segment radius (px) at the neck, tapering to the tail tip
+  WAVE_AMP:54, WAVE_LEN:240,          // undulation height (px) and wavelength (px) of the slither
+  SLITHER:2.4,                        // how many wave-phase turns elapse while crossing (slither speed)
+  CROSS_MS:2600, GRAB_PULL:170,       // ms to cross the screen; px window around the victim where the head dips to gulp
+  PEEK_MS:620, REAR_MS:520, SPIT_FLY_MS:820,   // return phase: peek in, rear up, then the victim's airborne arc
+  SPIT_ARC:150, SPIT_SPIN:900,        // height (px) and spin (deg) of the spat-out victim's flight
+};
 const TELEPORTERS  = [22, 66];             // teal teleporter squares (between tile 20 and 80)
 const TELEPORT_COLOR = "#17b5a3";          // teal
 const FREEZE_TILES = [29, 63];             // icy squares — land here and you freeze solid
@@ -1684,62 +1695,119 @@ function fishingResult(won){
   });
 }
 
-// Leviathan cutscene: underwater gloom → water swells at the tile → tentacles rise &
-// writhe → the beast surfaces → it seizes the player (token dragged under) → big splash
-// + boom → everything sinks and the water recedes.
-async function leviathanFx(cell, victim){
-  const s = cellToScreen(cell);
+// Drive a per-frame tween over `ms`, calling onFrame(t) with t going 0→1.
+function leviTween(ms, onFrame){
+  return new Promise(res=>{
+    const t0 = performance.now();
+    (function step(now){
+      const t = Math.min(1, (now - t0)/ms);
+      onFrame(t);
+      if (t < 1) requestAnimationFrame(step); else res();
+    })(t0);
+  });
+}
+
+// A spreading water ring at a screen point.
+function ripple(x, y){
+  const r = document.createElement("div"); r.className = "leviripple";
+  r.style.left = x+"px"; r.style.top = y+"px"; r.style.width = r.style.height = "60px";
+  document.body.appendChild(r); setTimeout(()=> r.remove(), 720);
+}
+
+// Leviathan cutscene (canonical spec: Next/TASKS.md). A blue serpentine Chinese-dragon
+// serpent undulates across the screen, dips to gulp the victim in passing, exits the far
+// side — then peeks its head back in, rears up, and spits the victim flying to `toCell`.
+async function leviathanFx(fromCell, toCell, victim){
+  const vic = cellToScreen(fromCell);
+  const W = window.innerWidth, H = window.innerHeight;
+  const baseY = Math.max(LEVI.WAVE_AMP + 40, Math.min(H - LEVI.WAVE_AMP - 40, vic.y));
+
   const dim = document.createElement("div"); dim.className = "cutdim seadim";
   document.body.appendChild(dim); await raf(); dim.classList.add("show");
 
-  const water = document.createElement("div"); water.className = "seawater";
-  water.style.left = s.x+"px"; water.style.top = s.y+"px";
-  document.body.appendChild(water);
-  SFX.play("leviathan"); await raf(); water.classList.add("up");
-  await sleep(300);
-
-  const tents = [], n = 5;                                           // tentacles rise in an arc
-  for (let i=0;i<n;i++){
-    const off = i - (n-1)/2;
-    const t = document.createElement("div"); t.className = "tentacle";
-    t.style.left = (s.x + off*30)+"px"; t.style.top = (s.y + 12)+"px";
-    t.style.setProperty("--rot", (off*12)+"deg");
-    document.body.appendChild(t); tents.push(t);
-    requestAnimationFrame(()=> t.classList.add("up"));
+  const n = LEVI.SEGMENTS, segs = [];
+  const head = document.createElement("div"); head.className = "levihead";
+  head.innerHTML = '<i class="horn l"></i><i class="horn r"></i><i class="whisk l"></i>'
+                 + '<i class="whisk r"></i><i class="eye l"></i><i class="eye r"></i><i class="maw"></i>';
+  for (let i=1;i<n;i++){
+    const r = LEVI.SEG_HEAD + (LEVI.SEG_TAIL - LEVI.SEG_HEAD) * (i/(n-1));
+    const sd = document.createElement("div"); sd.className = "leviseg";
+    sd.style.width = sd.style.height = (r*2)+"px";
+    document.body.appendChild(sd); segs.push(sd);
   }
-  await sleep(430); tents.forEach(t=> t.classList.add("sway"));
+  document.body.appendChild(head);
 
-  const beast = document.createElement("div"); beast.className = "seabeast"; beast.textContent = "🐙";
-  beast.style.left = s.x+"px"; beast.style.top = s.y+"px";
-  document.body.appendChild(beast); await raf(); beast.classList.add("up");
-  await sleep(460); beast.classList.add("wig"); SFX.play("leviathan");
-  await sleep(420);
+  const spineY = (x, phase) => baseY + Math.sin(x/LEVI.WAVE_LEN * Math.PI*2 + phase) * LEVI.WAVE_AMP;
+  const place = (headX, headY, phase) => {
+    head.style.left = headX+"px"; head.style.top = headY+"px";
+    for (let i=1;i<n;i++){ const x = headX - i*LEVI.SEG_GAP;
+      segs[i-1].style.left = x+"px"; segs[i-1].style.top = spineY(x, phase)+"px"; }
+  };
 
-  // seize: shake, then drag the victim's token down under the surface
-  let tok, prevT;
-  if (victim){ const vi = idxOf(victim); tok = tokenEls[vi];
-    if (tok){ prevT = tok.style.transition; tok.style.transition = "transform .5s ease-in"; } }
-  flashScreen();
-  for (let i=0;i<16;i++){                                            // splash droplets
-    const d = document.createElement("div"); d.className = "splashdrop";
-    d.style.left = s.x+"px"; d.style.top = s.y+"px";
-    const a = Math.random()*Math.PI*2, dist = 60+Math.random()*120;
-    d.style.setProperty("--dx", Math.cos(a)*dist+"px");
-    d.style.setProperty("--dy", (Math.sin(a)*dist - 40)+"px");
-    document.body.appendChild(d); setTimeout(()=> d.remove(), 800);
-  }
-  explode(cell); SFX.play("boom");
-  beast.classList.remove("wig");
-  beast.style.transition = "transform .5s ease-in, opacity .4s";
-  beast.style.transform = "translate(-50%,40px) scale(.5)"; beast.style.opacity = "0";
-  if (tok){ const c = cellCenter(cell); tok.style.transform = `translate(${c.x}px, ${c.y+38}px) scale(.2)`; }
-  tents.forEach(t=>{ t.classList.remove("sway"); t.classList.remove("up"); });
-  await sleep(520);
+  const vi = victim ? idxOf(victim) : -1;
+  const tok = vi >= 0 ? tokenEls[vi] : null;
+  const startX = -LEVI.SEG_GAP*n - 60, endX = W + 140;
+  let swallowed = false;
 
-  if (tok) tok.style.transition = prevT || `transform ${ANIM.STEP}ms ease-in-out`;
-  water.classList.remove("up"); dim.classList.remove("show");
-  await sleep(350);
-  beast.remove(); water.remove(); tents.forEach(t=> t.remove()); dim.remove();
+  SFX.play("leviathan");
+  await leviTween(LEVI.CROSS_MS, t=>{                                  // cross the screen, dipping to the victim
+    const phase = t * LEVI.SLITHER * Math.PI*2;
+    const headX = startX + (endX - startX)*t;
+    const near = Math.max(0, 1 - Math.abs(headX - vic.x)/LEVI.GRAB_PULL);
+    const headY = spineY(headX, phase)*(1-near) + vic.y*near;
+    place(headX, headY, phase);
+    if (!swallowed && headX >= vic.x){                                // the opportunistic gulp, in passing
+      swallowed = true;
+      if (tok) tok.style.opacity = "0";
+      flashScreen(); SFX.play("boom"); ripple(vic.x, vic.y);
+    }
+  });
+
+  // return phase: only the head + a short neck come back; the long tail stays gone
+  for (let i=4;i<segs.length;i++) segs[i].style.display = "none";
+  const neckBase = vic.y < H/2 ? baseY + 120 : baseY - 120;
+  const peekX = W - 150;
+  await leviTween(LEVI.PEEK_MS, t=>{                                   // peek the head back in from the edge
+    const headX = endX + (peekX - endX)*t;
+    head.style.left = headX+"px"; head.style.top = neckBase+"px";
+    for (let i=0;i<4 && i+1<n;i++){ const x = headX + (i+1)*LEVI.SEG_GAP;
+      segs[i].style.left = x+"px"; segs[i].style.top = (neckBase + (i+1)*8)+"px"; }
+  });
+  const rearY = Math.max(LEVI.WAVE_AMP, neckBase - 150);
+  await leviTween(LEVI.REAR_MS, t=>{                                   // rear up, coiling for the spit
+    const e = t*t;
+    const headY = neckBase + (rearY - neckBase)*e;
+    head.style.left = peekX+"px"; head.style.top = headY+"px";
+    head.style.transform = `translate(-50%,-50%) scale(${1 + 0.18*e})`;
+    for (let i=0;i<4 && i+1<n;i++){ const x = peekX + (i+1)*LEVI.SEG_GAP*0.7;
+      segs[i].style.left = x+"px"; segs[i].style.top = (headY + (i+1)*22)+"px"; }
+  });
+
+  // spit: launch the victim on a flying arc to the new tile
+  const dest = cellToScreen(toCell), mouthX = peekX, mouthY = rearY + 24;
+  const flier = document.createElement("div"); flier.className = "leviflier";
+  flier.style.background = "radial-gradient(circle at 38% 32%, #ffffff66, "
+                         + (vi>=0 ? PLAYER_COLORS[vi] : "#e6402f") + " 60%, rgba(0,0,0,.3))";
+  flier.style.left = mouthX+"px"; flier.style.top = mouthY+"px";
+  document.body.appendChild(flier);
+  SFX.play("kick"); head.style.transform = "translate(-50%,-50%) scale(1)";
+  await leviTween(LEVI.SPIT_FLY_MS, t=>{
+    const e = 1-(1-t)*(1-t);
+    const x = mouthX + (dest.x - mouthX)*e;
+    const y = mouthY + (dest.y - mouthY)*e - Math.sin(Math.PI*t)*LEVI.SPIT_ARC;
+    flier.style.left = x+"px"; flier.style.top = y+"px";
+    flier.style.transform = `translate(-50%,-50%) rotate(${t*LEVI.SPIT_SPIN}deg)`;
+  });
+  ripple(dest.x, dest.y); SFX.play("bounce");
+
+  if (tok){ const c = cellCenter(toCell);                             // land the real token on the new tile
+    tok.style.transition = "none";
+    tok.style.transform = `translate(${c.x}px, ${c.y}px)`;
+    void tok.offsetWidth; tok.style.opacity = "1";
+    tok.style.transition = `transform ${ANIM.STEP}ms ease-in-out`; }
+  flier.remove(); dim.classList.remove("show");
+  await sleep(320);
+  head.remove(); segs.forEach(s=> s.remove()); dim.remove();
 }
 
 async function runFishing(p){
@@ -1761,8 +1829,9 @@ async function runFishing(p){
   } else {
     game.fishStreak = 0;
     const fromTile = p.pos;
-    await leviathanFx(fromTile, p);                       // monster rises where they stood + seizes them
-    p.pos = 1 + Math.floor(Math.random()*FISH.SPIT_MAX);
+    const toTile = 1 + Math.floor(Math.random()*FISH.SPIT_MAX);
+    await leviathanFx(fromTile, toTile, p);               // serpent passes by, gulps them, spits them to toTile
+    p.pos = toTile;
     layoutTokens(); renderScoreboard();
     log(`${p.name} was hit by a leviathan and spat out at tile ${p.pos}! 🌊`);
     await resolveLanding(p);                              // the new tile fires too

@@ -15,7 +15,9 @@ See `LOG.md` for the running session history.
 - [ ] **Gun cutscene needs a LOT of work.** The revolver + muzzle-flash + boom is
       placeholder-tier. Wants a proper sequence (draw/aim/cock/fire, real recoil,
       bullet/impact, reaction on the victims) — rethink, don't just tweak.
-- [ ] **Leviathan cutscene — rebuild to this exact vision (Isak, 2026-06-25).**
+- [x] **Leviathan cutscene — rebuild to this exact vision (Isak, 2026-06-25).** Built
+      2026-06-25 (serpent crosses → gulps in passing → exits → peeks back → rears → spits
+      the player flying to the new tile). Tunables in the `LEVI` DATA block.
       > ⚠ KEEP THIS DESCRIPTION FOREVER — do **not** delete it even after the cutscene
       > is built. It is the canonical spec for how the leviathan should look.
 

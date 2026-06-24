@@ -4,6 +4,31 @@ Newest first. One entry per working session; note what shipped and what's next.
 
 ---
 
+## 2026-06-25 — leviathan cutscene rebuilt (blue Chinese-dragon serpent)
+
+Replaced the old placeholder leviathan (gloom + water + tentacles + 🐙 + token dunk)
+with the serpent Isak specced in `TASKS.md`:
+- A **blue serpentine Chinese-dragon** — a tapering chain of segments following a
+  travelling sine wave — **undulates across the screen**. As the head passes the
+  victim's column it **dips to gulp them** (casual, opportunistic), then **exits the far
+  side**. The head then **peeks back in from the edge, rears up, and spits the victim
+  flying** on an arc to their new tile; the real token lands there and `resolveLanding`
+  fires as before.
+- All tunables (segment count/spacing/taper, wave amplitude/length, slither speed, every
+  phase duration, spit arc/spin) live in a new **`LEVI` DATA block** — no magic numbers
+  in the animation logic.
+- `leviathanFx(fromCell, toCell, victim)` now takes the destination, so `runFishing`
+  picks the spit tile first and the cutscene delivers the player there.
+- Pure-JS rAF tween driver (`leviTween`); no new dependencies. CSS for the serpent
+  segments/head (eyes, horns, whiskers) and the spat-out flier.
+
+Verified in **headless Chrome** (rAF→setTimeout under virtual time): the full cutscene
+runs with **0 JS errors**, the token's opacity is restored and it lands on the
+destination tile, and **no DOM elements leak**. Screenshots confirmed the serpent shape,
+the head rearing back in, and the player arcing out. Temp harness/screenshots deleted.
+
+Still worth a human eyeball in the browser for *feel* (pacing/looks).
+
 ## 2026-06-24 (later) — verification + launcher + wheel fixes
 
 Isak couldn't open the game by double-clicking `index.html`. Diagnosed + verified
