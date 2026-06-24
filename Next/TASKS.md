@@ -42,8 +42,17 @@ See `LOG.md` for the running session history.
 - [x] Project privacy pass (repo→private, username de-hardcoded, no-reply commit email).
 - [x] `CLAUDE.md` collaboration guide created (layering + commit/push-at-session-end).
 
-> ⚠ Not yet verified in a live browser (no local JS runtime). Needs a play-test:
-> see "Verify next session" in `LOG.md`.
+### 2026-06-24 verification + fixes
+- [x] **Verified via headless Chrome** — page loads with no JS errors; every new
+      effect path runs clean; a full autonomous game completes with a winner, 0 errors.
+- [x] **`Play game.cmd` launcher** — fixes the "can't open by double-click" problem.
+- [x] **Wheel size bug fixed** — a global `svg{}` rule was blowing the wheel up to
+      ~795px (the real cause of the inaccurate-arrow feeling); scoped to `#board`.
+- [x] **Wheel rotates about true centre** — `transform-box:fill-box`; all 6 slots
+      land centred under the pointer (geometry-tested). Dead `.wheelpointer` CSS removed.
+
+> Still worth a human eyeball in the browser for *feel* (animation pacing/looks),
+> but correctness is now machine-verified.
 
 ## Ideas / later
 - Optional PNG board skin to match the classic photo.

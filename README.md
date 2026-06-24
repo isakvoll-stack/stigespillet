@@ -4,8 +4,13 @@ A fresh, web-based rebuild of the Norwegian *stigespill* (snakes & ladders).
 Goal: a clean basic game first, then build upon it.
 
 ## Run it
-Just **double-click `index.html`** — it's one self-contained file (no install, no
-server, no build step). Works offline; send the single file to anyone.
+**Double-click `Play game.cmd`** — it opens the game in your browser (Edge/Chrome).
+Use this if double-clicking `index.html` doesn't do anything (a Windows file-type
+association quirk, not a problem with the game).
+
+It's still one self-contained page: no install, no server, no build step, works
+offline. To share it, send `index.html` (and optionally `Play game.cmd`). You can
+also just drag `index.html` onto an open browser window.
 
 ## How to play
 - **Title screen → Spill → Setup**: pick the player count (2–11) and type a name
