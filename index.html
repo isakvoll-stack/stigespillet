@@ -1460,6 +1460,7 @@ async function startTurn(){
     await strikeFate();
     game.busy = false; refreshHUD();
   }
+  if (game.over) return;                 // a rare effect's cascade may have ended the game
   if (cur.sniper && !cur.downed){
     game.busy = true; refreshHUD();
     await useSniper(cur);
