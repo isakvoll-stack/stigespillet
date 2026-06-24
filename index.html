@@ -216,20 +216,50 @@
   #whiteout{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:14;transition:opacity .3s}
   #whiteout.show{opacity:1}
 
-  /* gun + leviathan */
-  .gunfx{position:fixed;z-index:13;font-size:62px;pointer-events:none;transform:translate(-50%,-50%);animation:gunpop .5s ease-out}
-  @keyframes gunpop{0%{opacity:0;transform:translate(-50%,-50%) scale(.5) rotate(-12deg)}
-    35%{opacity:1;transform:translate(-50%,-50%) scale(1.12) rotate(-12deg)}
-    100%{opacity:1;transform:translate(-50%,-50%) scale(1) rotate(-12deg)}}
-  .muzzle{position:fixed;z-index:13;font-size:42px;pointer-events:none;transform:translate(-50%,-50%);animation:muzzlepop .35s ease-out forwards}
+  /* cutscene dim backdrop (gun + leviathan) */
+  .cutdim{position:fixed;inset:0;z-index:12;pointer-events:none;opacity:0;transition:opacity .25s;
+    background:radial-gradient(120% 90% at 50% 55%, transparent 28%, rgba(0,0,0,.66) 100%)}
+  .cutdim.show{opacity:1}
+  .cutdim.seadim{background:radial-gradient(120% 95% at 50% 60%, rgba(12,46,80,.30) 18%, rgba(3,14,34,.84) 100%)}
+
+  /* gun cutscene */
+  .bigGun{position:fixed;z-index:14;font-size:120px;pointer-events:none;
+    transform:translate(-50%,-50%) rotate(0deg);filter:drop-shadow(0 10px 16px rgba(0,0,0,.6));will-change:top,transform}
+  .crosshair{position:fixed;z-index:14;width:48px;height:48px;pointer-events:none;border:3px solid #ff3b30;border-radius:50%;
+    box-shadow:0 0 9px #ff3b30, inset 0 0 9px rgba(255,59,48,.6);opacity:0;
+    transform:translate(-50%,-50%) scale(1.7) rotate(0deg);transition:transform .28s, opacity .28s}
+  .crosshair::before,.crosshair::after{content:"";position:absolute;background:#ff3b30}
+  .crosshair::before{left:50%;top:-9px;width:2px;height:66px;transform:translateX(-50%)}
+  .crosshair::after{top:50%;left:-9px;height:2px;width:66px;transform:translateY(-50%)}
+  .crosshair.locked{opacity:1;transform:translate(-50%,-50%) scale(1) rotate(90deg)}
+  .muzzle{position:fixed;z-index:14;font-size:50px;pointer-events:none;transform:translate(-50%,-50%);animation:muzzlepop .35s ease-out forwards}
   @keyframes muzzlepop{0%{opacity:0;transform:translate(-50%,-50%) scale(.3)}
-    40%{opacity:1;transform:translate(-50%,-50%) scale(1.3)}100%{opacity:0;transform:translate(-50%,-50%) scale(.8)}}
-  .leviathan{position:fixed;z-index:13;font-size:82px;pointer-events:none;transform:translate(-50%,-50%);animation:levrise 1.6s ease-out forwards}
-  @keyframes levrise{0%{opacity:0;transform:translate(-50%,30px) scale(.5)}
-    28%{opacity:1;transform:translate(-50%,-50%) scale(1.15)}70%{opacity:1;transform:translate(-50%,-50%) scale(1)}
-    100%{opacity:0;transform:translate(-50%,-72px) scale(.8)}}
-  .wavefx{position:fixed;z-index:12;font-size:40px;pointer-events:none;transform:translate(-50%,-50%);animation:wavefade 1.2s ease-out forwards}
-  @keyframes wavefade{0%{opacity:0}30%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) scale(1.6)}}
+    40%{opacity:1;transform:translate(-50%,-50%) scale(1.4)}100%{opacity:0;transform:translate(-50%,-50%) scale(.8)}}
+  .gunsmoke{position:fixed;z-index:14;font-size:38px;pointer-events:none;transform:translate(-50%,-50%);animation:smokeup 1s ease-out forwards}
+  @keyframes smokeup{0%{opacity:.75;transform:translate(-50%,-50%) scale(.6)}100%{opacity:0;transform:translate(-50%,-170%) scale(1.6)}}
+
+  /* leviathan cutscene */
+  .seawater{position:fixed;z-index:12;width:34px;height:34px;pointer-events:none;border-radius:50%;
+    background:radial-gradient(circle, rgba(46,150,184,.9), rgba(18,76,120,.15) 70%);
+    transform:translate(-50%,-50%) scale(0);transition:transform .45s ease-out}
+  .seawater.up{transform:translate(-50%,-50%) scale(7.5)}
+  .tentacle{position:fixed;z-index:13;width:17px;height:96px;pointer-events:none;border-radius:9px 9px 6px 6px;
+    background:linear-gradient(#2a8a72,#0c352c);box-shadow:0 0 11px rgba(24,90,78,.6);transform-origin:50% 100%;
+    transform:translate(-50%,-100%) scaleY(0) rotate(var(--rot,0deg));transition:transform .42s cubic-bezier(.2,.8,.3,1)}
+  .tentacle.up{transform:translate(-50%,-100%) scaleY(1) rotate(var(--rot,0deg))}
+  .tentacle.sway{animation:tsway .7s ease-in-out infinite alternate}
+  @keyframes tsway{from{transform:translate(-50%,-100%) scaleY(1) rotate(calc(var(--rot,0deg) - 9deg))}
+    to{transform:translate(-50%,-100%) scaleY(1) rotate(calc(var(--rot,0deg) + 9deg))}}
+  .seabeast{position:fixed;z-index:14;font-size:96px;pointer-events:none;opacity:0;
+    transform:translate(-50%,40px) scale(.4);filter:drop-shadow(0 8px 14px rgba(0,0,0,.55));
+    transition:transform .5s cubic-bezier(.2,.8,.3,1), opacity .4s;will-change:transform}
+  .seabeast.up{opacity:1;transform:translate(-50%,-62%) scale(1.3)}
+  .seabeast.wig{animation:bwig .5s ease-in-out infinite alternate}
+  @keyframes bwig{from{transform:translate(-53%,-62%) scale(1.3) rotate(-7deg)}
+    to{transform:translate(-47%,-62%) scale(1.3) rotate(7deg)}}
+  .splashdrop{position:fixed;z-index:14;width:10px;height:10px;border-radius:50%;background:#7fd0ff;
+    pointer-events:none;transform:translate(-50%,-50%);animation:splashfly .8s ease-out forwards}
+  @keyframes splashfly{to{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(.3);opacity:0}}
 
   /* wheel of fortune */
   .wheelwrap{position:relative;width:240px;height:262px;margin:4px auto 0}
@@ -1654,21 +1684,62 @@ function fishingResult(won){
   });
 }
 
-// A sea monster surges up where the player stood, then drags them off (boom).
-// TODO(polish): placeholder cutscene — needs a LOT of work (real water + beast seizing the player).
-async function leviathanFx(cell){
+// Leviathan cutscene: underwater gloom → water swells at the tile → tentacles rise &
+// writhe → the beast surfaces → it seizes the player (token dragged under) → big splash
+// + boom → everything sinks and the water recedes.
+async function leviathanFx(cell, victim){
   const s = cellToScreen(cell);
-  ["🌊","💦","🌊"].forEach((g,i)=>{
-    const w = document.createElement("div"); w.className = "wavefx"; w.textContent = g;
-    w.style.left = (s.x+(i-1)*38)+"px"; w.style.top = s.y+"px";
-    document.body.appendChild(w); setTimeout(()=>w.remove(), 1200);
-  });
-  const lev = document.createElement("div"); lev.className = "leviathan"; lev.textContent = "🐙";
-  lev.style.left = s.x+"px"; lev.style.top = s.y+"px";
-  document.body.appendChild(lev);
-  SFX.play("leviathan");
-  await sleep(700); explode(cell); SFX.play("boom");
-  await sleep(900); lev.remove();
+  const dim = document.createElement("div"); dim.className = "cutdim seadim";
+  document.body.appendChild(dim); await raf(); dim.classList.add("show");
+
+  const water = document.createElement("div"); water.className = "seawater";
+  water.style.left = s.x+"px"; water.style.top = s.y+"px";
+  document.body.appendChild(water);
+  SFX.play("leviathan"); await raf(); water.classList.add("up");
+  await sleep(300);
+
+  const tents = [], n = 5;                                           // tentacles rise in an arc
+  for (let i=0;i<n;i++){
+    const off = i - (n-1)/2;
+    const t = document.createElement("div"); t.className = "tentacle";
+    t.style.left = (s.x + off*30)+"px"; t.style.top = (s.y + 12)+"px";
+    t.style.setProperty("--rot", (off*12)+"deg");
+    document.body.appendChild(t); tents.push(t);
+    requestAnimationFrame(()=> t.classList.add("up"));
+  }
+  await sleep(430); tents.forEach(t=> t.classList.add("sway"));
+
+  const beast = document.createElement("div"); beast.className = "seabeast"; beast.textContent = "🐙";
+  beast.style.left = s.x+"px"; beast.style.top = s.y+"px";
+  document.body.appendChild(beast); await raf(); beast.classList.add("up");
+  await sleep(460); beast.classList.add("wig"); SFX.play("leviathan");
+  await sleep(420);
+
+  // seize: shake, then drag the victim's token down under the surface
+  let tok, prevT;
+  if (victim){ const vi = idxOf(victim); tok = tokenEls[vi];
+    if (tok){ prevT = tok.style.transition; tok.style.transition = "transform .5s ease-in"; } }
+  flashScreen();
+  for (let i=0;i<16;i++){                                            // splash droplets
+    const d = document.createElement("div"); d.className = "splashdrop";
+    d.style.left = s.x+"px"; d.style.top = s.y+"px";
+    const a = Math.random()*Math.PI*2, dist = 60+Math.random()*120;
+    d.style.setProperty("--dx", Math.cos(a)*dist+"px");
+    d.style.setProperty("--dy", (Math.sin(a)*dist - 40)+"px");
+    document.body.appendChild(d); setTimeout(()=> d.remove(), 800);
+  }
+  explode(cell); SFX.play("boom");
+  beast.classList.remove("wig");
+  beast.style.transition = "transform .5s ease-in, opacity .4s";
+  beast.style.transform = "translate(-50%,40px) scale(.5)"; beast.style.opacity = "0";
+  if (tok){ const c = cellCenter(cell); tok.style.transform = `translate(${c.x}px, ${c.y+38}px) scale(.2)`; }
+  tents.forEach(t=>{ t.classList.remove("sway"); t.classList.remove("up"); });
+  await sleep(520);
+
+  if (tok) tok.style.transition = prevT || `transform ${ANIM.STEP}ms ease-in-out`;
+  water.classList.remove("up"); dim.classList.remove("show");
+  await sleep(350);
+  beast.remove(); water.remove(); tents.forEach(t=> t.remove()); dim.remove();
 }
 
 async function runFishing(p){
@@ -1690,7 +1761,7 @@ async function runFishing(p){
   } else {
     game.fishStreak = 0;
     const fromTile = p.pos;
-    await leviathanFx(fromTile);                          // monster rises where they stood
+    await leviathanFx(fromTile, p);                       // monster rises where they stood + seizes them
     p.pos = 1 + Math.floor(Math.random()*FISH.SPIT_MAX);
     layoutTokens(); renderScoreboard();
     log(`${p.name} was hit by a leviathan and spat out at tile ${p.pos}! 🌊`);
@@ -1992,23 +2063,56 @@ function pickPlayer(title, candidates){
   });
 }
 
-// A revolver appears, cocks, then muzzle-flashes + explodes on each target tile.
-// TODO(polish): placeholder cutscene — needs a LOT of work (proper draw/aim/recoil/impact).
+// Gun cutscene: dim → revolver draws up → cocks → crosshairs lock on each target →
+// FIRE (muzzle flash + tracers + recoil + bang) → impacts → barrel smoke → holster.
 async function gunFx(targetCells){
-  const gun = document.createElement("div"); gun.className = "gunfx"; gun.textContent = "🔫";
-  gun.style.left = "50%"; gun.style.top = "42%";
+  const cells = targetCells || [];
+  const dim = document.createElement("div"); dim.className = "cutdim";
+  document.body.appendChild(dim); await raf(); dim.classList.add("show");
+
+  const gx = innerWidth*0.5, gy = innerHeight*0.68, muzX = gx, muzY = gy - 72;
+  const gun = document.createElement("div"); gun.className = "bigGun"; gun.textContent = "🔫";
+  gun.style.left = gx+"px"; gun.style.top = (innerHeight+180)+"px";
+  gun.style.transition = "top .5s cubic-bezier(.2,.7,.3,1), transform .14s ease-out";
   document.body.appendChild(gun);
-  SFX.play("click"); await sleep(480);
-  SFX.play("shoot"); flashScreen();
-  targetCells.forEach(c=>{
+  await raf(); gun.style.top = gy+"px"; await sleep(520);            // draw
+
+  SFX.play("click");                                                 // cock the hammer
+  gun.style.transform = "translate(-50%,-50%) rotate(-9deg)"; await sleep(170);
+  gun.style.transform = "translate(-50%,-50%) rotate(0deg)";  await sleep(150);
+
+  const marks = cells.map(c=>{                                       // aim: crosshairs lock on
     const s = cellToScreen(c);
-    const m = document.createElement("div"); m.className = "muzzle"; m.textContent = "💥";
+    const m = document.createElement("div"); m.className = "crosshair";
     m.style.left = s.x+"px"; m.style.top = s.y+"px";
-    document.body.appendChild(m); setTimeout(()=>m.remove(), 350);
+    document.body.appendChild(m); requestAnimationFrame(()=> m.classList.add("locked"));
+    return m;
   });
-  await sleep(130);
-  targetCells.forEach(c => explode(c)); SFX.play("boom");
-  await sleep(450); gun.remove();
+  SFX.play("click"); await sleep(430);
+
+  const mf = document.createElement("div"); mf.className = "muzzle"; mf.textContent = "💥";   // FIRE
+  mf.style.left = muzX+"px"; mf.style.top = muzY+"px";
+  document.body.appendChild(mf); setTimeout(()=> mf.remove(), 350);
+  const fx = el("svg", {"class":"fxsvg", viewBox:`0 0 ${innerWidth} ${innerHeight}`});
+  cells.forEach(c=>{ const s = cellToScreen(c);
+    fx.appendChild(el("line",{x1:muzX,y1:muzY,x2:s.x,y2:s.y,stroke:"#ffe27a","stroke-width":"3","stroke-linecap":"round",opacity:"0.95"})); });
+  document.body.appendChild(fx);
+  SFX.play("shoot"); flashScreen();
+  gun.style.transform = "translate(-50%,-58%) rotate(-15deg)";       // recoil kick
+  await sleep(120); fx.remove();
+  gun.style.transform = "translate(-50%,-50%) rotate(0deg)";
+
+  cells.forEach(c=> explode(c)); SFX.play("boom");                  // impacts
+  marks.forEach(m=> m.remove());
+  const smoke = document.createElement("div"); smoke.className = "gunsmoke"; smoke.textContent = "💨";
+  smoke.style.left = muzX+"px"; smoke.style.top = muzY+"px";
+  document.body.appendChild(smoke); setTimeout(()=> smoke.remove(), 1000);
+  await sleep(520);
+
+  gun.style.transition = "top .4s ease-in, opacity .4s";            // holster
+  gun.style.top = (innerHeight+180)+"px"; gun.style.opacity = "0";
+  dim.classList.remove("show");
+  await sleep(420); gun.remove(); dim.remove();
 }
 
 async function gunRoulette(p){
