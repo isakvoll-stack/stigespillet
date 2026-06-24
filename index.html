@@ -192,6 +192,45 @@
     transform:translate(-50%,-50%);animation:sparkfly .8s ease-out forwards}
   @keyframes sparkfly{to{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(.2);opacity:0}}
 
+  /* storm + lightning */
+  #storm{position:fixed;inset:0;pointer-events:none;z-index:11;opacity:0;transition:opacity .8s;
+    background:linear-gradient(180deg, rgba(18,22,40,.9), rgba(18,22,40,.25))}
+  #storm.show{opacity:1}
+  .stormcloud{position:absolute;width:240px;height:96px;border-radius:50%;filter:blur(3px);opacity:.95;
+    background:radial-gradient(circle at 50% 65%, #3a3f55, #20232f);animation:stormroll linear forwards}
+  @keyframes stormroll{from{transform:translateX(-34vw)}to{transform:translateX(118vw)}}
+  .fxsvg{position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:12}
+  .bolt{stroke:#fdf6b0;stroke-width:6;fill:none;stroke-linejoin:round;stroke-linecap:round;
+    filter:drop-shadow(0 0 8px #fff) drop-shadow(0 0 16px #9cd2ff)}
+
+  /* shooting star (lucky) */
+  .shootstar{position:fixed;z-index:13;font-size:46px;pointer-events:none;transform:translate(-50%,-50%);
+    filter:drop-shadow(0 0 10px #ffe87a) drop-shadow(0 0 22px #fff6b0);will-change:left,top}
+  .startrail{position:fixed;z-index:12;font-size:18px;pointer-events:none;transform:translate(-50%,-50%);
+    animation:trailfade .8s ease-out forwards}
+  @keyframes trailfade{from{opacity:.9;transform:translate(-50%,-50%) scale(1)}
+    to{opacity:0;transform:translate(-50%,-50%) scale(.35)}}
+
+  /* nuke + white-out */
+  .nuke{position:fixed;left:50%;font-size:78px;z-index:13;pointer-events:none;transform:translate(-50%,-50%)}
+  #whiteout{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:14;transition:opacity .3s}
+  #whiteout.show{opacity:1}
+
+  /* gun + leviathan */
+  .gunfx{position:fixed;z-index:13;font-size:62px;pointer-events:none;transform:translate(-50%,-50%);animation:gunpop .5s ease-out}
+  @keyframes gunpop{0%{opacity:0;transform:translate(-50%,-50%) scale(.5) rotate(-12deg)}
+    35%{opacity:1;transform:translate(-50%,-50%) scale(1.12) rotate(-12deg)}
+    100%{opacity:1;transform:translate(-50%,-50%) scale(1) rotate(-12deg)}}
+  .muzzle{position:fixed;z-index:13;font-size:42px;pointer-events:none;transform:translate(-50%,-50%);animation:muzzlepop .35s ease-out forwards}
+  @keyframes muzzlepop{0%{opacity:0;transform:translate(-50%,-50%) scale(.3)}
+    40%{opacity:1;transform:translate(-50%,-50%) scale(1.3)}100%{opacity:0;transform:translate(-50%,-50%) scale(.8)}}
+  .leviathan{position:fixed;z-index:13;font-size:82px;pointer-events:none;transform:translate(-50%,-50%);animation:levrise 1.6s ease-out forwards}
+  @keyframes levrise{0%{opacity:0;transform:translate(-50%,30px) scale(.5)}
+    28%{opacity:1;transform:translate(-50%,-50%) scale(1.15)}70%{opacity:1;transform:translate(-50%,-50%) scale(1)}
+    100%{opacity:0;transform:translate(-50%,-72px) scale(.8)}}
+  .wavefx{position:fixed;z-index:12;font-size:40px;pointer-events:none;transform:translate(-50%,-50%);animation:wavefade 1.2s ease-out forwards}
+  @keyframes wavefade{0%{opacity:0}30%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) scale(1.6)}}
+
   /* wheel of fortune */
   .wheelwrap{position:relative;width:240px;height:262px;margin:4px auto 0}
   #wheelSvg{display:block;margin-top:20px}
@@ -410,14 +449,18 @@
     <div class="box">
       <h3>Wheel of Fortune</h3>
       <div class="wheelwrap">
-        <div class="wheelpointer">▼</div>
-        <svg id="wheelSvg" viewBox="0 0 200 200" width="240" height="240"><g id="wheelSpin"></g></svg>
+        <svg id="wheelSvg" viewBox="0 0 200 200" width="240" height="240">
+          <g id="wheelSpin"></g>
+          <polygon points="88,2 112,2 100,20" fill="#fff" stroke="#1a140d" stroke-width="2.5"/>
+        </svg>
       </div>
     </div>
   </div>
   <div class="prompt" id="prompt"></div>
   <div class="sixfx" id="sixfx">6 · ROLL AGAIN!</div>
   <div id="flash"></div>
+  <div id="storm"></div>
+  <div id="whiteout"></div>
 
   <div class="modal fish" id="fish">
     <div class="box">
@@ -850,6 +893,18 @@ const die = document.getElementById("die");
 const logEl = document.getElementById("log");
 
 const sleep = ms => new Promise(r=>setTimeout(r,ms));
+const raf = () => new Promise(r=>requestAnimationFrame(()=>r()));
+
+// A jagged screen-space lightning-bolt path from (x1,y1) to (x2,y2).
+function jaggedBolt(x1,y1,x2,y2,segs){
+  segs = segs || 9;
+  let d = `M ${x1.toFixed(1)} ${y1.toFixed(1)}`;
+  for (let i=1;i<segs;i++){
+    const t=i/segs, jx = (Math.random()*44-22)*(1-Math.abs(0.5-t));
+    d += ` L ${(x1+(x2-x1)*t+jx).toFixed(1)} ${(y1+(y2-y1)*t).toFixed(1)}`;
+  }
+  return d + ` L ${x2.toFixed(1)} ${y2.toFixed(1)}`;
+}
 
 /* ---- SFX: tiny synthesised sound engine (no asset files) ----------- */
 const SFX = (() => {
@@ -886,6 +941,11 @@ const SFX = (() => {
     thunder: ()=> { tone(70,0.5,"sawtooth",0.3); tone(95,0.4,"triangle",0.22,0.04); for (let i=0;i<4;i++) tone(180+Math.random()*320,0.06,"square",0.13,0.1+i*0.04); },
     sparkle: ()=> seq([784,988,1175,1568], "triangle", 0.16, 0.05),
     boom: ()=> { tone(58,0.55,"sawtooth",0.34); tone(82,0.45,"square",0.22,0.03); for (let i=0;i<6;i++) tone(120+Math.random()*520,0.07,"square",0.15,0.05+i*0.03); },
+    rumble:()=> { const c=ac(); if(!c) return; const t=c.currentTime, o=c.createOscillator(), g=c.createGain(); o.type="sawtooth"; o.frequency.setValueAtTime(46,t); o.frequency.linearRampToValueAtTime(60,t+1.4); g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.22,t+0.3); g.gain.exponentialRampToValueAtTime(0.0001,t+1.5); o.connect(g); g.connect(c.destination); o.start(t); o.stop(t+1.6); },
+    crack: ()=> { tone(2000,0.04,"square",0.26); tone(150,0.5,"sawtooth",0.32,0.02); for (let i=0;i<8;i++) tone(220+Math.random()*1100,0.05,"square",0.13,0.04+i*0.025); },
+    siren: ()=> { const c=ac(); if(!c) return; const t=c.currentTime, o=c.createOscillator(), g=c.createGain(); o.type="sawtooth"; for (let i=0;i<5;i++){ o.frequency.setValueAtTime(440,t+i); o.frequency.linearRampToValueAtTime(900,t+i+0.5); o.frequency.linearRampToValueAtTime(440,t+i+1); } g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.16,t+0.15); g.gain.setValueAtTime(0.16,t+4.5); g.gain.exponentialRampToValueAtTime(0.0001,t+5); o.connect(g); g.connect(c.destination); o.start(t); o.stop(t+5.1); },
+    nukefall:()=> { const c=ac(); if(!c) return; const t=c.currentTime, o=c.createOscillator(), g=c.createGain(); o.type="sine"; o.frequency.setValueAtTime(1500,t); o.frequency.exponentialRampToValueAtTime(170,t+3); g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.12,t+0.15); g.gain.setValueAtTime(0.12,t+2.6); g.gain.exponentialRampToValueAtTime(0.0001,t+3); o.connect(g); g.connect(c.destination); o.start(t); o.stop(t+3.1); },
+    megaboom:()=> { tone(38,1.3,"sawtooth",0.4); tone(64,1.1,"square",0.3,0.05); for (let i=0;i<14;i++) tone(70+Math.random()*620,0.12,"square",0.18,0.05+i*0.045); },
     spin: ()=> { for (let i=0;i<22;i++) tone(300+i*28,0.04,"square",0.07,i*0.05); },
     rule:  ()=> seq([660,990], "triangle", 0.16, 0.09),
     win:   ()=> seq([523,659,784,1047,1319], "triangle", 0.2, 0.1),
@@ -1515,11 +1575,11 @@ function explode(cell){
 // streak 2 (3rd attempt) highly difficult, streak 4 (5th) extremely so.
 function fishParams(streak){
   return {
-    barH:      Math.max(22, 96 - streak*20),    // smaller catch zone, shrinks fast
-    fishSpeed: 130 + streak*60,                 // faster, friskier fish
-    retarget:  Math.max(0.28, 0.65 - streak*0.10), // changes direction more often
-    drain:     0.30 + streak*0.08,              // meter drains faster
-    fill:      0.40,                            // and fills slower
+    barH:      Math.max(34, 112 - streak*15),   // bigger catch zone, shrinks slower
+    fishSpeed: 110 + streak*50,                 // calmer fish
+    retarget:  Math.max(0.40, 0.85 - streak*0.09), // changes direction less often
+    drain:     0.22 + streak*0.07,              // meter drains gentler
+    fill:      0.34,                            // fills a touch slower -> rounds last longer
   };
 }
 function showFishPhase(ph){
@@ -1563,7 +1623,7 @@ function fishingGame(streak){
     }
     function frame(now){
       const dt = Math.min(0.05, (now-last)/1000); last = now;
-      v += 620*dt; if (holding) v -= 1280*dt;       // gravity vs. reel (twitchier)
+      v += 540*dt; if (holding) v -= 1080*dt;       // gravity vs. reel (a little calmer)
       barTop += v*dt;
       if (barTop < 0){ barTop = 0; v = 0; }
       if (barTop > TH-P.barH){ barTop = TH-P.barH; v = 0; }
@@ -1594,12 +1654,28 @@ function fishingResult(won){
   });
 }
 
+// A sea monster surges up where the player stood, then drags them off (boom).
+async function leviathanFx(cell){
+  const s = cellToScreen(cell);
+  ["🌊","💦","🌊"].forEach((g,i)=>{
+    const w = document.createElement("div"); w.className = "wavefx"; w.textContent = g;
+    w.style.left = (s.x+(i-1)*38)+"px"; w.style.top = s.y+"px";
+    document.body.appendChild(w); setTimeout(()=>w.remove(), 1200);
+  });
+  const lev = document.createElement("div"); lev.className = "leviathan"; lev.textContent = "🐙";
+  lev.style.left = s.x+"px"; lev.style.top = s.y+"px";
+  document.body.appendChild(lev);
+  SFX.play("leviathan");
+  await sleep(700); explode(cell); SFX.play("boom");
+  await sleep(900); lev.remove();
+}
+
 async function runFishing(p){
   await revealRuleOnce("fishing");
   const streak = game.fishStreak || 0;
   let won;
   if (game.autonomous){
-    won = Math.random() < Math.max(0.12, 0.85 - streak*0.18);   // self-play: harder as streak grows
+    won = Math.random() < Math.max(0.15, 0.88 - streak*0.15);   // self-play: harder as streak grows
   } else {
     await getReady(p.name);
     won = await fishingGame(streak);
@@ -1609,14 +1685,16 @@ async function runFishing(p){
     p.fish = (p.fish||0) + 1; game.fishStreak = streak + 1;
     SFX.play("catch");
     log(`${p.name} caught a fish! 🐟`);
+    renderScoreboard();
   } else {
     game.fishStreak = 0;
+    const fromTile = p.pos;
+    await leviathanFx(fromTile);                          // monster rises where they stood
     p.pos = 1 + Math.floor(Math.random()*FISH.SPIT_MAX);
-    layoutTokens();
-    SFX.play("leviathan"); explode();
+    layoutTokens(); renderScoreboard();
     log(`${p.name} was hit by a leviathan and spat out at tile ${p.pos}! 🌊`);
+    await resolveLanding(p);                              // the new tile fires too
   }
-  renderScoreboard();
 }
 
 /* ---- teleporter (teal square): swap places with another player ----- */
@@ -1669,32 +1747,90 @@ async function runTeleporter(p){
 }
 
 /* ---- lightning (very rare): strike the leader ---------------------- */
+// Storm clouds roll in, thunder rumbles, then a bolt cracks down onto a tile.
+async function lightningFx(cell){
+  const storm = document.getElementById("storm");
+  for (let i=0;i<5;i++){
+    const cl = document.createElement("div"); cl.className = "stormcloud";
+    cl.style.left = (i*22-12)+"vw"; cl.style.top = (Math.random()*16-4)+"vh";
+    cl.style.animationDuration = (2.2+Math.random()*1.1)+"s";
+    storm.appendChild(cl); setTimeout(()=>cl.remove(), 3800);
+  }
+  storm.classList.add("show");
+  SFX.play("rumble");
+  await sleep(1500);                                       // clouds gather + rumble
+  const tgt = cellToScreen(cell);
+  const fx = el("svg", {"class":"fxsvg", viewBox:`0 0 ${innerWidth} ${innerHeight}`});
+  const bolt = el("path", {"class":"bolt", d: jaggedBolt(tgt.x, 0, tgt.x, tgt.y, 10)});
+  fx.appendChild(bolt); document.body.appendChild(fx);
+  flashScreen(); SFX.play("crack");
+  if (navigator.vibrate){ try { navigator.vibrate(90); } catch(e){} }
+  await sleep(120); bolt.style.opacity = "0.15";
+  await sleep(70);  bolt.style.opacity = "1"; flashScreen();
+  await sleep(220); fx.remove();
+  storm.classList.remove("show");
+}
+
 async function strikeLightning(){
   await revealRuleOnce("lightning");
   const active = game.players.filter(p => !p.finished && p.pos > 0);
   if (!active.length) return;
   const top = Math.max(...active.map(p => p.pos));
   const victim = active.find(p => p.pos === top);          // the front-runner
-  SFX.play("thunder"); explode();
+  const fromTile = victim.pos;
+  await lightningFx(fromTile);                             // clouds → thunder → bolt + crack
+  explode(fromTile);                                       // burst where they stood
   victim.pos = Math.max(1, victim.pos - LIGHTNING.BACK);
   victim.downed = true; victim.getupMin = SNIPER.GETUP_MIN; updateDowned(idxOf(victim));
   layoutTokens(); renderScoreboard();
   log(`🌩️ Lightning struck ${victim.name} — knocked flat and back to tile ${victim.pos}!`);
-  await sleep(750);
+  await sleep(500);
+  await resolveLanding(victim);                            // the new tile fires too
 }
 
 /* ---- lucky star (very rare): sweep the trailing player forward ----- */
+// A shooting star flies in, scoops the player up, and carries them to dest (~4s).
+async function starFx(lucky, destCell){
+  const idx = idxOf(lucky);
+  const from = cellToScreen(lucky.pos), to = cellToScreen(destCell);
+  const star = document.createElement("div");
+  star.className = "shootstar"; star.textContent = "🌟";
+  star.style.left = "-8vw"; star.style.top = "-8vh";
+  document.body.appendChild(star);
+  await raf();
+  star.style.transition = "left 1s ease-in, top 1s ease-in";      // fly in to the player
+  star.style.left = from.x+"px"; star.style.top = from.y+"px";
+  SFX.play("sparkle");
+  await sleep(1000);
+  const tok = tokenEls[idx], prevT = tok.style.transition;         // scoop + carry together
+  tok.style.transition = "transform 2.7s cubic-bezier(.4,0,.3,1)";
+  lucky.pos = destCell; moveTokenTo(idx, destCell);
+  star.style.transition = "left 2.7s cubic-bezier(.4,0,.3,1), top 2.7s cubic-bezier(.4,0,.3,1)";
+  star.style.left = to.x+"px"; star.style.top = to.y+"px";
+  const trail = setInterval(()=>{
+    const r = star.getBoundingClientRect();
+    const sp = document.createElement("div"); sp.className = "startrail"; sp.textContent = "✨";
+    sp.style.left = (r.left+r.width/2)+"px"; sp.style.top = (r.top+r.height/2)+"px";
+    document.body.appendChild(sp); setTimeout(()=>sp.remove(), 800);
+  }, 90);
+  await sleep(2750);
+  clearInterval(trail); star.remove();
+  tok.style.transition = prevT || `transform ${ANIM.STEP}ms ease-in-out`;
+  layoutTokens();
+}
+
 async function strikeLucky(){
   const active = game.players.filter(p => !p.finished && p.pos > 0);
   if (active.length < 2) return;                           // need someone to be "behind"
   await revealRuleOnce("lucky");
   const bottom = Math.min(...active.map(p => p.pos));
   const lucky = active.find(p => p.pos === bottom);        // the trailing player
-  SFX.play("sparkle");
-  lucky.pos = Math.min(BOARD.WIN - 1, lucky.pos + LUCKY.FORWARD);   // never auto-wins
-  layoutTokens(); renderScoreboard();
+  const dest = Math.min(BOARD.WIN - 1, lucky.pos + LUCKY.FORWARD);   // never auto-wins
+  await starFx(lucky, dest);                               // ~4s fly-across + carry
+  renderScoreboard();
   log(`🌟 A lucky star swept ${lucky.name} forward to tile ${lucky.pos}!`);
-  await sleep(700);
+  await sleep(300);
+  await resolveLanding(lucky);                             // the new tile fires too
 }
 
 /* ---- reversal of fortune (very rare): leader <-> last swap ---------- */
@@ -1831,37 +1967,56 @@ function pickPlayer(title, candidates){
   });
 }
 
+// A revolver appears, cocks, then muzzle-flashes + explodes on each target tile.
+async function gunFx(targetCells){
+  const gun = document.createElement("div"); gun.className = "gunfx"; gun.textContent = "🔫";
+  gun.style.left = "50%"; gun.style.top = "42%";
+  document.body.appendChild(gun);
+  SFX.play("click"); await sleep(480);
+  SFX.play("shoot"); flashScreen();
+  targetCells.forEach(c=>{
+    const s = cellToScreen(c);
+    const m = document.createElement("div"); m.className = "muzzle"; m.textContent = "💥";
+    m.style.left = s.x+"px"; m.style.top = s.y+"px";
+    document.body.appendChild(m); setTimeout(()=>m.remove(), 350);
+  });
+  await sleep(130);
+  targetCells.forEach(c => explode(c)); SFX.play("boom");
+  await sleep(450); gun.remove();
+}
+
 async function gunRoulette(p){
-  SFX.play("click");
   const r = 1 + Math.floor(Math.random()*6);
   if (r === 1){                                   // 1/6: the top three go down
-    explode(); SFX.play("boom");
     const top3 = game.players.filter(q => !q.finished && q.pos > 0)
                    .sort((a,b)=> b.pos - a.pos).slice(0,3);
+    await gunFx(top3.map(q=>q.pos));
     top3.forEach(downPlayer); layoutTokens(); renderScoreboard();
     log(`🔫 BANG! The frontrunners drop: ${top3.map(q=>q.name).join(", ")}`);
   } else if (r <= 3){                             // 2/6: you shoot yourself
-    explode(); SFX.play("boom");
+    await gunFx([p.pos]);
     downPlayer(p); layoutTokens(); renderScoreboard();
     log(`🔫 BANG! ${p.name} shot themselves and collapses.`);
   } else {                                        // 3/6: nothing
     SFX.play("click"); log(`🔫 *click* — nothing happens.`);
   }
-  await sleep(750);
+  await sleep(500);
 }
 
-const WHEEL_LABELS = ["☢️","🔙","➡️","🚀","✖"];   // nuke / start / next / +15 / nothing
-const WHEEL_COLORS = ["#d64541","#8e44ad","#2e86c1","#27ae60","#7f8c8d"];
+const WHEEL_LABELS = ["☢️","🔙","➡️","🚀","✖","🎲"];   // nuke / start / next / +15 / nothing / RANDOM
+const WHEEL_COLORS = ["#d64541","#8e44ad","#2e86c1","#27ae60","#7f8c8d","#e67e22"];
+const WHEEL_PICKS  = ["nuke","start","next","move15","nothing","random"];
 function wpol(cx,cy,r,deg){ const a = (deg-90)*Math.PI/180; return [cx+r*Math.cos(a), cy+r*Math.sin(a)]; }
 function buildWheel(){
   const g = document.getElementById("wheelSpin"); if (!g) return;
   g.innerHTML = "";
-  for (let i=0;i<5;i++){
-    const [x1,y1] = wpol(100,100,92,i*72), [x2,y2] = wpol(100,100,92,(i+1)*72);
+  const N = WHEEL_LABELS.length, SEG = 360/N;
+  for (let i=0;i<N;i++){
+    const [x1,y1] = wpol(100,100,92,i*SEG), [x2,y2] = wpol(100,100,92,(i+1)*SEG);
     g.appendChild(el("path",{ d:`M100,100 L${x1.toFixed(1)},${y1.toFixed(1)} A92,92 0 0 1 ${x2.toFixed(1)},${y2.toFixed(1)} Z`,
                               fill:WHEEL_COLORS[i], stroke:"#1a140d", "stroke-width":"2" }));
-    const [lx,ly] = wpol(100,100,60,i*72+36);
-    const t = el("text",{ x:lx.toFixed(1), y:(ly+8).toFixed(1), "text-anchor":"middle", "font-size":"26" });
+    const [lx,ly] = wpol(100,100,62,i*SEG+SEG/2);
+    const t = el("text",{ x:lx.toFixed(1), y:(ly+8).toFixed(1), "text-anchor":"middle", "font-size":"24" });
     t.textContent = WHEEL_LABELS[i]; g.appendChild(t);
   }
   g.appendChild(el("circle",{ cx:"100", cy:"100", r:"11", fill:"#f6ecd9", stroke:"#1a140d", "stroke-width":"2" }));
@@ -1869,11 +2024,12 @@ function buildWheel(){
 function showWheel(idx){
   return new Promise(res => {
     const g = document.getElementById("wheelSpin");
+    const SEG = 360/WHEEL_LABELS.length;
     g.style.transition = "none"; g.style.transform = "rotate(0deg)";
     void document.getElementById("wheelSvg").getBoundingClientRect();          // reflow before the spin
     document.getElementById("wheel").classList.add("show");
     SFX.play("spin");
-    const target = 360*6 + (360 - (idx*72 + 36));     // many turns, then land segment idx under the pointer
+    const target = 360*6 + (360 - (idx*SEG + SEG/2));   // many turns, then land segment idx under the pointer
     requestAnimationFrame(()=> {
       g.style.transition = "transform 5s cubic-bezier(.15,.85,.1,1)";          // fast -> slower -> slower
       g.style.transform = `rotate(${target}deg)`;
@@ -1881,26 +2037,77 @@ function showWheel(idx){
     setTimeout(()=> { SFX.play("six"); setTimeout(()=> { document.getElementById("wheel").classList.remove("show"); res(); }, 800); }, 5100);
   });
 }
+
+// The full nuke set-piece: siren, ~5s wait, ~3s descent, giant blast, 4s white-out.
+async function nukeSequence(){
+  SFX.play("siren");
+  showPrompt("☢️ INCOMING — TAKE COVER!");
+  await sleep(5000);
+  hidePrompt();
+  const bomb = document.createElement("div"); bomb.className = "nuke"; bomb.textContent = "💣";
+  bomb.style.top = "-12vh"; bomb.style.transition = "none";
+  document.body.appendChild(bomb);
+  await raf(); SFX.play("nukefall");
+  bomb.style.transition = "top 3s cubic-bezier(.6,0,.9,1)";
+  bomb.style.top = "55%";
+  await sleep(3000); bomb.remove();
+  SFX.play("megaboom");
+  for (let k=0;k<6;k++) explode(1 + Math.floor(Math.random()*BOARD.WIN));   // booms all across the board
+  flashScreen();
+  const wo = document.getElementById("whiteout");
+  wo.style.transition = "opacity .3s"; wo.classList.add("show");
+  await sleep(4000);
+  wo.style.transition = "opacity 1s"; wo.classList.remove("show");          // fade back, revealing the board
+  await sleep(1000);
+}
+async function nukeEveryone(tag){
+  await nukeSequence();
+  const victims = game.players.filter(q => !q.finished && q.pos > 0 && !isBlueTile(q.pos));
+  victims.forEach(downPlayer); layoutTokens(); renderScoreboard();
+  log(`${tag}☢️ NUKE! Everyone not on a blue tile is knocked down.`);
+  await sleep(400);
+}
+
+// The RANDOM wheel slot: fire any single effect from anywhere in the game.
+async function freezeFromRandom(p){
+  await revealRuleOnce("freeze"); freezePlayer(p);
+  SFX.play("fall"); layoutTokens(); renderScoreboard();
+  log(`🎲🧊 Random freeze — ${p.name} is locked in ice!`); await sleep(600);
+}
+async function randomTeleport(p){
+  await revealRuleOnce("teleport");
+  const tgt = teleportSwap(p, false); await sleep(540);
+  if (tgt){ await resolveLanding(tgt); await resolveLanding(p); }
+}
+async function randomWheelEffect(p){
+  const effects = [
+    ()=> nukeEveryone("🎲 "),
+    async()=>{ SFX.play("chute"); p.pos = 1; layoutTokens(); renderScoreboard(); log(`🎲 Random: ${p.name} back to start!`); await sleep(600); await resolveLanding(p); },
+    async()=>{ log(`🎲 Random: ${p.name} inches forward.`); await advancePlayer(p, 1); },
+    async()=>{ log(`🎲 Random: ${p.name} leaps 15 spaces!`); await advancePlayer(p, 15); },
+    async()=>{ SFX.play("click"); log(`🎲 Random: … nothing happens.`); await sleep(500); },
+    ()=> gunRoulette(p),
+    ()=> runSupport(p),
+    ()=> strikeLightning(),
+    async()=>{ p.fish = (p.fish||0) + 1; SFX.play("catch"); renderScoreboard(); log(`🎲🐟 Random: ${p.name} gains a fish!`); await sleep(500); },
+    ()=> freezeFromRandom(p),
+    ()=> strikeLucky(),
+    ()=> strikeFate(),
+    ()=> randomTeleport(p),
+  ];
+  await effects[(Math.random()*effects.length)|0]();
+}
+
 async function spinWheel(p){
-  const idx = Math.floor(Math.random()*5);
-  const pick = ["nuke","start","next","move15","nothing"][idx];   // 1/5 each
+  const idx = Math.floor(Math.random()*WHEEL_LABELS.length);   // 1/6 each
+  const pick = WHEEL_PICKS[idx];
   await showWheel(idx);
-  if (pick === "nuke"){
-    explode(); SFX.play("boom");
-    const victims = game.players.filter(q => !q.finished && q.pos > 0 && !isBlueTile(q.pos));
-    victims.forEach(downPlayer); layoutTokens(); renderScoreboard();
-    log(`☢️ NUKE! Everyone not on a blue tile is knocked down.`);
-    await sleep(850);
-  } else if (pick === "start"){
-    SFX.play("chute"); p.pos = 1; layoutTokens(); renderScoreboard();
-    log(`🎡 The wheel sends ${p.name} back to the start!`); await sleep(650);
-  } else if (pick === "next"){
-    log(`🎡 ${p.name} edges to the next square.`); await advancePlayer(p, 1);
-  } else if (pick === "move15"){
-    log(`🎡 ${p.name} rockets 15 spaces forward!`); await advancePlayer(p, 15);
-  } else {
-    SFX.play("click"); log(`🎡 The wheel lands on nothing.`); await sleep(500);
-  }
+  if (pick === "nuke"){ await nukeEveryone(""); }
+  else if (pick === "start"){ SFX.play("chute"); p.pos = 1; layoutTokens(); renderScoreboard(); log(`🎡 The wheel sends ${p.name} back to the start!`); await sleep(650); await resolveLanding(p); }
+  else if (pick === "next"){ log(`🎡 ${p.name} edges to the next square.`); await advancePlayer(p, 1); }
+  else if (pick === "move15"){ log(`🎡 ${p.name} rockets 15 spaces forward!`); await advancePlayer(p, 15); }
+  else if (pick === "random"){ log(`🎲 The wheel lands on RANDOM!`); await randomWheelEffect(p); }
+  else { SFX.play("click"); log(`🎡 The wheel lands on nothing.`); await sleep(500); }
 }
 
 async function runSupport(p){
