@@ -613,9 +613,9 @@ const TELEPORT_COLOR = "#17b5a3";          // teal
 const FREEZE_TILES = [29, 63];             // icy squares — land here and you freeze solid
 const FREEZE_COLOR = "#bfe9ff";            // pale icy blue
 const FREEZE = { GETUP_MIN: 4, ADJ: 1 };   // need 4+ to break free; frost spreads to players within ADJ tiles
-const LIGHTNING = { CHANCE:0.015, BACK:7 };   // ~1.5% per turn: strike the leader, knock them back
-const LUCKY     = { CHANCE:0.012, FORWARD:8 }; // ~1.2% per turn: sweep the last-place player forward
-const FATE      = { CHANCE:0.01 };             // ~1% per turn: leader and last place swap places
+const LIGHTNING = { CHANCE:0.005, BACK:7 };    // ~0.5% per turn: strike the leader, knock them back (3x rarer)
+const LUCKY     = { CHANCE:0.004, FORWARD:8 };  // ~0.4% per turn: sweep the last-place player forward (3x rarer)
+const FATE      = { CHANCE:0.0033 };            // ~0.33% per turn: leader and last place swap places (3x rarer)
 
 /* =====================================================================
    ENGINE — pure board maths and turn resolution (no DOM).
@@ -1148,7 +1148,7 @@ function finishPlayer(p){
   game.busy = false; refreshHUD();
 }
 
-async function applyLink(p, idx){       // climb a ladder / slide a chute at p's square
+async function applyLink(p, idx, depth){       // climb a ladder / slide a chute at p's square
   const link = linkAt(p.pos);
   if (!link) return false;
   const from = p.pos;
@@ -1160,7 +1160,7 @@ async function applyLink(p, idx){       // climb a ladder / slide a chute at p's
   tokenEls[idx].style.transition = `transform ${ANIM.STEP}ms ease-in-out`;
   SFX.play(link.kind === "ladder" ? "ladder" : "chute");
   log(link.kind==="ladder" ? TXT.climbed(from,link.to) : TXT.slid(from,link.to));
-  if (link.kind === "slide" && FEATURES.snakeCollision) await snakeCollision(p, from, link.to);
+  if (link.kind === "slide" && FEATURES.snakeCollision) await snakeCollision(p, from, link.to, depth);
   return true;
 }
 
@@ -1197,14 +1197,14 @@ async function resolveEncounters(p){
           layoutTokens(); renderScoreboard();
           log(TXT.kicked(victim.name, from, below));
           await sleep(ANIM.STEP + 40);
-          await applyLink(victim, idxOf(victim));   // ladders/chutes at the new tile apply
+          await resolveLanding(victim);   // ladders/chutes/ice/teleporter at the new tile apply
         }
         p.shame = SHAME.TURNS;
         refreshBadges();
         log(`${p.name} kicked a man while down — SHAME! 😳`);
       } else {
         await kickBack(victim);
-        await applyLink(victim, idxOf(victim));      // kicked onto a ladder/chute takes effect
+        await resolveLanding(victim);      // kicked onto a ladder/chute/ice/teleporter takes effect
       }
       layoutTokens(); renderScoreboard();
       return;                           // kicker stays put; encounter resolved
@@ -1317,7 +1317,7 @@ async function fireSniper(shooter, tx, ty){
   });
   await sleep(150);
   hit.forEach(q => { q.downed = true; updateDowned(idxOf(q)); });
-  if (hit.length){ SFX.play("boom"); explode(); }
+  if (hit.length){ SFX.play("boom"); hit.forEach(q => explode(q.pos)); }
   renderScoreboard();
   log(hit.length ? `${shooter.name} shot and hit: ${hit.map(q=>q.name).join(", ")} 💥` : `${shooter.name} missed!`);
   await sleep(600);
@@ -1480,9 +1480,19 @@ function flashScreen(){
   if (bw){ bw.classList.remove("shake"); void bw.offsetWidth; bw.classList.add("shake"); }
 }
 
-// Screen-centre explosion: a big pop + flying sparks + flash. (Caller plays sound.)
-function explode(){
-  const cx = window.innerWidth/2, cy = window.innerHeight/2;
+// Map a board cell to on-screen pixels (centre of that tile). Uses the SVG's live
+// viewBox + bounding rect so it tracks the responsive board size on any screen.
+function cellToScreen(cell){
+  const c = cellCenter(cell), r = svg.getBoundingClientRect(), vb = svg.viewBox.baseVal;
+  return { x: r.left + (c.x - vb.x)/vb.width  * r.width,
+           y: r.top  + (c.y - vb.y)/vb.height * r.height };
+}
+
+// Explosion centred on a board cell (where the victim stood); no arg = screen centre.
+function explode(cell){
+  let cx, cy;
+  if (cell != null){ const s = cellToScreen(cell); cx = s.x; cy = s.y; }
+  else { cx = window.innerWidth/2; cy = window.innerHeight/2; }
   const pop = document.createElement("div");
   pop.className = "boom"; pop.textContent = "💥";
   pop.style.left = cx+"px"; pop.style.top = cy+"px";
@@ -1648,12 +1658,13 @@ async function runTeleporter(p){
   if (hasFish && FEATURES.teleportMalfunction){
     await revealRuleOnce("teleportmalf");
     log(`${p.name}'s fish jams the teleporter!`);
-    teleportSwap(p, true);                 // forced, biased toward the front
+    const tgt = teleportSwap(p, true);     // forced, biased toward the front
     await sleep(540);
+    if (tgt){ await resolveLanding(tgt); await resolveLanding(p); }
     return;
   }
   const use = game.autonomous ? (Math.random() < 0.6) : await teleportChoice(p);
-  if (use){ teleportSwap(p, false); await sleep(540); }
+  if (use){ const tgt = teleportSwap(p, false); await sleep(540); if (tgt){ await resolveLanding(tgt); await resolveLanding(p); } }
   else log(`${p.name} left the teleporter alone.`);
 }
 
@@ -1699,6 +1710,8 @@ async function strikeFate(){
   layoutTokens(); renderScoreboard();
   log(`🔃 Reversal of fortune! ${leader.name} and ${last.name} swapped places!`);
   await sleep(750);
+  await resolveLanding(leader); if (game.over) return;   // landing tiles fire after the swap
+  await resolveLanding(last);
 }
 
 /* ---- orange square: Wheel / Support / Gun -------------------------- */
@@ -1727,16 +1740,55 @@ async function tryFreeze(p){
 }
 
 // Sliding down a chute from `head` to `tail` bowls over anyone in the way.
-async function snakeCollision(slider, head, tail){
+async function snakeCollision(slider, head, tail, depth){
   const hits = game.players.filter(q => q !== slider && !q.finished && q.pos > 0
     && q.pos === tail);
   if (!hits.length) return;
   await revealRuleOnce("snakehit");
-  explode(); SFX.play("boom");
+  explode(tail); SFX.play("boom");
   hits.forEach(q => { q.pos = Math.max(1, q.pos - 5); downPlayer(q); });
   layoutTokens(); renderScoreboard();
   log(`💥 ${slider.name} bowled over ${hits.map(h=>h.name).join(", ")} sliding down!`);
   await sleep(750);
+  for (const q of hits){ await resolveLanding(q, (depth||0)+1); if (game.over) return; }
+}
+
+/* ---- passive landing resolver --------------------------------------------
+   When a player is *moved* onto a tile by something other than their own roll
+   (knock-back, pile-up, lightning, star, swap, teleport, kick, gun, wheel), the
+   destination tile still triggers — even when it isn't their turn. Event /
+   movement / trap tiles fire (ladders, chutes incl. pile-ups, ice, teleporters);
+   the time-consuming interactive tiles do NOT (the fishing minigame and the
+   orange Wheel/Support/Gun choice). The depth cap stops ladder<->chute<->
+   teleport chains from looping forever. */
+const LANDING_MAX_DEPTH = 6;
+async function resolveLanding(pl, depth){
+  depth = depth || 0;
+  if (!game || game.over || !pl || pl.finished) return;
+  if (depth >= LANDING_MAX_DEPTH) return;
+
+  // ladder / chute (applyLink also runs the pile-up on a chute)
+  if (linkAt(pl.pos)){
+    await applyLink(pl, idxOf(pl), depth);
+    if (game.over) return;
+    if (pl.pos === BOARD.WIN){ finishPlayer(pl); return; }
+    return resolveLanding(pl, depth+1);
+  }
+  // icy tile / frost spread — freezing ends the cascade (they're stuck solid)
+  if (FEATURES.freeze && !pl.frozen && await tryFreeze(pl)) return;
+
+  // teleporter — arriving here off your own turn forces the swap
+  if (FEATURES.teleport && TELEPORTERS.includes(pl.pos)){
+    await revealRuleOnce("teleport");
+    const target = teleportSwap(pl, false);
+    await sleep(540);
+    if (target){
+      await resolveLanding(target, depth+1);
+      await resolveLanding(pl, depth+1);
+    }
+    return;
+  }
+  if (pl.pos === BOARD.WIN) finishPlayer(pl);
 }
 
 // Walk a player N spaces (bounce-aware), apply a ladder/chute, check the win.
@@ -1744,10 +1796,9 @@ async function advancePlayer(pl, n){
   const idx = idxOf(pl);
   const path = walkPath(pl.pos === 0 ? 0 : pl.pos, n);
   for (const c of path){ pl.pos = c; moveTokenTo(idx, c); SFX.play("step"); await sleep(ANIM.STEP*0.7); }
-  await applyLink(pl, idx);
+  await resolveLanding(pl);             // ladder/chute/ice/teleporter all fire on arrival
   layoutTokens(); renderScoreboard();
-  if (pl.pos === BOARD.WIN){ finishPlayer(pl); return true; }
-  return false;
+  return game.over;                     // resolveLanding finishes + flags over on a win
 }
 
 let orangeResolve = null;
