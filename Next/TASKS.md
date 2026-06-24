@@ -12,9 +12,20 @@ See `LOG.md` for the running session history.
 ## Active
 
 ### Animation polish (Isak's notes, 2026-06-24)
-- [ ] **Gun cutscene needs a LOT of work.** The revolver + muzzle-flash + boom is
-      placeholder-tier. Wants a proper sequence (draw/aim/cock/fire, real recoil,
-      bullet/impact, reaction on the victims) — rethink, don't just tweak.
+- [x] **Gun cutscene — rebuild to this exact vision (Isak, 2026-06-25).** Built
+      2026-06-25 (cylinder shows the odds → spin → flip shut → metal gun fires; blank /
+      live-×3-knockdown / self-backfire). Tunables in the `GUN` DATA block.
+      > ⚠ KEEP THIS DESCRIPTION FOREVER — do **not** delete it (even after it's built)
+      > until Isak explicitly says so. It is the canonical spec for the gun cutscene.
+
+      Open a revolver's **6-slot chamber** so you **see your odds** (which chambers are
+      loaded). Then you **spin it**, **flip it into place**, and the little piece **pulls
+      out a little metal gun** and **tries firing it generally towards those in the lead
+      (that isn't itself)**. The landed chamber decides what happens:
+      - **Blank** → it just **clicks and twitches once**. Nothing happens.
+      - **Live** → it **shoots three times**, **knocking them with a screen shake each**
+        — but **no explosions**.
+      - **Self** → you **just explode** as you try pulling the trigger.
 - [x] **Leviathan cutscene — rebuild to this exact vision (Isak, 2026-06-25).** Built
       2026-06-25 (serpent crosses → gulps in passing → exits → peeks back → rears → spits
       the player flying to the new tile). Tunables in the `LEVI` DATA block.

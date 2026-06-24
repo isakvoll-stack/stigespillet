@@ -4,6 +4,29 @@ Newest first. One entry per working session; note what shipped and what's next.
 
 ---
 
+## 2026-06-25 (later) — gun cutscene rebuilt (revolver roulette) + sniper de-explosioned
+
+Rebuilt the gun set-piece to Isak's spec (kept in `TASKS.md`):
+- Open the **6-chamber cylinder** so you **see the odds** (brass = live round, skull =
+  self, dark hole = blank), **spin** it (lands a random chamber under the top notch),
+  **flip it shut**, then draw a little **metal gun** aimed at the leaders. The landed
+  chamber decides:
+  - **blank** → a dud: one click + a single twitch, nothing happens.
+  - **live** → **three shots**, knocking the leaders down with a **screen-shake each**,
+    and crucially **no explosions** (replaced the old impact booms with shake + collapse).
+  - **self** → the trigger backfires and the **shooter explodes** (the only gun explosion
+    left).
+- All tunables (chamber `LAYOUT`/odds, shot count, spin turns, every beat length) live in
+  a new **`GUN` DATA block**. Factored shared `aimMark` + `gunShot` helpers; `gunFx`
+  (the RANDOM "picked off" shot) no longer explodes either.
+- **Sniper fix:** sniper hits no longer `explode()` — now a thud + screen shake + the
+  target collapses, matching "no explosions for those it hits".
+
+Verified in **headless Chrome** (rAF→setTimeout under virtual time): drove all three
+chambers — blank downs no one, live downs exactly the three leaders, self downs only the
+shooter — plus a sniper hit (target downed, no explosion). **0 JS errors, 0 DOM leaks.**
+Screenshots confirmed the odds-cylinder and the metal gun firing with crosshairs/tracers.
+
 ## 2026-06-25 — leviathan cutscene rebuilt (blue Chinese-dragon serpent)
 
 Replaced the old placeholder leviathan (gloom + water + tentacles + 🐙 + token dunk)

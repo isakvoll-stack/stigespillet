@@ -44,7 +44,11 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
-Recently shipped (2026-06-25): the **leviathan cutscene rebuilt** as a blue serpentine
+Recently shipped (2026-06-25): the **gun cutscene rebuilt** as a revolver roulette — open
+the 6-chamber cylinder to see the odds, spin it, flip it shut, then the metal gun fires
+(blank = a dud, live = three knock-down shots with no explosions, self = a backfire that
+downs you); tunables in the `GUN` DATA block. Sniper hits also no longer explode. And the
+**leviathan cutscene rebuilt** as a blue serpentine
 Chinese-dragon that undulates across the screen, gulps the player in passing, then peeks
 back, rears up, and spits them flying to their new tile (tunables in the `LEVI` DATA
 block). Earlier (2026-06-24): target-centred explosions; lightning / lucky-star / nuke /

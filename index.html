@@ -237,6 +237,27 @@
     40%{opacity:1;transform:translate(-50%,-50%) scale(1.4)}100%{opacity:0;transform:translate(-50%,-50%) scale(.8)}}
   .gunsmoke{position:fixed;z-index:14;font-size:38px;pointer-events:none;transform:translate(-50%,-50%);animation:smokeup 1s ease-out forwards}
   @keyframes smokeup{0%{opacity:.75;transform:translate(-50%,-50%) scale(.6)}100%{opacity:0;transform:translate(-50%,-170%) scale(1.6)}}
+  .bigGun.metal{filter:drop-shadow(0 10px 16px rgba(0,0,0,.6)) grayscale(.55) brightness(.92) contrast(1.1)}
+
+  /* revolver cylinder (the odds you spin) */
+  .revwrap{position:fixed;left:50%;top:46%;z-index:14;pointer-events:none;transform:translate(-50%,-50%);opacity:1}
+  .cyl{position:relative;width:230px;height:230px;border-radius:50%;
+    background:radial-gradient(circle at 42% 36%, #6b7178, #3a3f45 58%, #1b1f23 100%);
+    border:10px solid #23262b;box-shadow:0 12px 30px rgba(0,0,0,.6), inset 0 0 26px rgba(0,0,0,.65);
+    transition:transform var(--spin,1.7s) cubic-bezier(.12,.62,.12,1)}
+  .chamber{position:absolute;left:50%;top:50%;width:52px;height:52px;border-radius:50%;
+    transform:translate(-50%,-50%) rotate(var(--a)) translateY(-72px);
+    background:radial-gradient(circle at 40% 35%, #2a2d31, #0b0d0f 72%);
+    box-shadow:inset 0 0 11px rgba(0,0,0,.92), 0 1px 0 rgba(255,255,255,.06)}
+  .chamber.live::after{content:"";position:absolute;inset:12px;border-radius:50%;
+    background:radial-gradient(circle at 38% 30%, #ffe9a8, #d9a531 52%, #7c4f10 100%);box-shadow:0 0 8px rgba(255,200,90,.55)}
+  .chamber.self::after{content:"💀";position:absolute;inset:0;display:grid;place-items:center;font-size:27px;
+    transform:rotate(calc(-1*var(--a)))}
+  .cylpin{position:absolute;left:50%;top:50%;width:28px;height:28px;border-radius:50%;transform:translate(-50%,-50%);
+    background:radial-gradient(circle at 40% 35%, #868c93, #34383d 70%);box-shadow:0 0 0 5px #23262b, inset 0 0 7px #000}
+  .cylnotch{position:fixed;left:50%;top:calc(46% - 137px);z-index:15;pointer-events:none;transform:translateX(-50%);
+    width:0;height:0;border-left:13px solid transparent;border-right:13px solid transparent;border-top:21px solid #ffd23e;
+    filter:drop-shadow(0 2px 3px rgba(0,0,0,.7))}
 
   /* leviathan cutscene — blue serpentine Chinese-dragon serpent */
   .leviseg{position:fixed;z-index:13;border-radius:50%;pointer-events:none;transform:translate(-50%,-50%);
@@ -690,6 +711,14 @@ const LEVI = {
   CROSS_MS:2600, GRAB_PULL:170,       // ms to cross the screen; px window around the victim where the head dips to gulp
   PEEK_MS:620, REAR_MS:520, SPIT_FLY_MS:820,   // return phase: peek in, rear up, then the victim's airborne arc
   SPIT_ARC:150, SPIT_SPIN:900,        // height (px) and spin (deg) of the spat-out victim's flight
+};
+/* ---- DATA: gun cutscene (revolver roulette) ------------------------ */
+const GUN = {
+  CHAMBERS:6,
+  LAYOUT:["blank","live","blank","self","live","blank"],  // the six loaded chambers = the odds you see
+  SHOTS:3,                            // a LIVE chamber fires this many shots at the leaders
+  SPINS:4,                            // full cylinder turns before it settles on a chamber
+  REVEAL_MS:780, SPIN_MS:1700, FLIP_MS:430, SHOT_GAP:240, // cutscene beat lengths (ms)
 };
 const TELEPORTERS  = [22, 66];             // teal teleporter squares (between tile 20 and 80)
 const TELEPORT_COLOR = "#17b5a3";          // teal
@@ -1417,7 +1446,7 @@ async function fireSniper(shooter, tx, ty){
   });
   await sleep(150);
   hit.forEach(q => { q.downed = true; updateDowned(idxOf(q)); });
-  if (hit.length){ SFX.play("boom"); hit.forEach(q => explode(q.pos)); }
+  if (hit.length){ SFX.play("kick"); flashScreen(); }   // knockdown + screen shake, no explosion
   renderScoreboard();
   log(hit.length ? `${shooter.name} shot and hit: ${hit.map(q=>q.name).join(", ")} 💥` : `${shooter.name} missed!`);
   await sleep(600);
@@ -2134,72 +2163,156 @@ function pickPlayer(title, candidates){
 
 // Gun cutscene: dim → revolver draws up → cocks → crosshairs lock on each target →
 // FIRE (muzzle flash + tracers + recoil + bang) → impacts → barrel smoke → holster.
-async function gunFx(targetCells){
-  const cells = targetCells || [];
-  const dim = document.createElement("div"); dim.className = "cutdim";
-  document.body.appendChild(dim); await raf(); dim.classList.add("show");
+// A locked-on crosshair over a board cell; caller removes it.
+function aimMark(cell){
+  const s = cellToScreen(cell);
+  const m = document.createElement("div"); m.className = "crosshair";
+  m.style.left = s.x+"px"; m.style.top = s.y+"px";
+  document.body.appendChild(m); requestAnimationFrame(()=> m.classList.add("locked"));
+  return m;
+}
 
-  const gx = innerWidth*0.5, gy = innerHeight*0.68, muzX = gx, muzY = gy - 72;
-  const gun = document.createElement("div"); gun.className = "bigGun"; gun.textContent = "🔫";
-  gun.style.left = gx+"px"; gun.style.top = (innerHeight+180)+"px";
-  gun.style.transition = "top .5s cubic-bezier(.2,.7,.3,1), transform .14s ease-out";
-  document.body.appendChild(gun);
-  await raf(); gun.style.top = gy+"px"; await sleep(520);            // draw
-
-  SFX.play("click");                                                 // cock the hammer
-  gun.style.transform = "translate(-50%,-50%) rotate(-9deg)"; await sleep(170);
-  gun.style.transform = "translate(-50%,-50%) rotate(0deg)";  await sleep(150);
-
-  const marks = cells.map(c=>{                                       // aim: crosshairs lock on
-    const s = cellToScreen(c);
-    const m = document.createElement("div"); m.className = "crosshair";
-    m.style.left = s.x+"px"; m.style.top = s.y+"px";
-    document.body.appendChild(m); requestAnimationFrame(()=> m.classList.add("locked"));
-    return m;
-  });
-  SFX.play("click"); await sleep(430);
-
-  const mf = document.createElement("div"); mf.className = "muzzle"; mf.textContent = "💥";   // FIRE
-  mf.style.left = muzX+"px"; mf.style.top = muzY+"px";
+// One shot from `gun` at a board cell: muzzle flash, tracer, recoil, screen shake. No
+// explosion — gun impacts are a knockdown + shake (only a SELF backfire explodes).
+async function gunShot(gun, muz, cell){
+  const mf = document.createElement("div"); mf.className = "muzzle"; mf.textContent = "💥";
+  mf.style.left = muz.x+"px"; mf.style.top = muz.y+"px";
   document.body.appendChild(mf); setTimeout(()=> mf.remove(), 350);
+  const s = cellToScreen(cell);
   const fx = el("svg", {"class":"fxsvg", viewBox:`0 0 ${innerWidth} ${innerHeight}`});
-  cells.forEach(c=>{ const s = cellToScreen(c);
-    fx.appendChild(el("line",{x1:muzX,y1:muzY,x2:s.x,y2:s.y,stroke:"#ffe27a","stroke-width":"3","stroke-linecap":"round",opacity:"0.95"})); });
+  fx.appendChild(el("line",{x1:muz.x,y1:muz.y,x2:s.x,y2:s.y,stroke:"#ffe27a","stroke-width":"3","stroke-linecap":"round",opacity:"0.95"}));
   document.body.appendChild(fx);
   SFX.play("shoot"); flashScreen();
   gun.style.transform = "translate(-50%,-58%) rotate(-15deg)";       // recoil kick
   await sleep(120); fx.remove();
   gun.style.transform = "translate(-50%,-50%) rotate(0deg)";
+}
 
-  cells.forEach(c=> explode(c)); SFX.play("boom");                  // impacts
+// Draw + aim + fire a metal gun at the given cells (knockdown, no explosion). Used by the
+// RANDOM "you get picked off" effect.
+async function gunFx(targetCells){
+  const cells = targetCells || [];
+  const dim = document.createElement("div"); dim.className = "cutdim";
+  document.body.appendChild(dim); await raf(); dim.classList.add("show");
+
+  const gx = innerWidth*0.5, gy = innerHeight*0.62, muz = {x:gx, y:gy-72};
+  const gun = document.createElement("div"); gun.className = "bigGun metal"; gun.textContent = "🔫";
+  gun.style.left = gx+"px"; gun.style.top = (innerHeight+180)+"px";
+  gun.style.transition = "top .5s cubic-bezier(.2,.7,.3,1), transform .14s ease-out";
+  document.body.appendChild(gun);
+  await raf(); gun.style.top = gy+"px"; await sleep(500);
+
+  SFX.play("click");
+  gun.style.transform = "translate(-50%,-50%) rotate(-9deg)"; await sleep(160);
+  gun.style.transform = "translate(-50%,-50%) rotate(0deg)";  await sleep(120);
+
+  const marks = cells.map(c=> aimMark(c));
+  SFX.play("click"); await sleep(400);
+  for (const c of cells){ await gunShot(gun, muz, c); await sleep(120); }
   marks.forEach(m=> m.remove());
-  const smoke = document.createElement("div"); smoke.className = "gunsmoke"; smoke.textContent = "💨";
-  smoke.style.left = muzX+"px"; smoke.style.top = muzY+"px";
-  document.body.appendChild(smoke); setTimeout(()=> smoke.remove(), 1000);
-  await sleep(520);
 
-  gun.style.transition = "top .4s ease-in, opacity .4s";            // holster
+  const smoke = document.createElement("div"); smoke.className = "gunsmoke"; smoke.textContent = "💨";
+  smoke.style.left = muz.x+"px"; smoke.style.top = muz.y+"px";
+  document.body.appendChild(smoke); setTimeout(()=> smoke.remove(), 1000);
+  await sleep(420);
+
+  gun.style.transition = "top .4s ease-in, opacity .4s";
   gun.style.top = (innerHeight+180)+"px"; gun.style.opacity = "0";
   dim.classList.remove("show");
   await sleep(420); gun.remove(); dim.remove();
 }
 
-async function gunRoulette(p){
-  const r = 1 + Math.floor(Math.random()*6);
-  if (r === 1){                                   // 1/6: the top three go down
-    const top3 = game.players.filter(q => !q.finished && q.pos > 0)
-                   .sort((a,b)=> b.pos - a.pos).slice(0,3);
-    await gunFx(top3.map(q=>q.pos));
-    top3.forEach(downPlayer); layoutTokens(); renderScoreboard();
-    log(`🔫 BANG! The frontrunners drop: ${top3.map(q=>q.name).join(", ")}`);
-  } else if (r <= 3){                             // 2/6: you shoot yourself
-    await gunFx([p.pos]);
+// Revolver roulette (canonical spec: Next/TASKS.md). Open the 6-chamber cylinder so you
+// can read the odds, spin it, flip it shut, then draw a little metal gun aimed at the
+// leaders. The landed chamber decides: blank → a dud (click + twitch); live → three shots
+// that knock the leaders down with a screen-shake each (no explosions); self → the trigger
+// backfires and the shooter explodes.
+async function revolverRoulette(p){
+  const layout = GUN.LAYOUT.slice(0, GUN.CHAMBERS);
+  const idx  = Math.floor(Math.random()*GUN.CHAMBERS);
+  const type = layout[idx];
+  const seg  = 360/GUN.CHAMBERS;
+  const leaders = game.players.filter(q => q !== p && !q.finished && q.pos > 0)
+                   .sort((a,b)=> b.pos - a.pos).slice(0, GUN.SHOTS);
+
+  const dim = document.createElement("div"); dim.className = "cutdim";
+  document.body.appendChild(dim); await raf(); dim.classList.add("show");
+
+  // -- show the loaded chambers (the odds) --
+  const wrap = document.createElement("div"); wrap.className = "revwrap";
+  const cyl = document.createElement("div"); cyl.className = "cyl";
+  layout.forEach((t,i)=>{
+    const ch = document.createElement("div"); ch.className = "chamber " + t;
+    ch.style.setProperty("--a", (i*seg)+"deg"); cyl.appendChild(ch);
+  });
+  cyl.appendChild(Object.assign(document.createElement("div"), {className:"cylpin"}));
+  wrap.appendChild(cyl); document.body.appendChild(wrap);
+  const notch = document.createElement("div"); notch.className = "cylnotch";
+  document.body.appendChild(notch);
+  SFX.play("click"); await sleep(GUN.REVEAL_MS);
+
+  // -- spin, landing the chosen chamber under the top notch --
+  cyl.style.setProperty("--spin", (GUN.SPIN_MS/1000)+"s");
+  SFX.play("spin"); await raf();
+  cyl.style.transform = `rotate(${-(idx*seg) - 360*GUN.SPINS}deg)`;
+  await sleep(GUN.SPIN_MS + 140);
+
+  // -- flip the cylinder shut --
+  SFX.play("click");
+  wrap.style.transition = `transform ${GUN.FLIP_MS}ms cubic-bezier(.3,.7,.2,1), opacity ${GUN.FLIP_MS}ms`;
+  wrap.style.transform = "translate(-50%,-50%) scale(.18) rotate(92deg)"; wrap.style.opacity = "0";
+  notch.remove(); await sleep(GUN.FLIP_MS); wrap.remove();
+
+  // -- draw the little metal gun --
+  const gx = innerWidth*0.5, gy = innerHeight*0.62, muz = {x:gx, y:gy-72};
+  const gun = document.createElement("div"); gun.className = "bigGun metal"; gun.textContent = "🔫";
+  gun.style.left = gx+"px"; gun.style.top = (innerHeight+180)+"px";
+  gun.style.transition = "top .42s cubic-bezier(.2,.7,.3,1), transform .14s ease-out";
+  document.body.appendChild(gun);
+  await raf(); gun.style.top = gy+"px"; await sleep(430);
+  SFX.play("click");
+  gun.style.transform = "translate(-50%,-50%) rotate(-9deg)"; await sleep(150);
+  gun.style.transform = "translate(-50%,-50%) rotate(0deg)";  await sleep(110);
+
+  // -- resolve the landed chamber --
+  if (type === "blank"){
+    SFX.play("click");                                              // a dud: click + twitch once
+    gun.style.transform = "translate(-50%,-50%) rotate(-7deg)"; await sleep(120);
+    gun.style.transform = "translate(-50%,-50%) rotate(0deg)";
+    log(`🔫 *click* — a blank. ${p.name} got lucky.`);
+  } else if (type === "self"){
+    SFX.play("click"); gun.style.transform = "translate(-50%,-50%) rotate(7deg)"; await sleep(240);
+    flashScreen(); explode(p.pos); SFX.play("boom");                // the only gun explosion: a self-backfire
     downPlayer(p); layoutTokens(); renderScoreboard();
-    log(`🔫 BANG! ${p.name} shot themselves and collapses.`);
-  } else {                                        // 3/6: nothing
-    SFX.play("click"); log(`🔫 *click* — nothing happens.`);
+    log(`🔫 BANG! ${p.name}'s gun backfired — they go down.`);
+  } else {                                                          // live
+    if (leaders.length){
+      const marks = leaders.map(q=> aimMark(q.pos));
+      SFX.play("click"); await sleep(360);
+      for (let k=0;k<GUN.SHOTS;k++){
+        const q = leaders[k % leaders.length];
+        await gunShot(gun, muz, q.pos);
+        downPlayer(q); renderScoreboard();
+        await sleep(GUN.SHOT_GAP);
+      }
+      marks.forEach(m=> m.remove()); layoutTokens(); renderScoreboard();
+      const names = [...new Set(leaders.map(q=>q.name))];
+      log(`🔫 BANG BANG BANG! ${p.name} guns down the frontrunners: ${names.join(", ")}`);
+    } else {
+      SFX.play("shoot"); flashScreen();
+      log(`🔫 ${p.name} fires at the leaders — but no one's ahead.`);
+    }
   }
-  await sleep(500);
+
+  const smoke = document.createElement("div"); smoke.className = "gunsmoke"; smoke.textContent = "💨";
+  smoke.style.left = muz.x+"px"; smoke.style.top = muz.y+"px";
+  document.body.appendChild(smoke); setTimeout(()=> smoke.remove(), 1000);
+  await sleep(420);
+
+  gun.style.transition = "top .4s ease-in, opacity .4s";
+  gun.style.top = (innerHeight+180)+"px"; gun.style.opacity = "0";
+  dim.classList.remove("show");
+  await sleep(420); gun.remove(); dim.remove();
 }
 
 const WHEEL_LABELS = ["☢️","🔙","➡️","🚀","🎲"];   // nuke / back-to-start / next / +15 / RANDOM
@@ -2293,7 +2406,7 @@ async function randomWheelEffect(p){
     async()=>{ SFX.play("chute"); p.pos = 1; layoutTokens(); renderScoreboard(); log(`🎲 Random: ${p.name} back to start!`); await sleep(600); await resolveLanding(p); },
     async()=>{ log(`🎲 Random: ${p.name} inches forward.`); await advancePlayer(p, 1); },
     async()=>{ log(`🎲 Random: ${p.name} leaps 15 spaces!`); await advancePlayer(p, 15); },
-    ()=> gunRoulette(p),
+    ()=> revolverRoulette(p),
     ()=> runSupport(p),
     async()=>{ await revealRuleOnce("lightning"); await lightningStrike(p); },     // strikes YOU
     async()=>{ p.fish = (p.fish||0) + 1; SFX.play("catch"); renderScoreboard(); log(`🎲🐟 Random: ${p.name} gains a fish!`); await sleep(500); },
@@ -2334,7 +2447,7 @@ async function runOrange(p){
   const opt = game.autonomous
     ? ["wheel","support","gun"][Math.floor(Math.random()*3)]
     : await orangeChoice(p);
-  if (opt === "gun") await gunRoulette(p);
+  if (opt === "gun") await revolverRoulette(p);
   else if (opt === "support") await runSupport(p);
   else await spinWheel(p);
 }
