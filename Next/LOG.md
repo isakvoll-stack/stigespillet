@@ -4,6 +4,32 @@ Newest first. One entry per working session; note what shipped and what's next.
 
 ---
 
+## 2026-06-26 — fish powers + secret square + smarter bots
+
+Isak request batch (one message, several asks). Pushed.
+- **Smarter bots, two ways.** (1) On orange squares they no longer just spin the
+  gun/roulette — `BOT.ORANGE` reweighted to wheel:5 / gun:3 / support:2. (2) Bot fishing
+  odds now scale with how many fish have already been caught in the *game* (new global
+  `game.fishCaught`): `FISH.BOT_LOSS_BY_CATCHES = [.40,.60,.80,.90,.95]` — ~40% loss on the
+  first catch, climbing to 95%. Replaced the old streak-based `WIN_BASE/WIN_STREAK_DROP/WIN_MIN`.
+- **Secret square before tile 1** (`FEATURES.secretSquare`). Logical pos 0 distinguished
+  from the start lane by `p.onSecret`; not drawn until someone stands on it (`showSecret`/
+  `hideSecret`, viewBox widened left to make room). Discovered only by being thrown back
+  past the start: new `setBackPos` helper routes lightning + pile-up knock-backs onto it
+  instead of clamping to tile 1. New `RULE_INFO.secret`.
+- **Fish powers** (`FEATURES.fishPowers`, all tunables in the `FISH` DATA block): every
+  3 fish = +1 movement/turn; 2+ fish = break out of ice on a 3+ (new `getupNeed`, shared
+  by the HUD hint and `resolveGetUp`); 2+ fish = 1-in-10 slip off a ladder (`applyLink`);
+  3+ fish + a teleporter = overload that shuffles everyone (`shuffleAllPositions`, new
+  `RULE_INFO.teleportshuffle`).
+- **Verified headless (Chrome):** pure-logic unit checks + targeted in-game paths
+  (teleporter overload, fish-3 teleporter, secret-via-lightning) + 3 full autonomous
+  games, **0 JS errors**; a screenshot confirms the secret square reveals with the pawn on
+  it and the scoreboard reading "secret 🚪".
+- **Next:** human play-test for *feel* (fish-power balance, slip frequency, how often the
+  secret square actually shows up); maybe a small reveal animation when the secret square
+  first appears.
+
 ## 2026-06-25 — per-seat Player/Bot selection (+ repo back to public)
 
 Isak's request: be able to choose, per player, whether a seat is an active (human) player

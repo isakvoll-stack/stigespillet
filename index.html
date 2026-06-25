@@ -346,7 +346,7 @@
     </div>
 
     <div class="board-wrap">
-      <svg id="board" viewBox="0 0 1078 1040" aria-label="Ladder game board"></svg>
+      <svg id="board" viewBox="-96 0 1174 1040" aria-label="Ladder game board"></svg>
     </div>
 
     <div class="side right">
@@ -574,6 +574,8 @@ const FEATURES = {
   orange:        true,   // orange squares: choose Wheel / Support / Gun
   snakeCollision:true,   // sliding down a chute bowls over players in the way
   freeze:        true,   // icy squares freeze you solid; the frost spreads to adjacent players
+  fishPowers:    true,   // carrying fish grants escalating powers (extra movement, ice escape) + quirks (slippery ladders, teleporter overload)
+  secretSquare:  true,   // a hidden square before tile 1, only revealed when a backtrack lands someone on it
   sound:         true,   // sound effects
 };
 
@@ -685,6 +687,16 @@ const RULE_INFO = {
     name: "Deep freeze",
     text: "Land on an icy square and you freeze solid — you have to roll a 4 or higher to break free before you can move. Worse, the frost spreads: land on a tile right next to a frozen player and you freeze too.",
   },
+  secret: {
+    ico: "🚪",
+    name: "The hidden square",
+    text: "There's a secret square tucked away before the very first tile. No one starts on it — you'll only stumble onto it if something throws you back past the start.",
+  },
+  teleportshuffle: {
+    ico: "🌀",
+    name: "Teleporter overload",
+    text: "Step onto a teleporter while weighed down with a whole catch of fish and it overloads — instead of one swap, everyone on the board is shuffled around at random.",
+  },
 };
 
 /* ---- ANIMATION timing (ms) ----------------------------------------- */
@@ -701,8 +713,15 @@ const FISH   = {
   DRAIN:0.22, DRAIN_STREAK:0.07, FILL:0.34,               // progress drain (per s, +streak) and fill rate
   // --- minigame bar physics (read by fishingGame) ---
   GRAVITY:540, REEL:1080, START:0.38,                     // bar gravity-down, reel-up, starting progress (0..1)
-  // --- self-play (autonomous) catch odds: harder as the streak grows ---
-  WIN_BASE:0.88, WIN_STREAK_DROP:0.15, WIN_MIN:0.15,
+  // --- self-play (autonomous/bot) catch odds: LOSS chance by how many fish have
+  //     already been caught in the game (index = catches so far; last value repeats).
+  //     1st ever catch attempt 40% loss, then 60 / 80 / 90 / 95% as more are landed. ---
+  BOT_LOSS_BY_CATCHES:[0.40, 0.60, 0.80, 0.90, 0.95],
+  // --- fish powers (FEATURES.fishPowers): rewards + quirks that scale with fish held ---
+  MOVE_PER_FISH:3,                        // +1 movement every turn per this many fish (3 fish -> +1, 6 -> +2 …)
+  ICE_FISH:2, ICE_GETUP:3,                // with >=2 fish, breaking out of ice only needs a 3+
+  SLIP_FISH:2, SLIP_CHANCE:0.10,          // with >=2 fish, a 1-in-10 chance to slip off a ladder you'd climb
+  SHUFFLE_FISH:3,                         // with >=3 fish, landing on a teleporter shuffles everyone instead of a single swap
 };
 /* ---- DATA: leviathan cutscene (blue serpentine Chinese-dragon serpent) ---- */
 const LEVI = {
@@ -732,10 +751,17 @@ const LUCKY     = { CHANCE:0.004, FORWARD:8 };  // ~0.4% per turn: sweep the las
 const FATE      = { CHANCE:0.0033 };            // ~0.33% per turn: leader and last place swap places (3x rarer)
 /* ---- DATA: fixed move/knock amounts (tiles) ------------------------ */
 const MOVE = { SUPPORT:5, WHEEL_NEXT:1, WHEEL_BIG:15, PILEUP_BACK:5 };  // support +5; wheel "next"/+15; chute pile-up knock-back
+/* ---- DATA: the hidden "secret" square before tile 1 ---------------- */
+// Logical position 0 (shared with the start lane, told apart by p.onSecret). It is
+// never drawn until a player is standing on it, and no one starts there — you only
+// find it by being thrown back past the start. Placed just left of tile 1.
+const SECRET = { POS:0, X:-90, Y:928, CELL:84, COLOR:"#7b3fa0" };
 /* ---- DATA: autonomous (self-play) opponent behaviour --------------- */
 const BOT = {
   TELEPORT_GOOD:0.85, TELEPORT_BAD:0.15,        // accept a teleporter swap when it improves your average position (else rarely)
-  ORANGE:["gun","wheel","support"], ORANGE_WEIGHTS:[4, 4, 2],  // orange-square pick: aggression / gamble / (altruistic) support
+  // orange-square pick: spread across all three so bots don't just spin the gun/roulette —
+  // mostly the wheel (varied, self-affecting), sometimes the gun, sometimes support.
+  ORANGE:["wheel","gun","support"], ORANGE_WEIGHTS:[5, 3, 2],
 };
 
 /* =====================================================================
@@ -789,6 +815,14 @@ function tileBelow(cell){
   const br = rfb - 1;
   const cir = (br % 2 === 1) ? (BOARD.COLS - 1 - col) : col;
   return br * BOARD.COLS + cir + 1;
+}
+
+// Send a player to a backtracked tile. A target below tile 1 lands them on the
+// hidden secret square (pos 0 + onSecret) instead of clamping to tile 1 — the only
+// way that square is ever discovered. Returns true if they ended up on the secret.
+function setBackPos(pl, rawTarget){
+  if (FEATURES.secretSquare && rawTarget < 1){ pl.pos = SECRET.POS; pl.onSecret = true; return true; }
+  pl.pos = Math.max(1, rawTarget); pl.onSecret = false; return false;
 }
 
 /* =====================================================================
@@ -904,11 +938,30 @@ function startLanePos(k, n){
   return { x, y: (n <= 1) ? (top+bot)/2 : top + (bot-top) * k/(n-1) };
 }
 
-// Arrange every token: those still off-board (pos 0) wait in the START lane,
-// the rest share their tile symmetrically.
+// The hidden secret square: not drawn at all until a player stands on it.
+let secretEl = null;
+function secretCenter(){ return { x: SECRET.X + SECRET.CELL/2, y: SECRET.Y + SECRET.CELL/2 }; }
+function showSecret(){
+  if (secretEl) return;
+  const g = el("g", {"class":"secretcell"});
+  g.appendChild(el("rect",{x:SECRET.X,y:SECRET.Y,width:SECRET.CELL,height:SECRET.CELL,rx:10,
+                           fill:SECRET.COLOR,stroke:"#2a1140","stroke-width":"3"}));
+  const t = el("text",{x:SECRET.X+SECRET.CELL/2,y:SECRET.Y+SECRET.CELL/2+15,"text-anchor":"middle",
+                       "font-size":"44","font-weight":"800",fill:"#fff","font-family":"Georgia, serif"});
+  t.textContent = "?";
+  g.appendChild(t);
+  if (tokenEls.length) svg.insertBefore(g, tokenEls[0]);   // behind the tokens, in front of the board
+  else svg.appendChild(g);
+  secretEl = g;
+}
+function hideSecret(){ if (secretEl){ secretEl.remove(); secretEl = null; } }
+
+// Arrange every token: those on the hidden secret square sit there (revealing it),
+// those still off-board (pos 0) wait in the START lane, the rest share their tile.
 function layoutTokens(){
-  const groups = {}, waiting = [];
+  const groups = {}, waiting = [], secret = [];
   game.players.forEach((p,i)=>{
+    if (p.onSecret){ secret.push(i); return; }
     if (p.pos === 0){ waiting.push(i); return; }
     (groups[p.pos] = groups[p.pos] || []).push(i);
   });
@@ -917,6 +970,10 @@ function layoutTokens(){
     grp.forEach((pi,k)=> moveTokenTo(pi, +c, slotOffset(k, grp.length)));
   }
   waiting.forEach((pi,k)=>{ const pt = startLanePos(k, waiting.length); moveTokenToXY(pi, pt.x, pt.y); });
+  if (secret.length){
+    showSecret(); const c = secretCenter();
+    secret.forEach((pi,k)=>{ const o = slotOffset(k, secret.length); moveTokenToXY(pi, c.x+o.x, c.y+o.y); });
+  } else hideSecret();
 }
 
 // A classic boardgame pawn: cone body + sphere head. The body sits in an inner
@@ -1036,11 +1093,12 @@ function newGame(roster){
   game = {
     players: roster.map((r,i)=>({
       name: r.name || `Player ${i+1}`, color: PLAYER_COLORS[i], pos:0, bot: !!r.bot,
-      downed:false, frozen:false, sniper:false, finished:false, shame:0, getupMin: SNIPER.GETUP_MIN, fish:0,
+      downed:false, frozen:false, sniper:false, finished:false, shame:0, getupMin: SNIPER.GETUP_MIN, fish:0, onSecret:false,
     })),
     current:0, winner:null, over:false, busy:false, round:1, autonomous: !!(roster[0] && roster[0].bot),
-    standings: null, fishStreak: 0,
+    standings: null, fishStreak: 0, fishCaught: 0,
   };
+  hideSecret();
   rulesSeen = {};
   buildBoard();
   buildTokens(count);
@@ -1066,7 +1124,7 @@ function refreshHUD(){
     sub.textContent = game.busy ? TXT.rolling
       : (p.downed ? (p.frozen ? "frozen 🧊" : TXT.down) : (p.pos >= BOARD.WIN-6 && p.pos > 0 ? "🔥 Almost home!" : ""));
     hint.innerHTML = game.busy ? "" : (p.downed
-      ? (p.frozen ? `Roll to break free (${p.getupMin}+)` : `Roll to get up (${p.getupMin}+)`)
+      ? (p.frozen ? `Roll to break free (${getupNeed(p)}+)` : `Roll to get up (${getupNeed(p)}+)`)
       : TXT.rollHint);
     die.classList.toggle("disabled", game.busy);
   }
@@ -1086,7 +1144,7 @@ function renderScoreboard(){
     const mark = (p.finished ? " "+medal : "") + (p.downed ? (p.frozen ? " 🧊" : " 🤕") : "")
                + (p.sniper ? " 🎯" : "") + (p.shame>0 ? " 😳" : "")
                + (p.fish>0 ? " 🐟"+(p.fish>1?p.fish:"") : "");
-    const cellTxt = p.finished ? "done" : (p.pos === 0 ? "—" : "tile " + p.pos);
+    const cellTxt = p.finished ? "done" : (p.onSecret ? "secret 🚪" : (p.pos === 0 ? "—" : "tile " + p.pos));
     row.innerHTML =
       `<span class="swatch" style="background:${p.color}"></span>` +
       `<span class="name">${p.name}${p.bot ? " 🤖" : ""}${mark}</span>` +
@@ -1159,10 +1217,15 @@ async function roll(){
 async function moveCurrent(rollValue){
   const p = game.players[game.current];
   const i = game.current;
+  p.onSecret = false;                          // leaving the secret square (if they were on it)
+  // fish power: every few fish grant +1 movement this turn (the die's face is unchanged)
+  const fishBonus = (FEATURES.fishPowers && p.fish) ? Math.floor(p.fish / FISH.MOVE_PER_FISH) : 0;
+  const steps = rollValue + fishBonus;
   const from = p.pos === 0 ? 1 : p.pos;        // first move walks from square 1
-  const path = walkPath(p.pos === 0 ? 0 : p.pos, rollValue);
+  const path = walkPath(p.pos === 0 ? 0 : p.pos, steps);
   const landed = path[path.length-1];
   const overshot = path.some(c=>c===BOARD.WIN) && landed !== BOARD.WIN;
+  if (fishBonus > 0) log(`🐟 ${p.name}'s catch carries them +${fishBonus} extra.`);
 
   // step the active token cell by cell (centred while in transit)
   for (const c of path){
@@ -1287,6 +1350,14 @@ function finishPlayer(p){
 async function applyLink(p, idx, depth){       // climb a ladder / slide a chute at p's square
   const link = linkAt(p.pos);
   if (!link) return false;
+  // fish power quirk: a fishy grip slips off a ladder now and then
+  if (link.kind === "ladder" && FEATURES.fishPowers && (p.fish||0) >= FISH.SLIP_FISH
+      && Math.random() < FISH.SLIP_CHANCE){
+    SFX.play("chute");
+    log(`🐟💦 ${p.name}'s slippery hands lost the ladder — slipped right off!`);
+    await sleep(220);
+    return false;
+  }
   const from = p.pos;
   await sleep(120);
   p.pos = link.to;
@@ -1558,10 +1629,18 @@ async function endTurn(){
   await startTurn();
 }
 
+// The roll a downed/frozen player needs to rise. Holding a couple of fish makes
+// breaking out of the ice easier (only a 3+).
+function getupNeed(p){
+  let need = p.getupMin || SNIPER.GETUP_MIN;
+  if (FEATURES.fishPowers && p.frozen && (p.fish||0) >= FISH.ICE_FISH) need = Math.min(need, FISH.ICE_GETUP);
+  return need;
+}
+
 async function resolveGetUp(value){
   const p = game.players[game.current];
   const wasFrozen = p.frozen;
-  if (value >= (p.getupMin || SNIPER.GETUP_MIN)){
+  if (value >= getupNeed(p)){
     p.downed = false; p.frozen = false; p.getupMin = SNIPER.GETUP_MIN;
     updateDowned(game.current); updateFrozen(game.current);
     if (FEATURES.sixRollsAgain && value === RULES.DICE_SIDES){
@@ -1888,7 +1967,11 @@ async function runFishing(p){
   const streak = game.fishStreak || 0;
   let won;
   if (game.autonomous){
-    won = Math.random() < Math.max(FISH.WIN_MIN, FISH.WIN_BASE - streak*FISH.WIN_STREAK_DROP);   // self-play: harder as streak grows
+    // bot odds: loss chance climbs with how many fish have already been caught this game
+    const caught = game.fishCaught || 0;
+    const table = FISH.BOT_LOSS_BY_CATCHES;
+    const loss = table[Math.min(caught, table.length - 1)];
+    won = Math.random() >= loss;
   } else {
     await getReady(p.name);
     won = await fishingGame(streak);
@@ -1896,6 +1979,7 @@ async function runFishing(p){
   }
   if (won){
     p.fish = (p.fish||0) + 1; game.fishStreak = streak + 1;
+    game.fishCaught = (game.fishCaught || 0) + 1;
     SFX.play("catch");
     log(`${p.name} caught a fish! 🐟`);
     renderScoreboard();
@@ -1930,6 +2014,23 @@ function teleportSwap(p, forwardBias){
   return target;
 }
 
+// Teleporter overload (fish power): shuffle every on-board player's position among
+// themselves at random. Players waiting at the start / on the secret square are left out.
+async function shuffleAllPositions(){
+  const active = game.players.filter(q => !q.finished && q.pos > 0 && !q.onSecret);
+  if (active.length < 2) return;
+  const positions = active.map(q => q.pos);
+  for (let i = positions.length - 1; i > 0; i--){      // Fisher-Yates
+    const j = (Math.random() * (i + 1)) | 0;
+    [positions[i], positions[j]] = [positions[j], positions[i]];
+  }
+  active.forEach((q, k) => { q.pos = positions[k]; });
+  SFX.play("teleport"); flashScreen();
+  layoutTokens(); renderScoreboard();
+  log(`🌀 Teleporter overload — everyone is shuffled!`);
+  await sleep(750);
+}
+
 let tpResolve = null;
 function teleportChoice(p){
   return new Promise(res => {
@@ -1946,6 +2047,13 @@ function teleportChoice(p){
 
 async function runTeleporter(p){
   await revealRuleOnce("teleport");
+  // a big catch of fish overloads the teleporter -> shuffle everyone (takes precedence)
+  if (FEATURES.fishPowers && (p.fish||0) >= FISH.SHUFFLE_FISH){
+    await revealRuleOnce("teleportshuffle");
+    log(`${p.name}'s ${p.fish} fish overload the teleporter!`);
+    await shuffleAllPositions();
+    return;
+  }
   const hasFish = (p.fish||0) > 0;
   if (hasFish && FEATURES.teleportMalfunction){
     await revealRuleOnce("teleportmalf");
@@ -2036,10 +2144,13 @@ async function lightningStrike(victim){
   if (!victim || victim.finished || victim.pos <= 0) return;
   const fromTile = victim.pos;
   await lightningFx(fromTile);                             // clouds → flickers → forked multi-strike + electric impact
-  victim.pos = Math.max(1, victim.pos - LIGHTNING.BACK);
+  const onSecret = setBackPos(victim, victim.pos - LIGHTNING.BACK);
   victim.downed = true; victim.getupMin = SNIPER.GETUP_MIN; updateDowned(idxOf(victim));
   layoutTokens(); renderScoreboard();
-  log(`🌩️ Lightning struck ${victim.name} — knocked flat and back to tile ${victim.pos}!`);
+  log(onSecret
+    ? `🌩️ Lightning blasted ${victim.name} clear off the board — onto the secret square!`
+    : `🌩️ Lightning struck ${victim.name} — knocked flat and back to tile ${victim.pos}!`);
+  if (onSecret) await revealRuleOnce("secret");
   await sleep(500);
   await resolveLanding(victim);                            // the new tile fires too
 }
@@ -2162,9 +2273,11 @@ async function snakeCollision(slider, head, tail, depth){
   if (!hits.length) return;
   await revealRuleOnce("snakehit");
   explode(tail); SFX.play("boom");
-  hits.forEach(q => { q.pos = Math.max(1, q.pos - MOVE.PILEUP_BACK); downPlayer(q); });
+  let anySecret = false;
+  hits.forEach(q => { if (setBackPos(q, q.pos - MOVE.PILEUP_BACK)) anySecret = true; downPlayer(q); });
   layoutTokens(); renderScoreboard();
   log(`💥 ${slider.name} bowled over ${hits.map(h=>h.name).join(", ")} sliding down!`);
+  if (anySecret) await revealRuleOnce("secret");
   await sleep(750);
   for (const q of hits){ await resolveLanding(q, (depth||0)+1); if (game.over) return; }
 }

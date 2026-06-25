@@ -46,12 +46,21 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
-Recently shipped (2026-06-25): **per-seat Player/Bot selection** — each row in the
-setup screen has a Player⇄Bot toggle, so you can mix humans and bots in one game
-(bots auto-take only their own turns; a 🤖 marks bot seats in the scoreboard). The
-old *Autonomous mode* checkbox now just means "make every seat a bot." Verified
-headless (mixed games: humans wait for input, bots self-roll; all-bot game finishes
-with a winner; 0 JS errors).
+Recently shipped (2026-06-26): a **fish-powers + secret-square + smarter-bots batch**:
+- **Fish are now power-ups (with quirks).** Every **3 fish** = **+1 movement** each turn;
+  **2+ fish** lets you **break out of ice on a 3+** but makes ladders slippery (**1-in-10
+  slip**); **3+ fish** + a teleporter **overloads it and shuffles everyone** instead of a
+  single swap. (`FEATURES.fishPowers`; tunables in the `FISH` DATA block.)
+- **A hidden secret square before tile 1.** No one starts there and it isn't drawn at
+  all — you only uncover it if something throws you back past the start (lightning, a
+  pile-up). (`FEATURES.secretSquare`.)
+- **Smarter bots.** On orange squares they no longer just spin the gun/roulette — they
+  spread across wheel / gun / support. And bot **fishing odds** now get harder as more
+  fish are landed in the game (≈40% loss on the first catch, then 60 / 80 / 90 / 95%).
+
+Earlier (2026-06-25): **per-seat Player/Bot selection** — each setup row has a Player⇄Bot
+toggle, so you can mix humans and bots in one game (bots auto-take only their own turns;
+a 🤖 marks bot seats). The *Autonomous mode* checkbox now means "make every seat a bot."
 
 Earlier (2026-06-25): the **gun cutscene** — the shooter draws a **tiny CSS
 revolver** on their own square and **spins the chamber (no reveal)**, then fires at the

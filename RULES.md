@@ -101,6 +101,20 @@ difficulty. *Controls: only the **↑ Up arrow** — no mouse / space / enter.*
 
 *Toggle: `FEATURES.fishing`. Trigger tiles = `FISH.TILES` (35, 49 & 70 — the dark-blue squares).*
 
+### Fish powers (hidden rule)
+The fish you catch aren't just trophies — carrying them changes how you play, with
+both upsides and a catch:
+- **Every 3 fish → +1 movement** on each of your turns (6 fish = +2, and so on). The
+  die's face is unchanged — the bonus is added to how far you walk.
+- **2 or more fish → break out of ice on a 3+** (instead of the usual 4+) …
+- … but **2 or more fish also make ladders slippery**: a **1-in-10** chance to **slip
+  right off** a ladder you would have climbed (you stay at its foot).
+- **3 or more fish + a teleporter → overload!** Instead of a single swap, **everyone on
+  the board is shuffled** to each other's tiles at random.
+
+*Toggle: `FEATURES.fishPowers`. Tunables (`MOVE_PER_FISH`, `ICE_FISH`/`ICE_GETUP`,
+`SLIP_FISH`/`SLIP_CHANCE`, `SHUFFLE_FISH`) live in the `FISH` DATA block.*
+
 ### Teleporter (hidden rule)
 Two **teal squares** are teleporters. Land on one and you may **teleport — swapping
 places with another player at random** (**Y** to do it, **N** to stay put).
@@ -152,6 +166,15 @@ bottom** of the chute is hit the hardest (knocked further back).
 
 *Toggle: `FEATURES.snakeCollision`.*
 
+### The secret square (hidden rule)
+There is a **hidden square before tile 1**. **No one starts on it**, and it isn't even
+drawn on the board — so you'll never see it in a normal game. The only way to find it
+is to be **thrown back past the start** (e.g. a low-tile **lightning** strike or a
+**pile-up**): instead of stopping at tile 1, you land on the secret square, which then
+**reveals itself**. From there you roll back onto the board as if starting again.
+
+*Toggle: `FEATURES.secretSquare`.*
+
 ---
 
 ## Sound &amp; spectacle
@@ -163,10 +186,18 @@ self-contained page. Toggle with `FEATURES.sound`. On the big dramatic moments
 
 ---
 
-## Autonomous mode
-A checkbox on the setup screen. The game then **plays itself** — auto-rolls, auto-
-resolves every choice (always bounces; auto-aims the sniper at a random target),
-and auto-dismisses popups. Good for a hands-off / streamed game.
+## Players &amp; bots
+On the setup screen each seat has a **Player / Bot** toggle, so you can mix humans and
+bots in one game — bots take **only their own turns** automatically (a 🤖 marks them in
+the scoreboard). The **Autonomous mode** checkbox is a shortcut that makes **every** seat
+a bot, so the whole game **plays itself** — auto-rolls, auto-resolves every choice, and
+auto-dismisses popups. Good for a hands-off / streamed game.
+
+**Bot decisions:** on an **orange square** a bot spreads its pick across the wheel, gun
+and support (it won't just spin the gun every time). At the **fishing** square a bot's
+odds get **harder the more fish have already been caught in the game** — roughly a 40%
+loss on the very first catch of the game, then 60% / 80% / 90% / 95% as the catches pile
+up. *(Tunables: `BOT.ORANGE`/`ORANGE_WEIGHTS`, `FISH.BOT_LOSS_BY_CATCHES`.)*
 
 ---
 

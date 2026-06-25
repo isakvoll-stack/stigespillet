@@ -72,6 +72,25 @@ See `LOG.md` for the running session history.
 
 ## Done
 
+### 2026-06-26 — fish powers + secret square + smarter bots (Isak request batch)
+- [x] **Bots vary their orange pick** — `BOT.ORANGE`/`ORANGE_WEIGHTS` reweighted to
+      wheel:5 / gun:3 / support:2 so they no longer just spin the gun/roulette.
+- [x] **Bot fishing odds by global catches** — new `FISH.BOT_LOSS_BY_CATCHES`
+      `[.40,.60,.80,.90,.95]` keyed on `game.fishCaught` (total fish landed this game);
+      first catch ~40% loss, escalating to 95%. (Removed the old streak-based `WIN_*`.)
+- [x] **Secret square before tile 1** (`FEATURES.secretSquare`, `SECRET` DATA, viewBox
+      widened left to `-96 0 1174 1040`). pos 0 + `p.onSecret`; not drawn until occupied
+      (`showSecret`/`hideSecret`). Reached only via a backtrack below tile 1 — `setBackPos`
+      routes lightning / pile-up knock-backs there instead of clamping to 1. `RULE_INFO.secret`.
+- [x] **Fish powers** (`FEATURES.fishPowers`, tunables in `FISH`): +1 movement per 3 fish
+      (`moveCurrent`); 2+ fish → ice escape on 3+ (`getupNeed`, used by HUD + `resolveGetUp`);
+      2+ fish → 1-in-10 slip off a ladder (`applyLink`); 3+ fish + teleporter → shuffle
+      everyone (`shuffleAllPositions`, `RULE_INFO.teleportshuffle`).
+- [x] **Verified headless** — unit checks (setBackPos, getupNeed, shuffle multiset, bot-loss
+      table, orange order, move-bonus formula) + targeted in-game paths (teleporter overload,
+      fish-3 teleporter, secret-via-lightning) + 3 full autonomous games, **0 JS errors**;
+      screenshot confirms the secret square reveals correctly.
+
 ### 2026-06-25
 - [x] **Per-seat Player/Bot selection** — each setup row has a Player⇄Bot toggle, so a
       single game can mix humans and bots. `bot` flag on each roster/player; `game.autonomous`
