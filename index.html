@@ -727,6 +727,11 @@ const LIGHTNING = { CHANCE:0.005, BACK:7,       // ~0.5% per turn: strike the le
   GATHER_MS:1400, FLICKERS:2, STRIKES:3, FORKS:3, SPARKS:16 };  // build-up time + pre-flickers, main multi-strike, branch forks, impact sparks
 const LUCKY     = { CHANCE:0.004, FORWARD:8 };  // ~0.4% per turn: sweep the last-place player forward (3x rarer)
 const FATE      = { CHANCE:0.0033 };            // ~0.33% per turn: leader and last place swap places (3x rarer)
+/* ---- DATA: autonomous (self-play) opponent behaviour --------------- */
+const BOT = {
+  TELEPORT_GOOD:0.85, TELEPORT_BAD:0.15,        // accept a teleporter swap when it improves your average position (else rarely)
+  ORANGE:["gun","wheel","support"], ORANGE_WEIGHTS:[4, 4, 2],  // orange-square pick: aggression / gamble / (altruistic) support
+};
 
 /* =====================================================================
    ENGINE — pure board maths and turn resolution (no DOM).
@@ -1946,7 +1951,12 @@ async function runTeleporter(p){
     if (tgt){ await resolveLanding(tgt, 0, true); await resolveLanding(p, 0, true); }  // no re-teleport
     return;
   }
-  const use = game.autonomous ? (Math.random() < 0.6) : await teleportChoice(p);
+  let use;
+  if (game.autonomous){                                   // smart: take a swap only when it improves your average position
+    const rivals = game.players.filter(q => q !== p && !q.finished);
+    const avg = rivals.length ? rivals.reduce((s,q)=>s+q.pos, 0)/rivals.length : p.pos;
+    use = Math.random() < (avg > p.pos ? BOT.TELEPORT_GOOD : BOT.TELEPORT_BAD);
+  } else use = await teleportChoice(p);
   if (use){ const tgt = teleportSwap(p, false); await sleep(540); if (tgt){ await resolveLanding(tgt, 0, true); await resolveLanding(p, 0, true); } }
   else log(`${p.name} left the teleporter alone.`);
 }
@@ -2508,7 +2518,7 @@ async function runSupport(p){
 async function runOrange(p){
   await revealRuleOnce("orange");
   const opt = game.autonomous
-    ? ["wheel","support","gun"][Math.floor(Math.random()*3)]
+    ? weightedPick(BOT.ORANGE, BOT.ORANGE_WEIGHTS)   // smart: favour aggression/gamble over (altruistic) support
     : await orangeChoice(p);
   if (opt === "gun") await revolverRoulette(p);
   else if (opt === "support") await runSupport(p);

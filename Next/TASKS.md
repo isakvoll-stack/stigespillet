@@ -111,7 +111,9 @@ See `LOG.md` for the running session history.
 
 ## Ideas / later
 - Optional PNG board skin to match the classic photo.
-- Bots / smarter autonomous opponents.
+- Bots / smarter autonomous opponents. *(Started 2026-06-25: bots now take teleporter
+  swaps only when beneficial and favour gun/wheel over altruistic support — `BOT` DATA
+  block. Could go further: gun/wheel choice by position, dice/fishing strategy, etc.)*
 - More variant rules from the design ladder (special squares, minigames).
 - Sound polish, nicer token art.
 

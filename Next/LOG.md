@@ -4,6 +4,20 @@ Newest first. One entry per working session; note what shipped and what's next.
 
 ---
 
+## 2026-06-25 (hourly loop #3) — integrity pass + smarter autonomous opponents
+
+Autonomous tick.
+- **Integrity:** clean load + a full autonomous game to a winner, 0 JS errors.
+- **Smarter bots** (the "smarter autonomous opponents" Ideas item; only affects self-play
+  demo mode): the autonomous players used to pick blindly — a flat 60% to accept a
+  teleporter swap, and a uniform 1/3 on the orange square. Two issues fixed: a teleporter
+  swap lands on a **random** rival, so accepting only pays off when you're behind the field
+  — bots now accept only when the swap **improves their average position** (else rarely);
+  and **support moves a *rival* +5** (bad for a self-interested bot), so the orange pick is
+  now **weighted toward gun/wheel over support**. New `BOT` DATA block holds the knobs
+  (`TELEPORT_GOOD/BAD`, `ORANGE`/`ORANGE_WEIGHTS`). Verified 3 full games complete clean
+  (rounds 17/21/25, 0 errors) — the pickier teleport logic doesn't stall games.
+
 ## 2026-06-25 (hourly loop #2) — integrity pass + fishing tunables → DATA (layering)
 
 Autonomous tick.
