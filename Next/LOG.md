@@ -4,6 +4,17 @@ Newest first. One entry per working session; note what shipped and what's next.
 
 ---
 
+## 2026-06-25 (hourly loop #4, final) — integrity pass + move-amounts → DATA
+
+Last autonomous tick before Isak stopped the loop (cron `f5b0d03e` cancelled).
+- **Integrity:** clean load + a full autonomous game to a winner, 0 JS errors.
+- **Layering cleanup:** the fixed move/knock amounts were bare literals in logic — support
+  `+5`, the wheel/RANDOM "next" `+1` and "+15", and the chute pile-up knock-back `-5`.
+  Moved them into a new `MOVE` DATA block (`SUPPORT/WHEEL_NEXT/WHEEL_BIG/PILEUP_BACK`);
+  numbers unchanged so play is identical. Also removed a dead `count` local in
+  `moveCurrent`. Verified a full game still completes clean (0 errors).
+- **Loop stopped** at Isak's request after finishing this change.
+
 ## 2026-06-25 (hourly loop #3) — integrity pass + smarter autonomous opponents
 
 Autonomous tick.

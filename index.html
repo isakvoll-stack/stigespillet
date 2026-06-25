@@ -727,6 +727,8 @@ const LIGHTNING = { CHANCE:0.005, BACK:7,       // ~0.5% per turn: strike the le
   GATHER_MS:1400, FLICKERS:2, STRIKES:3, FORKS:3, SPARKS:16 };  // build-up time + pre-flickers, main multi-strike, branch forks, impact sparks
 const LUCKY     = { CHANCE:0.004, FORWARD:8 };  // ~0.4% per turn: sweep the last-place player forward (3x rarer)
 const FATE      = { CHANCE:0.0033 };            // ~0.33% per turn: leader and last place swap places (3x rarer)
+/* ---- DATA: fixed move/knock amounts (tiles) ------------------------ */
+const MOVE = { SUPPORT:5, WHEEL_NEXT:1, WHEEL_BIG:15, PILEUP_BACK:5 };  // support +5; wheel "next"/+15; chute pile-up knock-back
 /* ---- DATA: autonomous (self-play) opponent behaviour --------------- */
 const BOT = {
   TELEPORT_GOOD:0.85, TELEPORT_BAD:0.15,        // accept a teleporter swap when it improves your average position (else rarely)
@@ -1154,7 +1156,6 @@ async function roll(){
 
 async function moveCurrent(rollValue){
   const p = game.players[game.current];
-  const count = game.players.length;
   const i = game.current;
   const from = p.pos === 0 ? 1 : p.pos;        // first move walks from square 1
   const path = walkPath(p.pos === 0 ? 0 : p.pos, rollValue);
@@ -2158,7 +2159,7 @@ async function snakeCollision(slider, head, tail, depth){
   if (!hits.length) return;
   await revealRuleOnce("snakehit");
   explode(tail); SFX.play("boom");
-  hits.forEach(q => { q.pos = Math.max(1, q.pos - 5); downPlayer(q); });
+  hits.forEach(q => { q.pos = Math.max(1, q.pos - MOVE.PILEUP_BACK); downPlayer(q); });
   layoutTokens(); renderScoreboard();
   log(`💥 ${slider.name} bowled over ${hits.map(h=>h.name).join(", ")} sliding down!`);
   await sleep(750);
@@ -2477,8 +2478,8 @@ async function randomWheelEffect(p){
   const effects = [
     ()=> nukeEveryone("🎲 "),
     async()=>{ SFX.play("chute"); p.pos = 1; layoutTokens(); renderScoreboard(); log(`🎲 Random: ${p.name} back to start!`); await sleep(600); await resolveLanding(p); },
-    async()=>{ log(`🎲 Random: ${p.name} inches forward.`); await advancePlayer(p, 1); },
-    async()=>{ log(`🎲 Random: ${p.name} leaps 15 spaces!`); await advancePlayer(p, 15); },
+    async()=>{ log(`🎲 Random: ${p.name} inches forward.`); await advancePlayer(p, MOVE.WHEEL_NEXT); },
+    async()=>{ log(`🎲 Random: ${p.name} leaps 15 spaces!`); await advancePlayer(p, MOVE.WHEEL_BIG); },
     ()=> revolverRoulette(p),
     ()=> runSupport(p),
     async()=>{ await revealRuleOnce("lightning"); await lightningStrike(p); },     // strikes YOU
@@ -2498,8 +2499,8 @@ async function spinWheel(p){
   await showWheel(idx);
   if (pick === "nuke"){ await nukeEveryone(""); }
   else if (pick === "start"){ SFX.play("chute"); p.pos = 1; layoutTokens(); renderScoreboard(); log(`🎡 The wheel sends ${p.name} back to the start!`); await sleep(650); await resolveLanding(p); }
-  else if (pick === "next"){ log(`🎡 ${p.name} edges to the next square.`); await advancePlayer(p, 1); }
-  else if (pick === "move15"){ log(`🎡 ${p.name} rockets 15 spaces forward!`); await advancePlayer(p, 15); }
+  else if (pick === "next"){ log(`🎡 ${p.name} edges to the next square.`); await advancePlayer(p, MOVE.WHEEL_NEXT); }
+  else if (pick === "move15"){ log(`🎡 ${p.name} rockets 15 spaces forward!`); await advancePlayer(p, MOVE.WHEEL_BIG); }
   else if (pick === "random"){ log(`🎲 The wheel lands on RANDOM!`); await randomWheelEffect(p); }
 }
 
@@ -2512,7 +2513,7 @@ async function runSupport(p){
   if (!target) return;
   SFX.play("sparkle");
   log(`🤝 ${p.name} supports ${target.name} — forward 5!`);
-  await advancePlayer(target, 5);
+  await advancePlayer(target, MOVE.SUPPORT);
 }
 
 async function runOrange(p){
