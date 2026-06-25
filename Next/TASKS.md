@@ -12,25 +12,33 @@ See `LOG.md` for the running session history.
 ## Active
 
 ### Animation polish (Isak's notes, 2026-06-24)
-- [x] **Gun cutscene — rebuild to this exact vision (Isak, 2026-06-25).** Built
-      2026-06-25 (cylinder shows the odds → spin → flip shut → metal gun fires; blank /
+- [x] **Gun cutscene — rebuild to this exact vision (Isak, 2026-06-25).** Built +
+      revised 2026-06-25 (tiny CSS revolver drawn on the shooter's own square, chamber
+      spins without revealing the landed slot, fires at the leaders; blank /
       live-×3-knockdown / self-backfire). Tunables in the `GUN` DATA block.
       > ⚠ KEEP THIS DESCRIPTION FOREVER — do **not** delete it (even after it's built)
       > until Isak explicitly says so. It is the canonical spec for the gun cutscene.
 
-      Open a revolver's **6-slot chamber** so you **see your odds** (which chambers are
-      loaded). Then you **spin it**, **flip it into place**, and the little piece **pulls
-      out a little metal gun** and **tries firing it generally towards those in the lead
-      (that isn't itself)**. The landed chamber decides what happens:
+      The **character pulls out a tiny revolver** (a real little gun, **not the 🔫 emoji**,
+      **not** a big thing popping up in the centre of the screen). The **chamber spins** —
+      but **don't reveal what it lands on**. Then it **tries firing generally towards those
+      in the lead (that isn't itself)**. The hidden chamber decides what happens:
       - **Blank** → it just **clicks and twitches once**. Nothing happens.
       - **Live** → it **shoots three times**, **knocking them with a screen shake each**
         — but **no explosions**.
       - **Self** → you **just explode** as you try pulling the trigger.
-- [x] **Leviathan cutscene — rebuild to this exact vision (Isak, 2026-06-25).** Built
-      2026-06-25 (serpent crosses → gulps in passing → exits → peeks back → rears → spits
-      the player flying to the new tile). Tunables in the `LEVI` DATA block.
+
+      (Superseded earlier idea: a big centre-screen cylinder that showed the odds and
+      revealed the landed chamber. Replaced per Isak's 2026-06-25 follow-up.)
+- [x] **Leviathan cutscene — rebuild to this exact vision (Isak, 2026-06-25).** Built +
+      reworked 2026-06-25 (serpent crosses → gulps in passing → exits → peeks back → rears
+      → spits the player flying to the new tile). Tunables in the `LEVI` DATA block.
       > ⚠ KEEP THIS DESCRIPTION FOREVER — do **not** delete it even after the cutscene
       > is built. It is the canonical spec for how the leviathan should look.
+
+      **Look (Isak, 2026-06-25 follow-up):** it must read **sideways / in profile** (a big
+      open **maw**, **not** a round face smiling at the camera), with an **elegant tapering
+      body**, and move **slowly** so it looks **majestic**.
 
       A **blue serpentine leviathan** — long snake-like body, styled like a **Chinese
       dragon** — flies/undulates **across the screen**. As it passes the targeted

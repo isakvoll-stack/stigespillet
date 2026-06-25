@@ -222,61 +222,41 @@
   .cutdim.show{opacity:1}
   .cutdim.seadim{background:radial-gradient(120% 95% at 50% 60%, rgba(12,46,80,.30) 18%, rgba(3,14,34,.84) 100%)}
 
-  /* gun cutscene */
-  .bigGun{position:fixed;z-index:14;font-size:120px;pointer-events:none;
-    transform:translate(-50%,-50%) rotate(0deg);filter:drop-shadow(0 10px 16px rgba(0,0,0,.6));will-change:top,transform}
-  .crosshair{position:fixed;z-index:14;width:48px;height:48px;pointer-events:none;border:3px solid #ff3b30;border-radius:50%;
+  /* gun cutscene — a tiny revolver the player draws on the board */
+  .crosshair{position:fixed;z-index:14;width:38px;height:38px;pointer-events:none;border:2.5px solid #ff3b30;border-radius:50%;
     box-shadow:0 0 9px #ff3b30, inset 0 0 9px rgba(255,59,48,.6);opacity:0;
     transform:translate(-50%,-50%) scale(1.7) rotate(0deg);transition:transform .28s, opacity .28s}
   .crosshair::before,.crosshair::after{content:"";position:absolute;background:#ff3b30}
-  .crosshair::before{left:50%;top:-9px;width:2px;height:66px;transform:translateX(-50%)}
-  .crosshair::after{top:50%;left:-9px;height:2px;width:66px;transform:translateY(-50%)}
+  .crosshair::before{left:50%;top:-8px;width:2px;height:54px;transform:translateX(-50%)}
+  .crosshair::after{top:50%;left:-8px;height:2px;width:54px;transform:translateY(-50%)}
   .crosshair.locked{opacity:1;transform:translate(-50%,-50%) scale(1) rotate(90deg)}
-  .muzzle{position:fixed;z-index:14;font-size:50px;pointer-events:none;transform:translate(-50%,-50%);animation:muzzlepop .35s ease-out forwards}
-  @keyframes muzzlepop{0%{opacity:0;transform:translate(-50%,-50%) scale(.3)}
-    40%{opacity:1;transform:translate(-50%,-50%) scale(1.4)}100%{opacity:0;transform:translate(-50%,-50%) scale(.8)}}
-  .gunsmoke{position:fixed;z-index:14;font-size:38px;pointer-events:none;transform:translate(-50%,-50%);animation:smokeup 1s ease-out forwards}
-  @keyframes smokeup{0%{opacity:.75;transform:translate(-50%,-50%) scale(.6)}100%{opacity:0;transform:translate(-50%,-170%) scale(1.6)}}
-  .bigGun.metal{filter:drop-shadow(0 10px 16px rgba(0,0,0,.6)) grayscale(.55) brightness(.92) contrast(1.1)}
 
-  /* revolver cylinder (the odds you spin) */
-  .revwrap{position:fixed;left:50%;top:46%;z-index:14;pointer-events:none;transform:translate(-50%,-50%);opacity:1}
-  .cyl{position:relative;width:230px;height:230px;border-radius:50%;
-    background:radial-gradient(circle at 42% 36%, #6b7178, #3a3f45 58%, #1b1f23 100%);
-    border:10px solid #23262b;box-shadow:0 12px 30px rgba(0,0,0,.6), inset 0 0 26px rgba(0,0,0,.65);
-    transition:transform var(--spin,1.7s) cubic-bezier(.12,.62,.12,1)}
-  .chamber{position:absolute;left:50%;top:50%;width:52px;height:52px;border-radius:50%;
-    transform:translate(-50%,-50%) rotate(var(--a)) translateY(-72px);
-    background:radial-gradient(circle at 40% 35%, #2a2d31, #0b0d0f 72%);
-    box-shadow:inset 0 0 11px rgba(0,0,0,.92), 0 1px 0 rgba(255,255,255,.06)}
-  .chamber.live::after{content:"";position:absolute;inset:12px;border-radius:50%;
-    background:radial-gradient(circle at 38% 30%, #ffe9a8, #d9a531 52%, #7c4f10 100%);box-shadow:0 0 8px rgba(255,200,90,.55)}
-  .chamber.self::after{content:"💀";position:absolute;inset:0;display:grid;place-items:center;font-size:27px;
-    transform:rotate(calc(-1*var(--a)))}
-  .cylpin{position:absolute;left:50%;top:50%;width:28px;height:28px;border-radius:50%;transform:translate(-50%,-50%);
-    background:radial-gradient(circle at 40% 35%, #868c93, #34383d 70%);box-shadow:0 0 0 5px #23262b, inset 0 0 7px #000}
-  .cylnotch{position:fixed;left:50%;top:calc(46% - 137px);z-index:15;pointer-events:none;transform:translateX(-50%);
-    width:0;height:0;border-left:13px solid transparent;border-right:13px solid transparent;border-top:21px solid #ffd23e;
-    filter:drop-shadow(0 2px 3px rgba(0,0,0,.7))}
+  .tinygun{position:fixed;z-index:15;width:0;height:0;pointer-events:none;
+    transform:translate(-50%,-50%) rotate(var(--aim,0deg));transform-origin:center;
+    filter:drop-shadow(0 3px 4px rgba(0,0,0,.55))}
+  .tinygun .tg{position:absolute;transform:translate(-50%,-50%)}
+  .tg-barrel{width:38px;height:9px;left:22px;top:-2px;border-radius:2px 3px 3px 2px;
+    background:linear-gradient(#e9edf1,#9aa0a6 45%,#53585e)}
+  .tg-barrel::after{content:"";position:absolute;right:-1px;top:1px;width:4px;height:7px;border-radius:2px;background:#1a1d20}
+  .tg-frame{width:24px;height:15px;left:3px;top:-1px;border-radius:3px;background:linear-gradient(#aab0b6,#4a4f55)}
+  .tg-cyl{width:22px;height:22px;left:3px;top:-1px;border-radius:50%;
+    background:radial-gradient(circle at 40% 34%,#c4c9ce,#5a6066 62%,#2f3338);
+    box-shadow:inset 0 0 5px rgba(0,0,0,.7), 0 1px 2px rgba(0,0,0,.5)}
+  .tg-holes{position:absolute;inset:0}
+  .tg-holes i{position:absolute;left:50%;top:50%;width:3.6px;height:3.6px;border-radius:50%;background:#15181b;
+    transform:translate(-50%,-50%) rotate(var(--h)) translateY(-6.4px)}
+  .tg-holes.spin{animation:tgspin var(--sp,.4s) linear infinite}
+  @keyframes tgspin{to{transform:rotate(360deg)}}
+  .tg-grip{width:11px;height:21px;left:-3px;top:9px;border-radius:2px 3px 5px 6px;
+    background:linear-gradient(#7a5733,#3d2814);transform:translate(-50%,-50%) rotate(26deg)}
+  .gunflash{position:fixed;z-index:16;width:26px;height:26px;border-radius:50%;pointer-events:none;
+    transform:translate(-50%,-50%) scale(.4);background:radial-gradient(circle,#fff,#ffd23e 45%,rgba(255,160,40,0) 72%);
+    animation:gunflash .22s ease-out forwards}
+  @keyframes gunflash{55%{opacity:1;transform:translate(-50%,-50%) scale(1.35)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.7)}}
 
-  /* leviathan cutscene — blue serpentine Chinese-dragon serpent */
-  .leviseg{position:fixed;z-index:13;border-radius:50%;pointer-events:none;transform:translate(-50%,-50%);
-    background:radial-gradient(circle at 38% 30%, #cfeaff, #3aa6ff 55%, #1166cc 100%);
-    box-shadow:0 0 13px rgba(64,170,255,.6), inset 0 -4px 8px rgba(8,48,110,.55)}
-  .levihead{position:fixed;z-index:14;pointer-events:none;transform:translate(-50%,-50%);
-    width:66px;height:66px;border-radius:56% 56% 48% 48%;
-    background:radial-gradient(circle at 42% 28%, #e2f1ff, #3aa6ff 52%, #0e5bbf 100%);
-    box-shadow:0 0 24px rgba(64,170,255,.85), inset 0 -6px 11px rgba(8,48,110,.6)}
-  .levihead i{position:absolute;display:block}
-  .levihead .eye{top:30%;width:12px;height:12px;border-radius:50%;background:#fff;box-shadow:0 0 5px #cfefff}
-  .levihead .eye::after{content:"";position:absolute;left:50%;top:56%;width:5px;height:5px;border-radius:50%;background:#10243a;transform:translate(-50%,-50%)}
-  .levihead .eye.l{left:17%}.levihead .eye.r{right:17%}
-  .levihead .horn{top:-13px;width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:17px solid #d8ecff}
-  .levihead .horn.l{left:20%}.levihead .horn.r{right:20%}
-  .levihead .whisk{top:52%;height:3px;width:42px;background:linear-gradient(90deg,rgba(216,236,255,0),#d8ecff);border-radius:3px}
-  .levihead .whisk.l{right:92%;transform:rotate(7deg);transform-origin:right}
-  .levihead .whisk.r{left:92%;transform:rotate(-7deg) scaleX(-1);transform-origin:left}
-  .levihead .maw{left:50%;bottom:6%;width:28px;height:13px;border-radius:0 0 16px 16px;background:#0a2748;transform:translateX(-50%)}
+  /* leviathan cutscene — drawn as an SVG overlay (tapering ribbon body + profile maw) */
+  .leviovl{z-index:13}
+  .levihead .eye{fill:#fff}
   .leviflier{position:fixed;z-index:15;width:30px;height:30px;border-radius:50%;pointer-events:none;
     transform:translate(-50%,-50%);border:2px solid rgba(8,20,40,.4);box-shadow:0 5px 12px rgba(0,0,0,.5), inset 0 -4px 6px rgba(0,0,0,.25)}
   .leviripple{position:fixed;z-index:12;border-radius:50%;pointer-events:none;transform:translate(-50%,-50%) scale(0);
@@ -704,21 +684,20 @@ const SHAME  = { TURNS:3, GETUP_MIN:4 };   // kick-a-man-while-down: shame turns
 const FISH   = { TILES:[35, 49, 70], SPIT_MAX:30 };   // dark-blue squares -> fishing; loss spits you to 1..SPIT_MAX
 /* ---- DATA: leviathan cutscene (blue serpentine Chinese-dragon serpent) ---- */
 const LEVI = {
-  SEGMENTS:18, SEG_GAP:30,            // body length: how many trailing segments + spacing (px) between them
-  SEG_HEAD:30, SEG_TAIL:7,            // segment radius (px) at the neck, tapering to the tail tip
-  WAVE_AMP:54, WAVE_LEN:240,          // undulation height (px) and wavelength (px) of the slither
-  SLITHER:2.4,                        // how many wave-phase turns elapse while crossing (slither speed)
-  CROSS_MS:2600, GRAB_PULL:170,       // ms to cross the screen; px window around the victim where the head dips to gulp
-  PEEK_MS:620, REAR_MS:520, SPIT_FLY_MS:820,   // return phase: peek in, rear up, then the victim's airborne arc
-  SPIT_ARC:150, SPIT_SPIN:900,        // height (px) and spin (deg) of the spat-out victim's flight
+  SAMPLES:26, SEG_GAP:24,             // spine sample points along the body + spacing (px) between them
+  BODY_HEAD:30, BODY_TAIL:3,          // body half-width (px) at the neck, tapering to the tail tip
+  WAVE_AMP:40, WAVE_LEN:340,          // undulation height (px) and wavelength (px) — long & low = graceful
+  SLITHER:1.3,                        // wave-phase turns over the crossing (low = calm, majestic)
+  CROSS_MS:5400, GRAB_PULL:230,       // ms to glide across (slow = majestic); px window where the head dips + maw opens
+  PEEK_MS:1000, REAR_MS:900, SPIT_FLY_MS:950,  // return phase: peek in, rear up, then the victim's airborne arc
+  SPIT_ARC:165, SPIT_SPIN:860,        // height (px) and spin (deg) of the spat-out victim's flight
 };
 /* ---- DATA: gun cutscene (revolver roulette) ------------------------ */
 const GUN = {
   CHAMBERS:6,
-  LAYOUT:["blank","live","blank","self","live","blank"],  // the six loaded chambers = the odds you see
+  LAYOUT:["blank","live","blank","self","live","blank"],  // hidden chamber outcomes (the landed one is NOT shown)
   SHOTS:3,                            // a LIVE chamber fires this many shots at the leaders
-  SPINS:4,                            // full cylinder turns before it settles on a chamber
-  REVEAL_MS:780, SPIN_MS:1700, FLIP_MS:430, SHOT_GAP:240, // cutscene beat lengths (ms)
+  SPIN_MS:1100, SHOT_GAP:240,         // chamber-spin length + gap between shots (ms)
 };
 const TELEPORTERS  = [22, 66];             // teal teleporter squares (between tile 20 and 80)
 const TELEPORT_COLOR = "#17b5a3";          // teal
@@ -1743,89 +1722,124 @@ function ripple(x, y){
   document.body.appendChild(r); setTimeout(()=> r.remove(), 720);
 }
 
-// Leviathan cutscene (canonical spec: Next/TASKS.md). A blue serpentine Chinese-dragon
-// serpent undulates across the screen, dips to gulp the victim in passing, exits the far
-// side — then peeks its head back in, rears up, and spits the victim flying to `toCell`.
+// A smooth tapering ribbon through the spine points (half-width headW→tailW), as an SVG path.
+function leviTaperPath(pts, headW, tailW){
+  const N = pts.length, L = [], R = [];
+  for (let i=0;i<N;i++){
+    const a = pts[Math.max(0,i-1)], b = pts[Math.min(N-1,i+1)];
+    let tx = b.x-a.x, ty = b.y-a.y; const len = Math.hypot(tx,ty)||1; tx/=len; ty/=len;
+    const nx = -ty, ny = tx, w = headW + (tailW-headW)*(i/(N-1));
+    L.push([pts[i].x+nx*w, pts[i].y+ny*w]); R.push([pts[i].x-nx*w, pts[i].y-ny*w]);
+  }
+  let d = "M"+L[0][0].toFixed(1)+","+L[0][1].toFixed(1);
+  for (let i=1;i<N;i++) d += "L"+L[i][0].toFixed(1)+","+L[i][1].toFixed(1);
+  for (let i=N-1;i>=0;i--) d += "L"+R[i][0].toFixed(1)+","+R[i][1].toFixed(1);
+  return d + "Z";
+}
+
+// A side-profile dragon head in a local frame: snout toward +x, neck toward -x, mouth
+// hinge near (5,4). The lower jaw is its own group so it can swing open.
+function buildLeviHead(){
+  const g = el("g", {"class":"levihead"});
+  g.appendChild(el("path", {d:"M86,-2 C46,-26 -4,-30 -44,-18", fill:"none", stroke:"#cfe6ff", "stroke-width":"2.6", "stroke-linecap":"round", opacity:"0.75"}));          // whisker
+  g.appendChild(el("path", {d:"M2,-16 C-12,-26 -30,-34 -46,-46 C-32,-28 -14,-18 6,-11 Z", fill:"#b7d8ff"}));                                                              // swept-back horn
+  g.appendChild(el("path", {d:"M6,2 L88,2 L48,18 Z", fill:"#06203c"}));                                                                                                    // open-maw interior
+  const jaw = el("g", {"class":"jaw"});
+  jaw.appendChild(el("path", {d:"M2,3 C28,9 60,13 82,12 C70,25 38,26 16,20 L0,12 Z", fill:"url(#leviGrad)", stroke:"#0c54bf", "stroke-width":"1.4", "stroke-linejoin":"round"}));   // lower jaw
+  g.appendChild(jaw);
+  g.appendChild(el("path", {d:"M-22,-9 C-6,-34 34,-36 52,-21 C66,-12 84,-8 94,-1 L83,4 C58,-2 32,-1 16,2 L0,3 L-22,9 Z", fill:"url(#leviGrad)", stroke:"#0c54bf", "stroke-width":"1.4", "stroke-linejoin":"round"}));  // cranium + upper jaw
+  g.appendChild(el("circle", {"class":"eye", cx:"32", cy:"-13", r:"6.4"}));
+  g.appendChild(el("circle", {cx:"34", cy:"-12", r:"3.1", fill:"#0a2030"}));                                                                                               // pupil
+  return g;
+}
+
+// Leviathan cutscene (canonical spec: Next/TASKS.md). A blue serpentine Chinese-dragon —
+// drawn side-on as a tapering SVG ribbon with a large-maw profile head — glides slowly
+// across the screen, dips to gulp the victim in passing, exits the far side, then peeks
+// back in, rears up, and spits the victim flying to `toCell`.
 async function leviathanFx(fromCell, toCell, victim){
   const vic = cellToScreen(fromCell);
   const W = window.innerWidth, H = window.innerHeight;
-  const baseY = Math.max(LEVI.WAVE_AMP + 40, Math.min(H - LEVI.WAVE_AMP - 40, vic.y));
+  const baseY = Math.max(LEVI.WAVE_AMP + 80, Math.min(H - LEVI.WAVE_AMP - 80, vic.y));
 
   const dim = document.createElement("div"); dim.className = "cutdim seadim";
   document.body.appendChild(dim); await raf(); dim.classList.add("show");
 
-  const n = LEVI.SEGMENTS, segs = [];
-  const head = document.createElement("div"); head.className = "levihead";
-  head.innerHTML = '<i class="horn l"></i><i class="horn r"></i><i class="whisk l"></i>'
-                 + '<i class="whisk r"></i><i class="eye l"></i><i class="eye r"></i><i class="maw"></i>';
-  for (let i=1;i<n;i++){
-    const r = LEVI.SEG_HEAD + (LEVI.SEG_TAIL - LEVI.SEG_HEAD) * (i/(n-1));
-    const sd = document.createElement("div"); sd.className = "leviseg";
-    sd.style.width = sd.style.height = (r*2)+"px";
-    document.body.appendChild(sd); segs.push(sd);
-  }
-  document.body.appendChild(head);
+  const ovl = el("svg", {"class":"fxsvg leviovl", viewBox:`0 0 ${W} ${H}`});
+  const defs = el("defs", {});
+  const grad = el("linearGradient", {id:"leviGrad", x1:"0", y1:"0", x2:"0", y2:"1"});
+  grad.appendChild(el("stop", {offset:"0", "stop-color":"#e2f2ff"}));
+  grad.appendChild(el("stop", {offset:"0.5", "stop-color":"#3aa6ff"}));
+  grad.appendChild(el("stop", {offset:"1", "stop-color":"#0c54bf"}));
+  defs.appendChild(grad); ovl.appendChild(defs);
+  const body = el("path", {fill:"url(#leviGrad)", stroke:"#0c54bf", "stroke-width":"1.5", "stroke-linejoin":"round"});
+  const head = buildLeviHead();
+  ovl.appendChild(body); ovl.appendChild(head);
+  document.body.appendChild(ovl);
 
-  const spineY = (x, phase) => baseY + Math.sin(x/LEVI.WAVE_LEN * Math.PI*2 + phase) * LEVI.WAVE_AMP;
-  const place = (headX, headY, phase) => {
-    head.style.left = headX+"px"; head.style.top = headY+"px";
-    for (let i=1;i<n;i++){ const x = headX - i*LEVI.SEG_GAP;
-      segs[i-1].style.left = x+"px"; segs[i-1].style.top = spineY(x, phase)+"px"; }
+  const N = LEVI.SAMPLES;
+  const spineY = (x, ph) => baseY + Math.sin(x/LEVI.WAVE_LEN*Math.PI*2 + ph) * LEVI.WAVE_AMP;
+  const setHead = (x,y,deg,faceRight,maw) => {
+    head.setAttribute("transform", `translate(${x.toFixed(1)},${y.toFixed(1)}) scale(${faceRight?1:-1},1) rotate(${deg.toFixed(1)})`);
+    head.querySelector(".jaw").setAttribute("transform", `rotate(${(maw*44).toFixed(1)} 5 4)`);
   };
+  const neckPts = (hx,hy) => { const p=[]; for (let i=0;i<8;i++) p.push({x:hx + i*LEVI.SEG_GAP*1.1, y:hy + i*i*2.4}); return p; };
 
   const vi = victim ? idxOf(victim) : -1;
   const tok = vi >= 0 ? tokenEls[vi] : null;
-  const startX = -LEVI.SEG_GAP*n - 60, endX = W + 140;
+  const startX = -LEVI.SEG_GAP*N - 80, endX = W + 180;
   let swallowed = false;
 
   SFX.play("leviathan");
-  await leviTween(LEVI.CROSS_MS, t=>{                                  // cross the screen, dipping to the victim
-    const phase = t * LEVI.SLITHER * Math.PI*2;
+  await leviTween(LEVI.CROSS_MS, t=>{                                  // glide across, dipping to the victim
+    const ph = t * LEVI.SLITHER * Math.PI*2;
     const headX = startX + (endX - startX)*t;
     const near = Math.max(0, 1 - Math.abs(headX - vic.x)/LEVI.GRAB_PULL);
-    const headY = spineY(headX, phase)*(1-near) + vic.y*near;
-    place(headX, headY, phase);
+    const pts = [];
+    for (let i=0;i<N;i++){ const x = headX - i*LEVI.SEG_GAP;
+      let y = spineY(x, ph); y += (vic.y - y) * (near * Math.max(0, 1 - i/6));   // dip the neck to gulp
+      pts.push({x, y});
+    }
+    body.setAttribute("d", leviTaperPath(pts, LEVI.BODY_HEAD, LEVI.BODY_TAIL));
+    setHead(pts[0].x, pts[0].y, Math.atan2(pts[0].y-pts[1].y, pts[0].x-pts[1].x)*180/Math.PI, true, Math.max(0.14, near));
     if (!swallowed && headX >= vic.x){                                // the opportunistic gulp, in passing
-      swallowed = true;
-      if (tok) tok.style.opacity = "0";
+      swallowed = true; if (tok) tok.style.opacity = "0";
       flashScreen(); SFX.play("boom"); ripple(vic.x, vic.y);
     }
   });
 
-  // return phase: only the head + a short neck come back; the long tail stays gone
-  for (let i=4;i<segs.length;i++) segs[i].style.display = "none";
-  const neckBase = vic.y < H/2 ? baseY + 120 : baseY - 120;
-  const peekX = W - 150;
+  // return phase: head + a short neck peek back in and rear up
+  const neckFrom = vic.y < H/2 ? baseY + 150 : baseY - 70;
+  const peekX = W - 180;
   await leviTween(LEVI.PEEK_MS, t=>{                                   // peek the head back in from the edge
-    const headX = endX + (peekX - endX)*t;
-    head.style.left = headX+"px"; head.style.top = neckBase+"px";
-    for (let i=0;i<4 && i+1<n;i++){ const x = headX + (i+1)*LEVI.SEG_GAP;
-      segs[i].style.left = x+"px"; segs[i].style.top = (neckBase + (i+1)*8)+"px"; }
+    const e = 1-(1-t)*(1-t), hx = endX + (peekX - endX)*e;
+    body.setAttribute("d", leviTaperPath(neckPts(hx, neckFrom), LEVI.BODY_HEAD, LEVI.BODY_HEAD*0.65));
+    setHead(hx, neckFrom, -8, false, 0.18);
   });
-  const rearY = Math.max(LEVI.WAVE_AMP, neckBase - 150);
-  await leviTween(LEVI.REAR_MS, t=>{                                   // rear up, coiling for the spit
-    const e = t*t;
-    const headY = neckBase + (rearY - neckBase)*e;
-    head.style.left = peekX+"px"; head.style.top = headY+"px";
-    head.style.transform = `translate(-50%,-50%) scale(${1 + 0.18*e})`;
-    for (let i=0;i<4 && i+1<n;i++){ const x = peekX + (i+1)*LEVI.SEG_GAP*0.7;
-      segs[i].style.left = x+"px"; segs[i].style.top = (headY + (i+1)*22)+"px"; }
+  const rearY = Math.max(LEVI.WAVE_AMP + 40, neckFrom - 210);
+  await leviTween(LEVI.REAR_MS, t=>{                                   // rear up, coiling, maw opening
+    const e = t*t*(3-2*t), hy = neckFrom + (rearY - neckFrom)*e;
+    body.setAttribute("d", leviTaperPath(neckPts(peekX, hy), LEVI.BODY_HEAD, LEVI.BODY_HEAD*0.65));
+    setHead(peekX, hy, -24 - 14*e, false, 0.2 + 0.55*e);
   });
 
   // spit: launch the victim on a flying arc to the new tile
-  const dest = cellToScreen(toCell), mouthX = peekX, mouthY = rearY + 24;
+  const dest = cellToScreen(toCell), mouthX = peekX - 46, mouthY = rearY - 4;
   const flier = document.createElement("div"); flier.className = "leviflier";
   flier.style.background = "radial-gradient(circle at 38% 32%, #ffffff66, "
                          + (vi>=0 ? PLAYER_COLORS[vi] : "#e6402f") + " 60%, rgba(0,0,0,.3))";
   flier.style.left = mouthX+"px"; flier.style.top = mouthY+"px";
   document.body.appendChild(flier);
-  SFX.play("kick"); head.style.transform = "translate(-50%,-50%) scale(1)";
+  SFX.play("kick");
   await leviTween(LEVI.SPIT_FLY_MS, t=>{
     const e = 1-(1-t)*(1-t);
     const x = mouthX + (dest.x - mouthX)*e;
     const y = mouthY + (dest.y - mouthY)*e - Math.sin(Math.PI*t)*LEVI.SPIT_ARC;
     flier.style.left = x+"px"; flier.style.top = y+"px";
     flier.style.transform = `translate(-50%,-50%) rotate(${t*LEVI.SPIT_SPIN}deg)`;
+    const hx = peekX + 60*t;                                          // recoil + close the maw as it spits
+    body.setAttribute("d", leviTaperPath(neckPts(hx, rearY), LEVI.BODY_HEAD, LEVI.BODY_HEAD*0.65));
+    setHead(hx, rearY, -12, false, Math.max(0.18, 0.8*(1-t)));
   });
   ripple(dest.x, dest.y); SFX.play("bounce");
 
@@ -1834,9 +1848,10 @@ async function leviathanFx(fromCell, toCell, victim){
     tok.style.transform = `translate(${c.x}px, ${c.y}px)`;
     void tok.offsetWidth; tok.style.opacity = "1";
     tok.style.transition = `transform ${ANIM.STEP}ms ease-in-out`; }
-  flier.remove(); dim.classList.remove("show");
-  await sleep(320);
-  head.remove(); segs.forEach(s=> s.remove()); dim.remove();
+  flier.remove();
+  ovl.style.transition = "opacity .45s"; await sleep(60);
+  ovl.style.opacity = "0"; dim.classList.remove("show");
+  await sleep(460); ovl.remove(); dim.remove();
 }
 
 async function runFishing(p){
@@ -2161,9 +2176,9 @@ function pickPlayer(title, candidates){
   });
 }
 
-// Gun cutscene: dim → revolver draws up → cocks → crosshairs lock on each target →
-// FIRE (muzzle flash + tracers + recoil + bang) → impacts → barrel smoke → holster.
-// A locked-on crosshair over a board cell; caller removes it.
+// Gun cutscene: the shooter draws a tiny revolver on their own square, spins the chamber
+// (you never see where it lands), then fires toward the leaders. A locked-on crosshair
+// over a board cell; caller removes it.
 function aimMark(cell){
   const s = cellToScreen(cell);
   const m = document.createElement("div"); m.className = "crosshair";
@@ -2172,126 +2187,119 @@ function aimMark(cell){
   return m;
 }
 
-// One shot from `gun` at a board cell: muzzle flash, tracer, recoil, screen shake. No
-// explosion — gun impacts are a knockdown + shake (only a SELF backfire explodes).
-async function gunShot(gun, muz, cell){
-  const mf = document.createElement("div"); mf.className = "muzzle"; mf.textContent = "💥";
-  mf.style.left = muz.x+"px"; mf.style.top = muz.y+"px";
-  document.body.appendChild(mf); setTimeout(()=> mf.remove(), 350);
+// Aim angle (deg) from a screen point toward the centroid of some board cells.
+function aimAt(from, cells){
+  if (!cells.length) return 0;
+  let sx=0, sy=0; cells.forEach(c=>{ const s = cellToScreen(c); sx += s.x; sy += s.y; });
+  return Math.atan2(sy/cells.length - from.y, sx/cells.length - from.x) * 180/Math.PI;
+}
+// Screen point of the barrel tip for a gun anchored at `at` and rotated to `aimDeg`.
+function gunMuzzle(at, aimDeg){
+  const r = aimDeg*Math.PI/180, mx = 42, my = -2;
+  return { x: at.x + mx*Math.cos(r) - my*Math.sin(r), y: at.y + mx*Math.sin(r) + my*Math.cos(r) };
+}
+// Build a small CSS revolver (barrel + spinning cylinder + grip) anchored at a screen point.
+function tinyRevolver(at, aimDeg){
+  const g = document.createElement("div"); g.className = "tinygun";
+  g.style.left = at.x+"px"; g.style.top = at.y+"px"; g.style.setProperty("--aim", aimDeg+"deg");
+  g.innerHTML =
+    '<div class="tg tg-grip"></div><div class="tg tg-frame"></div><div class="tg tg-barrel"></div>'+
+    '<div class="tg tg-cyl"><div class="tg-holes">'+
+      '<i style="--h:0deg"></i><i style="--h:60deg"></i><i style="--h:120deg"></i>'+
+      '<i style="--h:180deg"></i><i style="--h:240deg"></i><i style="--h:300deg"></i>'+
+    '</div></div>';
+  document.body.appendChild(g);
+  return g;
+}
+const aimGun = (gun, deg) => { gun.style.transform = `translate(-50%,-50%) rotate(${deg}deg)`; };
+
+// One shot from `gun` (anchored at `at`, aimed `aimDeg`) at a board cell: muzzle flash,
+// tracer, recoil, screen shake. No explosion — impacts are a knockdown + shake.
+async function gunShot(gun, muz, cell, aimDeg){
+  const flash = document.createElement("div"); flash.className = "gunflash";
+  flash.style.left = muz.x+"px"; flash.style.top = muz.y+"px";
+  document.body.appendChild(flash); setTimeout(()=> flash.remove(), 240);
   const s = cellToScreen(cell);
   const fx = el("svg", {"class":"fxsvg", viewBox:`0 0 ${innerWidth} ${innerHeight}`});
   fx.appendChild(el("line",{x1:muz.x,y1:muz.y,x2:s.x,y2:s.y,stroke:"#ffe27a","stroke-width":"3","stroke-linecap":"round",opacity:"0.95"}));
   document.body.appendChild(fx);
   SFX.play("shoot"); flashScreen();
-  gun.style.transform = "translate(-50%,-58%) rotate(-15deg)";       // recoil kick
-  await sleep(120); fx.remove();
-  gun.style.transform = "translate(-50%,-50%) rotate(0deg)";
+  const base = `translate(-50%,-50%) rotate(${aimDeg}deg)`;
+  gun.style.transform = base + " translateX(-7px)";                 // recoil kick back along the barrel
+  await sleep(110); fx.remove();
+  gun.style.transform = base;
 }
 
-// Draw + aim + fire a metal gun at the given cells (knockdown, no explosion). Used by the
-// RANDOM "you get picked off" effect.
+// A tiny revolver appears beside the target and picks them off (knockdown, no explosion).
+// Used by the RANDOM "you get picked off" effect.
 async function gunFx(targetCells){
-  const cells = targetCells || [];
+  const cells = targetCells || []; if (!cells.length) return;
   const dim = document.createElement("div"); dim.className = "cutdim";
   document.body.appendChild(dim); await raf(); dim.classList.add("show");
 
-  const gx = innerWidth*0.5, gy = innerHeight*0.62, muz = {x:gx, y:gy-72};
-  const gun = document.createElement("div"); gun.className = "bigGun metal"; gun.textContent = "🔫";
-  gun.style.left = gx+"px"; gun.style.top = (innerHeight+180)+"px";
-  gun.style.transition = "top .5s cubic-bezier(.2,.7,.3,1), transform .14s ease-out";
-  document.body.appendChild(gun);
-  await raf(); gun.style.top = gy+"px"; await sleep(500);
-
-  SFX.play("click");
-  gun.style.transform = "translate(-50%,-50%) rotate(-9deg)"; await sleep(160);
-  gun.style.transform = "translate(-50%,-50%) rotate(0deg)";  await sleep(120);
+  const t0 = cellToScreen(cells[0]);
+  const at = { x: Math.max(70, t0.x - 64), y: Math.max(58, t0.y - 56) };
+  const gun = tinyRevolver(at, aimAt(at, cells));
+  const holes = gun.querySelector(".tg-holes"); holes.style.setProperty("--sp", "0.4s");
+  SFX.play("spin"); holes.classList.add("spin");
+  await sleep(700); holes.classList.remove("spin"); SFX.play("click"); await sleep(220);
 
   const marks = cells.map(c=> aimMark(c));
-  SFX.play("click"); await sleep(400);
-  for (const c of cells){ await gunShot(gun, muz, c); await sleep(120); }
+  await sleep(260);
+  for (const c of cells){ const a = aimAt(at, [c]); aimGun(gun, a); await gunShot(gun, gunMuzzle(at, a), c, a); await sleep(140); }
   marks.forEach(m=> m.remove());
+  await sleep(360);
 
-  const smoke = document.createElement("div"); smoke.className = "gunsmoke"; smoke.textContent = "💨";
-  smoke.style.left = muz.x+"px"; smoke.style.top = muz.y+"px";
-  document.body.appendChild(smoke); setTimeout(()=> smoke.remove(), 1000);
-  await sleep(420);
-
-  gun.style.transition = "top .4s ease-in, opacity .4s";
-  gun.style.top = (innerHeight+180)+"px"; gun.style.opacity = "0";
+  gun.style.transition = "opacity .3s"; gun.style.opacity = "0";
   dim.classList.remove("show");
-  await sleep(420); gun.remove(); dim.remove();
+  await sleep(320); gun.remove(); dim.remove();
 }
 
-// Revolver roulette (canonical spec: Next/TASKS.md). Open the 6-chamber cylinder so you
-// can read the odds, spin it, flip it shut, then draw a little metal gun aimed at the
-// leaders. The landed chamber decides: blank → a dud (click + twitch); live → three shots
-// that knock the leaders down with a screen-shake each (no explosions); self → the trigger
-// backfires and the shooter explodes.
+// Revolver roulette (canonical spec: Next/TASKS.md). The shooter draws a tiny revolver on
+// their own square and spins the chamber — you never see where it lands. Then it fires at
+// the leaders. The hidden chamber decides: blank → a dud (click + twitch); live → three
+// shots that knock the leaders down with a screen-shake each (no explosions); self → the
+// trigger backfires and the shooter explodes.
 async function revolverRoulette(p){
-  const layout = GUN.LAYOUT.slice(0, GUN.CHAMBERS);
   const idx  = Math.floor(Math.random()*GUN.CHAMBERS);
-  const type = layout[idx];
-  const seg  = 360/GUN.CHAMBERS;
+  const type = GUN.LAYOUT.slice(0, GUN.CHAMBERS)[idx];             // outcome stays hidden — never shown
   const leaders = game.players.filter(q => q !== p && !q.finished && q.pos > 0)
                    .sort((a,b)=> b.pos - a.pos).slice(0, GUN.SHOTS);
 
   const dim = document.createElement("div"); dim.className = "cutdim";
   document.body.appendChild(dim); await raf(); dim.classList.add("show");
 
-  // -- show the loaded chambers (the odds) --
-  const wrap = document.createElement("div"); wrap.className = "revwrap";
-  const cyl = document.createElement("div"); cyl.className = "cyl";
-  layout.forEach((t,i)=>{
-    const ch = document.createElement("div"); ch.className = "chamber " + t;
-    ch.style.setProperty("--a", (i*seg)+"deg"); cyl.appendChild(ch);
-  });
-  cyl.appendChild(Object.assign(document.createElement("div"), {className:"cylpin"}));
-  wrap.appendChild(cyl); document.body.appendChild(wrap);
-  const notch = document.createElement("div"); notch.className = "cylnotch";
-  document.body.appendChild(notch);
-  SFX.play("click"); await sleep(GUN.REVEAL_MS);
+  // the shooter pulls out a tiny revolver, raised a touch off their token
+  const tok0 = cellToScreen(p.pos), at = { x: tok0.x, y: tok0.y - 30 };
+  const aimCells = leaders.length ? leaders.map(q=>q.pos) : [p.pos];
+  const gun = tinyRevolver(at, aimAt(at, aimCells));
+  await raf();
 
-  // -- spin, landing the chosen chamber under the top notch --
-  cyl.style.setProperty("--spin", (GUN.SPIN_MS/1000)+"s");
-  SFX.play("spin"); await raf();
-  cyl.style.transform = `rotate(${-(idx*seg) - 360*GUN.SPINS}deg)`;
-  await sleep(GUN.SPIN_MS + 140);
+  // spin the chamber — but never reveal where it lands
+  const holes = gun.querySelector(".tg-holes"); holes.style.setProperty("--sp", "0.32s");
+  SFX.play("spin"); holes.classList.add("spin");
+  await sleep(GUN.SPIN_MS);
+  holes.classList.remove("spin"); SFX.play("click"); await sleep(260);
 
-  // -- flip the cylinder shut --
-  SFX.play("click");
-  wrap.style.transition = `transform ${GUN.FLIP_MS}ms cubic-bezier(.3,.7,.2,1), opacity ${GUN.FLIP_MS}ms`;
-  wrap.style.transform = "translate(-50%,-50%) scale(.18) rotate(92deg)"; wrap.style.opacity = "0";
-  notch.remove(); await sleep(GUN.FLIP_MS); wrap.remove();
-
-  // -- draw the little metal gun --
-  const gx = innerWidth*0.5, gy = innerHeight*0.62, muz = {x:gx, y:gy-72};
-  const gun = document.createElement("div"); gun.className = "bigGun metal"; gun.textContent = "🔫";
-  gun.style.left = gx+"px"; gun.style.top = (innerHeight+180)+"px";
-  gun.style.transition = "top .42s cubic-bezier(.2,.7,.3,1), transform .14s ease-out";
-  document.body.appendChild(gun);
-  await raf(); gun.style.top = gy+"px"; await sleep(430);
-  SFX.play("click");
-  gun.style.transform = "translate(-50%,-50%) rotate(-9deg)"; await sleep(150);
-  gun.style.transform = "translate(-50%,-50%) rotate(0deg)";  await sleep(110);
-
-  // -- resolve the landed chamber --
   if (type === "blank"){
-    SFX.play("click");                                              // a dud: click + twitch once
-    gun.style.transform = "translate(-50%,-50%) rotate(-7deg)"; await sleep(120);
-    gun.style.transform = "translate(-50%,-50%) rotate(0deg)";
+    const a = aimAt(at, aimCells);
+    SFX.play("click");                                             // a dud: one twitch
+    gun.style.transform = `translate(-50%,-50%) rotate(${a}deg) translateX(-4px)`; await sleep(120);
+    aimGun(gun, a);
     log(`🔫 *click* — a blank. ${p.name} got lucky.`);
   } else if (type === "self"){
-    SFX.play("click"); gun.style.transform = "translate(-50%,-50%) rotate(7deg)"; await sleep(240);
-    flashScreen(); explode(p.pos); SFX.play("boom");                // the only gun explosion: a self-backfire
+    SFX.play("click"); await sleep(200);
+    flashScreen(); explode(p.pos); SFX.play("boom");               // the only gun explosion: a self-backfire
     downPlayer(p); layoutTokens(); renderScoreboard();
     log(`🔫 BANG! ${p.name}'s gun backfired — they go down.`);
-  } else {                                                          // live
+  } else {                                                         // live: three shots at the leaders
     if (leaders.length){
       const marks = leaders.map(q=> aimMark(q.pos));
-      SFX.play("click"); await sleep(360);
+      await sleep(280);
       for (let k=0;k<GUN.SHOTS;k++){
-        const q = leaders[k % leaders.length];
-        await gunShot(gun, muz, q.pos);
+        const q = leaders[k % leaders.length], a = aimAt(at, [q.pos]);
+        aimGun(gun, a);
+        await gunShot(gun, gunMuzzle(at, a), q.pos, a);
         downPlayer(q); renderScoreboard();
         await sleep(GUN.SHOT_GAP);
       }
@@ -2299,20 +2307,16 @@ async function revolverRoulette(p){
       const names = [...new Set(leaders.map(q=>q.name))];
       log(`🔫 BANG BANG BANG! ${p.name} guns down the frontrunners: ${names.join(", ")}`);
     } else {
-      SFX.play("shoot"); flashScreen();
-      log(`🔫 ${p.name} fires at the leaders — but no one's ahead.`);
+      const a = aimAt(at, aimCells);
+      await gunShot(gun, gunMuzzle(at, a), p.pos, a);
+      log(`🔫 ${p.name} fires — but no one's ahead.`);
     }
   }
 
-  const smoke = document.createElement("div"); smoke.className = "gunsmoke"; smoke.textContent = "💨";
-  smoke.style.left = muz.x+"px"; smoke.style.top = muz.y+"px";
-  document.body.appendChild(smoke); setTimeout(()=> smoke.remove(), 1000);
-  await sleep(420);
-
-  gun.style.transition = "top .4s ease-in, opacity .4s";
-  gun.style.top = (innerHeight+180)+"px"; gun.style.opacity = "0";
+  await sleep(380);
+  gun.style.transition = "opacity .3s"; gun.style.opacity = "0";
   dim.classList.remove("show");
-  await sleep(420); gun.remove(); dim.remove();
+  await sleep(320); gun.remove(); dim.remove();
 }
 
 const WHEEL_LABELS = ["☢️","🔙","➡️","🚀","🎲"];   // nuke / back-to-start / next / +15 / RANDOM

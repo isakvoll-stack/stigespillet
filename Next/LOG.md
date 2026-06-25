@@ -4,6 +4,28 @@ Newest first. One entry per working session; note what shipped and what's next.
 
 ---
 
+## 2026-06-25 (evening) — leviathan reworked (SVG profile dragon) + tiny-revolver gun
+
+Isak's feedback on the two new cutscenes:
+
+**Leviathan** — didn't look good; wanted it **sideways (profile)** with a **large maw**
+and an **elegant body**, and **much slower / majestic** (not a round face smiling at the
+camera). Rebuilt it as an **SVG overlay**: the body is now a **tapering ribbon** through a
+travelling-sine spine (smooth head→tail taper), and the head is a **side-profile dragon**
+with a hinged **maw that opens to gulp**, one eye, a swept horn and a whisker. Slowed the
+glide to ~5.4 s and lowered/lengthened the wave for grace. Verified headless: runs clean,
+token lands + restores, 0 leaks; screenshots show the profile head, the dip-and-gulp, the
+rear-up and the spit.
+
+**Gun** — the 🔫 emoji "doesn't look like a gun" and shouldn't pop up centre-screen;
+wanted the **character to pull out a tiny revolver** and to **spin the chamber without
+revealing what it lands on**. Replaced the big centre cylinder + emoji with a **small CSS
+revolver** (barrel + 6-hole spinning cylinder + grip) drawn **on the shooter's own square**,
+aimed at the leaders. The chamber **spins and stops with no reveal**; the hidden outcome
+still resolves blank / live-×3-knockdown / self-backfire. Muzzle flash is now a CSS burst
+(no emoji). Verified headless: blank/live/self all correct, 0 errors, 0 leaks; a zoomed
+screenshot confirms it reads as a revolver.
+
 ## 2026-06-25 (later) — gun cutscene rebuilt (revolver roulette) + sniper de-explosioned
 
 Rebuilt the gun set-piece to Isak's spec (kept in `TASKS.md`):
