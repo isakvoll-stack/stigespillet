@@ -689,7 +689,18 @@ const ANIM = { STEP:210, SLIDE:600, DICE:560, HANDOFF:350, AUTO:650 };
 /* ---- DATA: sniper rule tunables ------------------------------------ */
 const SNIPER = { EVERY_ROUNDS:5, HIT_RADIUS:30, GETUP_MIN:3 };
 const SHAME  = { TURNS:3, GETUP_MIN:4 };   // kick-a-man-while-down: shame turns + harder recovery
-const FISH   = { TILES:[35, 49, 70], SPIT_MAX:30 };   // dark-blue squares -> fishing; loss spits you to 1..SPIT_MAX
+const FISH   = {
+  TILES:[35, 49, 70], SPIT_MAX:30,        // dark-blue squares -> fishing; loss spits you to 1..SPIT_MAX
+  // --- minigame difficulty curve (read by fishParams), per catch streak ---
+  ZONE_BASE:112, ZONE_SHRINK:15, ZONE_MIN:34,             // catch-zone height: base, shrink/streak, floor (px)
+  FISH_SPEED:110, FISH_SPEED_STREAK:50,                   // fish drift speed: base + per-streak (px/s)
+  RETARGET:0.85, RETARGET_STREAK:0.09, RETARGET_MIN:0.40, // seconds between fish direction changes
+  DRAIN:0.22, DRAIN_STREAK:0.07, FILL:0.34,               // progress drain (per s, +streak) and fill rate
+  // --- minigame bar physics (read by fishingGame) ---
+  GRAVITY:540, REEL:1080, START:0.38,                     // bar gravity-down, reel-up, starting progress (0..1)
+  // --- self-play (autonomous) catch odds: harder as the streak grows ---
+  WIN_BASE:0.88, WIN_STREAK_DROP:0.15, WIN_MIN:0.15,
+};
 /* ---- DATA: leviathan cutscene (blue serpentine Chinese-dragon serpent) ---- */
 const LEVI = {
   SAMPLES:26, SEG_GAP:24,             // spine sample points along the body + spacing (px) between them
@@ -1633,11 +1644,11 @@ function explode(cell){
 // streak 2 (3rd attempt) highly difficult, streak 4 (5th) extremely so.
 function fishParams(streak){
   return {
-    barH:      Math.max(34, 112 - streak*15),   // bigger catch zone, shrinks slower
-    fishSpeed: 110 + streak*50,                 // calmer fish
-    retarget:  Math.max(0.40, 0.85 - streak*0.09), // changes direction less often
-    drain:     0.22 + streak*0.07,              // meter drains gentler
-    fill:      0.34,                            // fills a touch slower -> rounds last longer
+    barH:      Math.max(FISH.ZONE_MIN, FISH.ZONE_BASE - streak*FISH.ZONE_SHRINK),       // bigger catch zone, shrinks slower
+    fishSpeed: FISH.FISH_SPEED + streak*FISH.FISH_SPEED_STREAK,                          // calmer fish
+    retarget:  Math.max(FISH.RETARGET_MIN, FISH.RETARGET - streak*FISH.RETARGET_STREAK), // changes direction less often
+    drain:     FISH.DRAIN + streak*FISH.DRAIN_STREAK,                                    // meter drains gentler
+    fill:      FISH.FILL,                                                                // fills a touch slower -> rounds last longer
   };
 }
 function showFishPhase(ph){
@@ -1668,7 +1679,7 @@ function fishingGame(streak){
         prog = document.getElementById("fprogfill");
   bar.style.height = P.barH + "px";
   let barTop = (TH - P.barH)/2, v = 0;
-  let fishTop = (TH - fishH)/2, fishTarget = fishTop, retT = 0, p = 0.38, holding = false;
+  let fishTop = (TH - fishH)/2, fishTarget = fishTop, retT = 0, p = FISH.START, holding = false;
   return new Promise(res => {
     const kd = e => { if (e.code === "ArrowUp"){ e.preventDefault(); holding = true; } };
     const ku = e => { if (e.code === "ArrowUp"){ e.preventDefault(); holding = false; } };
@@ -1681,7 +1692,7 @@ function fishingGame(streak){
     }
     function frame(now){
       const dt = Math.min(0.05, (now-last)/1000); last = now;
-      v += 540*dt; if (holding) v -= 1080*dt;       // gravity vs. reel (a little calmer)
+      v += FISH.GRAVITY*dt; if (holding) v -= FISH.REEL*dt;   // gravity vs. reel (a little calmer)
       barTop += v*dt;
       if (barTop < 0){ barTop = 0; v = 0; }
       if (barTop > TH-P.barH){ barTop = TH-P.barH; v = 0; }
@@ -1868,7 +1879,7 @@ async function runFishing(p){
   const streak = game.fishStreak || 0;
   let won;
   if (game.autonomous){
-    won = Math.random() < Math.max(0.15, 0.88 - streak*0.15);   // self-play: harder as streak grows
+    won = Math.random() < Math.max(FISH.WIN_MIN, FISH.WIN_BASE - streak*FISH.WIN_STREAK_DROP);   // self-play: harder as streak grows
   } else {
     await getReady(p.name);
     won = await fishingGame(streak);

@@ -4,6 +4,21 @@ Newest first. One entry per working session; note what shipped and what's next.
 
 ---
 
+## 2026-06-25 (hourly loop #2) — integrity pass + fishing tunables → DATA (layering)
+
+Autonomous tick.
+- **Integrity:** clean load + a **full autonomous game to a winner, 0 JS errors**. Nothing
+  to fix.
+- **Layering cleanup:** the fishing difficulty was a pile of bare literals buried in logic
+  (`fishParams`, the bar physics in `fishingGame`, and the self-play catch-odds formula).
+  Pulled them **all into the `FISH` DATA block** as named values — catch-zone curve, fish
+  speed, retarget interval, drain/fill, bar gravity/reel/start, and the autonomous
+  `WIN_BASE/WIN_STREAK_DROP/WIN_MIN`. **Numbers unchanged**, so play is identical; now
+  fishing difficulty lives in exactly one labelled place (per the CLAUDE.md layering rule).
+  Verified `fishParams` outputs match the old formula at streaks 0/2/5, and a full game
+  still completes clean. Next obvious same-category cleanup: the bot's `0.6` teleport
+  chance + orange choice still sit as literals in logic.
+
 ## 2026-06-25 (hourly loop #1) — integrity pass + lightning polish
 
 Autonomous "improve the game / fix integrity" tick.
