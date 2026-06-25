@@ -4,6 +4,19 @@ Newest first. One entry per working session; note what shipped and what's next.
 
 ---
 
+## 2026-06-25 (hourly loop #1) — integrity pass + lightning polish
+
+Autonomous "improve the game / fix integrity" tick.
+- **Integrity:** clean page load (0 JS errors) and a **full autonomous 4-player game played
+  to a winner with 0 errors** (headless, rAF→setTimeout under virtual time). Nothing to fix.
+- **Lightning polish** (was the top open Active item): rebuilt `lightningFx` — clouds
+  gather + rumble → **distant pre-flickers** for tension → a **forked bolt** (soft glow +
+  bright white core + branches) that **strikes several times** in quick succession → an
+  **electric impact** (shockwave ring + sparks). Dropped the old fiery `explode` on the
+  victim (didn't fit lightning). New tunables in the `LIGHTNING` DATA block
+  (`GATHER_MS/FLICKERS/STRIKES/FORKS/SPARKS`). Verified headless: runs clean, 0 DOM leaks;
+  screenshot shows the gathered storm + glowing forked bolt.
+
 ## 2026-06-25 (evening) — leviathan reworked (SVG profile dragon) + tiny-revolver gun
 
 Isak's feedback on the two new cutscenes:

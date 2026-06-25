@@ -53,8 +53,11 @@ See `LOG.md` for the running session history.
       `resolveLanding` on the new tile.
 
       (Current placeholder = gloom + water + tentacles + 🐙 + token dunk. Replace it.)
-- [ ] **Lightning needs some work.** Decent base (clouds/rumble/bolt/crack) but not
-      there yet — improve the storm build-up, the bolt itself, and the impact.
+- [x] **Lightning improved (2026-06-25).** Build-up now gathers clouds + rumble then
+      distant pre-flickers; the bolt is a glow + bright core with branching forks that
+      strikes several times in quick succession; the impact is an electric shockwave ring
+      + sparks (replaced the old fiery `explode`). Tunables in the `LIGHTNING` DATA block.
+      Still open to a precise art-direction pass from Isak if he wants one.
 
 ### Other
 - [x] **Wheel reworked (2026-06-24)** — removed the "nothing" slot (now 5 slots); RANDOM

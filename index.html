@@ -200,8 +200,16 @@
     background:radial-gradient(circle at 50% 65%, #3a3f55, #20232f);animation:stormroll linear forwards}
   @keyframes stormroll{from{transform:translateX(-34vw)}to{transform:translateX(118vw)}}
   .fxsvg{position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:12}
-  .bolt{stroke:#fdf6b0;stroke-width:6;fill:none;stroke-linejoin:round;stroke-linecap:round;
-    filter:drop-shadow(0 0 8px #fff) drop-shadow(0 0 16px #9cd2ff)}
+  .bolt-glow{stroke:#9cd2ff;stroke-width:13;fill:none;stroke-linejoin:round;stroke-linecap:round;opacity:.5;
+    filter:blur(2px) drop-shadow(0 0 18px #6cf)}
+  .bolt-core{stroke:#fff;stroke-width:3.2;fill:none;stroke-linejoin:round;stroke-linecap:round;
+    filter:drop-shadow(0 0 6px #eaf6ff) drop-shadow(0 0 13px #9cd2ff)}
+  .lring{position:fixed;z-index:13;border-radius:50%;pointer-events:none;transform:translate(-50%,-50%) scale(0);
+    border:3px solid rgba(186,228,255,.9);box-shadow:0 0 16px #9cd2ff;animation:lring .5s ease-out forwards}
+  @keyframes lring{to{transform:translate(-50%,-50%) scale(3.2);opacity:0}}
+  .lspark{position:fixed;z-index:13;width:7px;height:7px;border-radius:50%;background:#cfeaff;
+    box-shadow:0 0 7px #9cd2ff;pointer-events:none;transform:translate(-50%,-50%);animation:lspark .5s ease-out forwards}
+  @keyframes lspark{to{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(.2);opacity:0}}
 
   /* shooting star (lucky) */
   .shootstar{position:fixed;z-index:13;font-size:46px;pointer-events:none;transform:translate(-50%,-50%);
@@ -704,7 +712,8 @@ const TELEPORT_COLOR = "#17b5a3";          // teal
 const FREEZE_TILES = [29, 63];             // icy squares — land here and you freeze solid
 const FREEZE_COLOR = "#bfe9ff";            // pale icy blue
 const FREEZE = { GETUP_MIN: 4, ADJ: 1 };   // need 4+ to break free; frost spreads to players within ADJ tiles
-const LIGHTNING = { CHANCE:0.005, BACK:7 };    // ~0.5% per turn: strike the leader, knock them back (3x rarer)
+const LIGHTNING = { CHANCE:0.005, BACK:7,       // ~0.5% per turn: strike the leader, knock them back (3x rarer)
+  GATHER_MS:1400, FLICKERS:2, STRIKES:3, FORKS:3, SPARKS:16 };  // build-up time + pre-flickers, main multi-strike, branch forks, impact sparks
 const LUCKY     = { CHANCE:0.004, FORWARD:8 };  // ~0.4% per turn: sweep the last-place player forward (3x rarer)
 const FATE      = { CHANCE:0.0033 };            // ~0.33% per turn: leader and last place swap places (3x rarer)
 
@@ -1932,37 +1941,76 @@ async function runTeleporter(p){
 }
 
 /* ---- lightning (very rare): strike the leader ---------------------- */
-// Storm clouds roll in, thunder rumbles, then a bolt cracks down onto a tile.
-// TODO(polish): needs some work — improve the storm build-up, the bolt, and the impact.
+// One bolt flash into `fx`: a wide soft glow + a bright core, plus a few branching forks.
+function appendBolt(fx, x1, y1, x2, y2){
+  const d = jaggedBolt(x1, y1, x2, y2, 11);
+  fx.appendChild(el("path", {"class":"bolt-glow", d}));
+  fx.appendChild(el("path", {"class":"bolt-core", d}));
+  for (let i=0;i<LIGHTNING.FORKS;i++){
+    const t = 0.32 + Math.random()*0.5, bx = x1+(x2-x1)*t, by = y1+(y2-y1)*t;
+    const ex = bx + (Math.random()*160-80), ey = by + (40+Math.random()*120);
+    fx.appendChild(el("path", {"class":"bolt-core", d: jaggedBolt(bx,by,ex,ey,5), style:"stroke-width:2;opacity:.85"}));
+  }
+}
+
+// Electric impact at a screen point: a shockwave ring + scattering sparks.
+function lightningImpact(x, y){
+  const ring = document.createElement("div"); ring.className = "lring";
+  ring.style.left = x+"px"; ring.style.top = y+"px"; ring.style.width = ring.style.height = "46px";
+  document.body.appendChild(ring); setTimeout(()=>ring.remove(), 520);
+  for (let i=0;i<LIGHTNING.SPARKS;i++){
+    const sp = document.createElement("div"); sp.className = "lspark";
+    sp.style.left = x+"px"; sp.style.top = y+"px";
+    const a = Math.random()*Math.PI*2, dist = 50+Math.random()*120;
+    sp.style.setProperty("--dx", (Math.cos(a)*dist)+"px");
+    sp.style.setProperty("--dy", (Math.sin(a)*dist - 30)+"px");
+    document.body.appendChild(sp); setTimeout(()=>sp.remove(), 520);
+  }
+}
+
+// Storm clouds gather and rumble, distant flickers build the tension, then a forked bolt
+// strikes the tile several times in quick succession with an electric impact.
 async function lightningFx(cell){
   const storm = document.getElementById("storm");
-  for (let i=0;i<5;i++){
+  for (let i=0;i<6;i++){
     const cl = document.createElement("div"); cl.className = "stormcloud";
-    cl.style.left = (i*22-12)+"vw"; cl.style.top = (Math.random()*16-4)+"vh";
+    cl.style.left = (i*19-14)+"vw"; cl.style.top = (Math.random()*16-4)+"vh";
     cl.style.animationDuration = (2.2+Math.random()*1.1)+"s";
-    storm.appendChild(cl); setTimeout(()=>cl.remove(), 3800);
+    storm.appendChild(cl); setTimeout(()=>cl.remove(), 4200);
   }
   storm.classList.add("show");
   SFX.play("rumble");
-  await sleep(1500);                                       // clouds gather + rumble
+  await sleep(LIGHTNING.GATHER_MS*0.5);                    // clouds gather
+  for (let i=0;i<LIGHTNING.FLICKERS;i++){                  // distant pre-flickers build tension
+    storm.style.filter = "brightness(2)"; await sleep(55);
+    storm.style.filter = "";
+    await sleep(170 + Math.random()*230);
+  }
+  await sleep(LIGHTNING.GATHER_MS*0.28);
+
   const tgt = cellToScreen(cell);
   const fx = el("svg", {"class":"fxsvg", viewBox:`0 0 ${innerWidth} ${innerHeight}`});
-  const bolt = el("path", {"class":"bolt", d: jaggedBolt(tgt.x, 0, tgt.x, tgt.y, 10)});
-  fx.appendChild(bolt); document.body.appendChild(fx);
-  flashScreen(); SFX.play("crack");
-  if (navigator.vibrate){ try { navigator.vibrate(90); } catch(e){} }
-  await sleep(120); bolt.style.opacity = "0.15";
-  await sleep(70);  bolt.style.opacity = "1"; flashScreen();
-  await sleep(220); fx.remove();
-  storm.classList.remove("show");
+  document.body.appendChild(fx);
+  for (let s=0;s<LIGHTNING.STRIKES;s++){                   // a flickering multi-strike
+    fx.innerHTML = "";
+    appendBolt(fx, tgt.x + (Math.random()*30-15), 0, tgt.x, tgt.y);
+    flashScreen(); SFX.play("crack");
+    if (s === 0){
+      lightningImpact(tgt.x, tgt.y);
+      if (navigator.vibrate){ try { navigator.vibrate(90); } catch(e){} }
+    }
+    await sleep(80); fx.style.opacity = "0.12"; await sleep(55); fx.style.opacity = "1";
+    await sleep(70 + Math.random()*60);
+  }
+  await sleep(160); fx.remove();
+  storm.style.filter = ""; storm.classList.remove("show");
 }
 
 // Strike one specific player with lightning (fx + knock-back + landing).
 async function lightningStrike(victim){
   if (!victim || victim.finished || victim.pos <= 0) return;
   const fromTile = victim.pos;
-  await lightningFx(fromTile);                             // clouds → thunder → bolt + crack
-  explode(fromTile);                                       // burst where they stood
+  await lightningFx(fromTile);                             // clouds → flickers → forked multi-strike + electric impact
   victim.pos = Math.max(1, victim.pos - LIGHTNING.BACK);
   victim.downed = true; victim.getupMin = SNIPER.GETUP_MIN; updateDowned(idxOf(victim));
   layoutTokens(); renderScoreboard();
