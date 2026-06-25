@@ -13,10 +13,12 @@ offline. To share it, send `index.html` (and optionally `Play game.cmd`). You ca
 also just drag `index.html` onto an open browser window.
 
 ## How to play
-- **Title screen → Spill → Setup**: pick the player count (2–11) and type a name
-  for each player, then **Start spillet**.
-- 2–11 players, hotseat (share one device).
-- Click the die (or press **SPACE / ENTER**) on your turn.
+- **Title screen → Spill → Setup**: pick the player count (2–11), type a name for
+  each player, and set each seat to **Player** or **Bot** (toggle button on the
+  row), then **Start spillet**. The *Autonomous mode* checkbox makes **every** seat
+  a bot (the whole game plays itself).
+- 2–11 players, hotseat (share one device). Bots take their own turns automatically.
+- Click the die (or press **SPACE / ENTER**) on your turn (human seats only).
 - **Stiger** (ladders) carry you up; **sklier** (slides) send you down.
 - You must land **exactly** on 90 to win — overshoot **bounces back** (the
   Norwegian rule). First to 90 wins.
@@ -44,7 +46,14 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
-Recently shipped (2026-06-25): the **gun cutscene** — the shooter draws a **tiny CSS
+Recently shipped (2026-06-25): **per-seat Player/Bot selection** — each row in the
+setup screen has a Player⇄Bot toggle, so you can mix humans and bots in one game
+(bots auto-take only their own turns; a 🤖 marks bot seats in the scoreboard). The
+old *Autonomous mode* checkbox now just means "make every seat a bot." Verified
+headless (mixed games: humans wait for input, bots self-roll; all-bot game finishes
+with a winner; 0 JS errors).
+
+Earlier (2026-06-25): the **gun cutscene** — the shooter draws a **tiny CSS
 revolver** on their own square and **spins the chamber (no reveal)**, then fires at the
 leaders (blank = a dud, live = three knock-down shots with no explosions, self = a backfire
 that downs you); tunables in the `GUN` DATA block. Sniper hits also no longer explode. The

@@ -4,6 +4,25 @@ Newest first. One entry per working session; note what shipped and what's next.
 
 ---
 
+## 2026-06-25 — per-seat Player/Bot selection (+ repo back to public)
+
+Isak's request: be able to choose, per player, whether a seat is an active (human) player
+or a bot — and make the GitHub repo public again.
+- **Per-seat Player/Bot toggle** in the setup screen (one button per row, Player⇄Bot).
+  Added a `bot` flag to each roster entry / player object. Reworked the old whole-game
+  `autonomousMode` global into a per-turn signal: `game.autonomous` now tracks **the current
+  seat** (set in `newGame` and on every `endTurn` hand-off). All the existing autonomous
+  helpers (auto-roll via `maybeAuto`, auto-bounce, auto-target, reveal auto-dismiss) already
+  key off `game.autonomous`, so a bot's turn drives itself while a human's waits for input —
+  no other logic changed. The *Autonomous mode* checkbox now means "make every seat a bot."
+  Bot seats show a 🤖 in the scoreboard; the replay/“change players” paths keep each seat's
+  bot flag.
+- **Verified headless (Chrome --dump-dom):** all-bot game finishes with a winner; a mixed
+  game stalls on the human until input then plays through once the human rolls (bots take only
+  their own turns); 0 JS errors in every scenario.
+- **Repo made public again** and committed/pushed (see session-end protocol).
+- **Next:** human eyeball for feel; smarter bot decision policies; PNG board skin.
+
 ## 2026-06-25 (hourly loop #4, final) — integrity pass + move-amounts → DATA
 
 Last autonomous tick before Isak stopped the loop (cron `f5b0d03e` cancelled).

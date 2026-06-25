@@ -72,6 +72,14 @@ See `LOG.md` for the running session history.
 
 ## Done
 
+### 2026-06-25
+- [x] **Per-seat Player/Bot selection** — each setup row has a Player⇄Bot toggle, so a
+      single game can mix humans and bots. `bot` flag on each roster/player; `game.autonomous`
+      now tracks *the current seat* (set in `newGame` + `endTurn`), so a bot's turn auto-rolls
+      while a human's waits for input. The *Autonomous mode* checkbox = "make every seat a bot."
+      Bot seats marked 🤖 in the scoreboard. Verified headless: humans wait, bots self-roll,
+      all-bot game finishes with a winner, 0 JS errors.
+
 ### 2026-06-24 autonomous build
 - [x] **Explosions follow the target** — `explode(cell)` + `cellToScreen()`; centred on
       the victim's tile (where they stood before being moved). All call sites updated.

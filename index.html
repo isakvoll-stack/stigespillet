@@ -118,6 +118,9 @@
   .namerow .swatch{width:24px;height:24px;border-radius:6px;flex:none;border:2px solid #241a12}
   .namerow input{flex:1;font:inherit;padding:8px 10px;border-radius:8px;border:1px solid var(--brass);
     background:rgba(255,255,255,.94);color:#23331f}
+  .botbtn{flex:none;width:84px;font:inherit;font-weight:700;padding:8px 6px;border-radius:8px;
+    border:1px solid var(--brass);cursor:pointer;background:rgba(255,255,255,.92);color:#23331f}
+  .botbtn.bot{background:var(--barn-red);color:var(--cream);border-color:var(--barn-red)}
   .toggle{display:flex;align-items:center;gap:9px;justify-content:center;margin:2px 0 14px;
     color:var(--cream);font-size:14px;cursor:pointer}
   .toggle input{width:18px;height:18px;accent-color:var(--barn-red);cursor:pointer}
@@ -429,14 +432,14 @@
   <div class="screen" id="screenSetup">
     <div class="sheet">
       <h2>Choose players</h2>
-      <p class="sub">up to 11 players · name them</p>
+      <p class="sub">up to 11 players · name them · set each to Player or Bot</p>
       <div class="setup-count">
         <button class="seat-opt" id="seatMinus">−</button>
         <div class="seat-label" id="setupCount">2 players</div>
         <button class="seat-opt" id="seatPlus">+</button>
       </div>
       <div class="namelist" id="nameList"></div>
-      <label class="toggle"><input type="checkbox" id="autoMode"> Autonomous mode (the game plays itself)</label>
+      <label class="toggle"><input type="checkbox" id="autoMode"> Autonomous mode (make every player a bot)</label>
       <div style="display:flex;gap:10px;justify-content:center">
         <button class="btn ghost" id="backBtn">Back</button>
         <button class="btn big" id="startBtn">Start game</button>
@@ -958,7 +961,6 @@ function buildTokens(count){
    GAME STATE + CONTROLLER
    ===================================================================== */
 let game = null;
-let autonomousMode = false;       // self-playing mode (no manual taps)
 let rulesSeen = {};               // hidden rules already revealed this game
 let choiceResolve = null;         // pending bounce/kick choice resolver
 let revealResolve = null;         // pending rule-reveal resolver
@@ -1033,10 +1035,10 @@ function newGame(roster){
   const count = roster.length;
   game = {
     players: roster.map((r,i)=>({
-      name: r.name || `Player ${i+1}`, color: PLAYER_COLORS[i], pos:0,
+      name: r.name || `Player ${i+1}`, color: PLAYER_COLORS[i], pos:0, bot: !!r.bot,
       downed:false, frozen:false, sniper:false, finished:false, shame:0, getupMin: SNIPER.GETUP_MIN, fish:0,
     })),
-    current:0, winner:null, over:false, busy:false, round:1, autonomous: autonomousMode,
+    current:0, winner:null, over:false, busy:false, round:1, autonomous: !!(roster[0] && roster[0].bot),
     standings: null, fishStreak: 0,
   };
   rulesSeen = {};
@@ -1087,7 +1089,7 @@ function renderScoreboard(){
     const cellTxt = p.finished ? "done" : (p.pos === 0 ? "—" : "tile " + p.pos);
     row.innerHTML =
       `<span class="swatch" style="background:${p.color}"></span>` +
-      `<span class="name">${p.name}${mark}</span>` +
+      `<span class="name">${p.name}${p.bot ? " 🤖" : ""}${mark}</span>` +
       `<span class="cell">${cellTxt}</span>`;
     box.appendChild(row);
   });
@@ -1550,6 +1552,7 @@ async function endTurn(){
   let c = prev;
   do { c = (c + 1) % n; } while (game.players[c].finished && c !== prev);
   game.current = c;
+  game.autonomous = !!game.players[c].bot;                 // auto-drive this turn only if it's a bot
   if (c <= prev){ game.round++; grantSniperIfDue(); }      // wrapped past the end -> new round
   game.busy = false; refreshHUD();
   await startTurn();
@@ -2556,6 +2559,7 @@ function hideBanner(){ document.getElementById("banner").classList.remove("show"
 /* ---- setup controls ------------------------------------------------ */
 let chosenSeats = 2;
 let setupNames = [];
+let setupBots = [];
 
 /* ---- screen flow: title -> setup -> game --------------------------- */
 function showScreen(which){
@@ -2568,6 +2572,7 @@ function openSetup(){
   if (game){                          // prefill the form from the current roster
     chosenSeats = game.players.length;
     setupNames = game.players.map(p=>p.name);
+    setupBots  = game.players.map(p=>!!p.bot);
   }
   buildSetup();
   showScreen("setup");
@@ -2585,17 +2590,21 @@ function buildSetup(){
     inp.value = setupNames[i] != null ? setupNames[i] : ("Player " + (i+1));
     inp.placeholder = "Player " + (i+1);
     inp.oninput = ()=>{ setupNames[i] = inp.value; };
-    row.append(sw, inp); list.appendChild(row);
+    const kind = document.createElement("button"); kind.type = "button"; kind.className = "botbtn";
+    const paintKind = ()=>{ kind.classList.toggle("bot", !!setupBots[i]); kind.textContent = setupBots[i] ? "Bot" : "Player"; };
+    kind.onclick = ()=>{ setupBots[i] = !setupBots[i]; paintKind(); };
+    paintKind();
+    row.append(sw, inp, kind); list.appendChild(row);
   }
 }
 
 function startFromSetup(){
+  const allBots = document.getElementById("autoMode").checked;
   const roster = [];
   for (let i=0;i<chosenSeats;i++){
     const nm = (setupNames[i] || "").trim() || ("Player " + (i+1));
-    roster.push({ name: nm });
+    roster.push({ name: nm, bot: allBots || !!setupBots[i] });
   }
-  autonomousMode = document.getElementById("autoMode").checked;
   newGame(roster);
   showScreen("game");
   startTurn();                     // begin (handles a first-turn sniper, then auto if enabled)
@@ -2650,7 +2659,7 @@ document.getElementById("seatMinus").addEventListener("click", ()=>{ chosenSeats
 document.getElementById("seatPlus").addEventListener("click", ()=>{ chosenSeats=Math.min(MAX_PLAYERS,chosenSeats+1); buildSetup(); });
 document.getElementById("startBtn").addEventListener("click", startFromSetup);
 document.getElementById("bannerNew").addEventListener("click", ()=>{
-  newGame(game.players.map(p=>({ name:p.name })));          // replay the same roster
+  newGame(game.players.map(p=>({ name:p.name, bot:p.bot }))); // replay the same roster
   startTurn();
 });
 
