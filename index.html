@@ -915,7 +915,7 @@ function buildBoard(){
   for (let cell=1; cell<=BOARD.COUNT; cell++){
     const {x,y} = cellCenter(cell);
     const gx = x - C/2, gy = y - C/2;
-    svg.appendChild(el("rect",{x:gx+1,y:gy+1,width:C-2,height:C-2,fill:cellColor(cell),stroke:"#1f6fb0","stroke-width":"1.5"}));
+    svg.appendChild(el("rect",{"data-cell":cell,x:gx+1,y:gy+1,width:C-2,height:C-2,fill:cellColor(cell),stroke:"#1f6fb0","stroke-width":"1.5"}));
     svg.appendChild(el("rect",{x:gx+5,y:gy+5,width:26,height:18,rx:4,fill:"rgba(255,255,255,.78)"}));
     const t = el("text",{x:gx+18,y:gy+19,"text-anchor":"middle","font-size":"14","font-weight":"700",fill:"#2a2018","font-family":"Segoe UI, sans-serif"});
     t.textContent = cell;
@@ -933,6 +933,8 @@ function buildBoard(){
   lab.textContent = "START";
   svg.appendChild(lab);
 }
+
+function repaintCell(n){ const r = svg.querySelector(`[data-cell="${n}"]`); if (r) r.setAttribute("fill", cellColor(n)); }
 
 function slotOffset(k, n){
   // symmetric placement of the k-th of n tokens that share ONE tile; alone = centre
@@ -2450,14 +2452,13 @@ async function showLargeChambers(){
   await raf(); wrap.style.opacity = "1";
   await sleep(1000);                                        // let players read the layout
   const disc = wrap.querySelector(".chamberDisc");
-  const rms = GUN.SPIN_ROT_MS, rotCount = Math.ceil(GUN.SPIN_MS / rms) + 1;
-  disc.style.animation = `tgspin ${rms}ms linear ${rotCount}`;
+  disc.style.animation = `tgspin ${GUN.SPIN_ROT_MS}ms linear infinite`;
   SFX.play("spin");
-  await new Promise(res => disc.addEventListener("animationend", res, { once: true }));
-  SFX.play("click");
-  await sleep(380);
-  wrap.style.opacity = "0";
-  await sleep(380);
+  await sleep(GUN.SPIN_MS);                                 // full visible spin (~1.2 s), disc still going
+  wrap.style.transition = "transform .38s ease-in";         // slide the whole overlay off to the right
+  await raf();
+  wrap.style.transform = "translateX(110%)";               // disc is still spinning as it exits
+  await sleep(420);
   wrap.remove();
 }
 
@@ -2691,16 +2692,46 @@ async function randomBoardEvent(p){
 // Tile shuffle (🌀 slot): place every on-board player onto a random neutral tile
 // (not a snake head/tail or ladder top/bottom), skipping landing effects.
 async function shuffleTiles(){
-  const active = game.players.filter(q => !q.finished && q.pos > 0 && !q.onSecret);
-  if (!active.length) return;
+  // Collect every current special-tile position (these will be vacated then re-filled).
+  const oldPositions = [...TELEPORTERS, ...ORANGE_TILES, ...FREEZE_TILES, ...SHOP_TILES, ...FISH.TILES];
+
+  // Build a pool of eligible positions: not a snake/ladder tile, not start (1) or finish (90).
   const pool = [];
-  for (let i = 1; i < BOARD.WIN; i++){
+  for (let i = 2; i < BOARD.WIN; i++){
     if (!(i in LADDERS) && !LADDER_TOPS.has(i) && !(i in SLIDES) && !SNAKE_TAILS.has(i)) pool.push(i);
   }
-  active.forEach(q => { q.pos = pool[(Math.random()*pool.length)|0]; });
+
+  // Fisher-Yates shuffle the pool, then take the first N positions (N = total special tiles).
+  const total = TELEPORTERS.length + ORANGE_TILES.length + FREEZE_TILES.length + SHOP_TILES.length + FISH.TILES.length;
+  for (let i = pool.length - 1; i > 0; i--){ const j = (Math.random()*(i+1))|0; [pool[i],pool[j]]=[pool[j],pool[i]]; }
+  const picks = pool.slice(0, total);
+
+  // Slice picks into per-type groups (same counts as before).
+  let off = 0;
+  const newTp = picks.slice(off, off += TELEPORTERS.length);
+  const newOr = picks.slice(off, off += ORANGE_TILES.length);
+  const newFz = picks.slice(off, off += FREEZE_TILES.length);
+  const newSh = picks.slice(off, off += SHOP_TILES.length);
+  const newFi = picks.slice(off, off += FISH.TILES.length);
+
+  // Update SPECIAL_TILES object (holds fish dark-blue + orange colour entries).
+  [...FISH.TILES, ...ORANGE_TILES].forEach(k => delete SPECIAL_TILES[k]);
+  newFi.forEach(k => { SPECIAL_TILES[k] = "#16306e"; });
+  newOr.forEach(k => { SPECIAL_TILES[k] = "#e67e22"; });
+
+  // Update the role arrays in-place (all logic checks like TELEPORTERS.includes() stay valid).
+  TELEPORTERS.splice(0, Infinity, ...newTp);
+  ORANGE_TILES.splice(0, Infinity, ...newOr);
+  FREEZE_TILES.splice(0, Infinity, ...newFz);
+  SHOP_TILES.splice(0, Infinity, ...newSh);
+  FISH.TILES.splice(0, Infinity, ...newFi);
+
+  // Repaint every affected cell (old positions cleared + new positions lit).
+  new Set([...oldPositions, ...picks]).forEach(n => repaintCell(n));
+
   SFX.play("teleport"); flashScreen();
-  layoutTokens(); renderScoreboard();
-  log(`🌀 The wheel scrambled the board — everyone lands on a new tile!`);
+  renderScoreboard();
+  log(`🌀 The wheel reshuffled the board — all special tiles moved to new positions!`);
   await sleep(750);
 }
 
