@@ -246,20 +246,20 @@
     transform:translate(-50%,-50%) rotate(var(--aim,0deg));transform-origin:center;
     filter:drop-shadow(0 3px 4px rgba(0,0,0,.55))}
   .tinygun .tg{position:absolute;transform:translate(-50%,-50%)}
-  .tg-barrel{width:38px;height:9px;left:22px;top:-2px;border-radius:2px 3px 3px 2px;
+  .tg-barrel{width:64px;height:13px;left:30px;top:-3px;border-radius:2px 5px 4px 2px;
     background:linear-gradient(#e9edf1,#9aa0a6 45%,#53585e)}
-  .tg-barrel::after{content:"";position:absolute;right:-1px;top:1px;width:4px;height:7px;border-radius:2px;background:#1a1d20}
-  .tg-frame{width:24px;height:15px;left:3px;top:-1px;border-radius:3px;background:linear-gradient(#aab0b6,#4a4f55)}
-  .tg-cyl{width:22px;height:22px;left:3px;top:-1px;border-radius:50%;
+  .tg-barrel::after{content:"";position:absolute;right:-1px;top:2px;width:6px;height:9px;border-radius:2px;background:#1a1d20}
+  .tg-frame{width:40px;height:22px;left:6px;top:-3px;border-radius:4px;background:linear-gradient(#aab0b6,#4a4f55)}
+  .tg-cyl{width:32px;height:32px;left:6px;top:-3px;border-radius:50%;
     background:radial-gradient(circle at 40% 34%,#c4c9ce,#5a6066 62%,#2f3338);
-    box-shadow:inset 0 0 5px rgba(0,0,0,.7), 0 1px 2px rgba(0,0,0,.5)}
+    box-shadow:inset 0 0 7px rgba(0,0,0,.7), 0 2px 4px rgba(0,0,0,.5)}
   .tg-holes{position:absolute;inset:0}
-  .tg-holes i{position:absolute;left:50%;top:50%;width:3.6px;height:3.6px;border-radius:50%;background:#15181b;
-    transform:translate(-50%,-50%) rotate(var(--h)) translateY(-6.4px)}
+  .tg-holes i{position:absolute;left:50%;top:50%;width:5px;height:5px;border-radius:50%;background:#15181b;
+    transform:translate(-50%,-50%) rotate(var(--h)) translateY(-10px)}
   .tg-holes.spin{animation:tgspin var(--sp,.4s) linear infinite}
   @keyframes tgspin{to{transform:rotate(360deg)}}
-  .tg-grip{width:11px;height:21px;left:-3px;top:9px;border-radius:2px 3px 5px 6px;
-    background:linear-gradient(#7a5733,#3d2814);transform:translate(-50%,-50%) rotate(26deg)}
+  .tg-grip{width:15px;height:30px;left:-4px;top:14px;border-radius:2px 4px 7px 8px;
+    background:linear-gradient(#7a5733,#3d2814);transform:translate(-50%,-50%) rotate(28deg)}
   .gunflash{position:fixed;z-index:16;width:26px;height:26px;border-radius:50%;pointer-events:none;
     transform:translate(-50%,-50%) scale(.4);background:radial-gradient(circle,#fff,#ffd23e 45%,rgba(255,160,40,0) 72%);
     animation:gunflash .22s ease-out forwards}
@@ -721,10 +721,10 @@ const SHAME  = { TURNS:3, GETUP_MIN:4 };   // kick-a-man-while-down: shame turns
 const FISH   = {
   TILES:[35, 49, 70], SPIT_MAX:30,        // dark-blue squares -> fishing; loss spits you to 1..SPIT_MAX
   // --- minigame difficulty curve (read by fishParams), per catch streak ---
-  ZONE_BASE:112, ZONE_SHRINK:15, ZONE_MIN:34,             // catch-zone height: base, shrink/streak, floor (px)
+  ZONE_BASE:134, ZONE_SHRINK:15, ZONE_MIN:41,             // catch-zone height: base, shrink/streak, floor (px)
   FISH_SPEED:110, FISH_SPEED_STREAK:50,                   // fish drift speed: base + per-streak (px/s)
   RETARGET:0.85, RETARGET_STREAK:0.09, RETARGET_MIN:0.40, // seconds between fish direction changes
-  DRAIN:0.22, DRAIN_STREAK:0.07, FILL:0.34,               // progress drain (per s, +streak) and fill rate
+  DRAIN:0.15, DRAIN_STREAK:0.047, FILL:0.23,             // progress drain (per s, +streak) and fill rate
   // --- minigame bar physics (read by fishingGame) ---
   GRAVITY:540, REEL:1080, START:0.38,                     // bar gravity-down, reel-up, starting progress (0..1)
   // --- self-play (autonomous/bot) catch odds: LOSS chance by how many fish have
@@ -752,7 +752,8 @@ const GUN = {
   CHAMBERS:6,
   LAYOUT:["blank","live","blank","self","live","blank"],  // hidden chamber outcomes (the landed one is NOT shown)
   SHOTS:3,                            // a LIVE chamber fires this many shots at the leaders
-  SPIN_MS:1100, SHOT_GAP:240,         // chamber-spin length + gap between shots (ms)
+  SPIN_MS:1200, SHOT_GAP:240,         // chamber-spin length + gap between shots (ms)
+  SPIN_ROT_MS:300,                    // ms for one full cylinder rotation (controls animation smoothness)
 };
 const TELEPORTERS  = [22, 66];             // teal teleporter squares (between tile 20 and 80)
 const TELEPORT_COLOR = "#17b5a3";          // teal
@@ -2414,9 +2415,52 @@ function aimAt(from, cells){
 }
 // Screen point of the barrel tip for a gun anchored at `at` and rotated to `aimDeg`.
 function gunMuzzle(at, aimDeg){
-  const r = aimDeg*Math.PI/180, mx = 42, my = -2;
+  const r = aimDeg*Math.PI/180, mx = 62, my = -3;
   return { x: at.x + mx*Math.cos(r) - my*Math.sin(r), y: at.y + mx*Math.sin(r) + my*Math.cos(r) };
 }
+// Show a large front-on cylinder view so players can read the chamber odds, then spin it
+// to pick (without revealing which landed). Fades out when done.
+async function showLargeChambers(){
+  const CC = { blank:"#7f8c8d", live:"#e0453b", self:"#e67e22" };
+  const segs = GUN.LAYOUT.slice(0, GUN.CHAMBERS);
+  const R = 88, CR = 24;
+  const chambers = segs.map((type, i) => {
+    const a = (i / GUN.CHAMBERS) * Math.PI * 2 - Math.PI / 2;
+    const cx = (Math.cos(a) * R).toFixed(1), cy = (Math.sin(a) * R).toFixed(1);
+    return `<circle cx="${cx}" cy="${cy}" r="${CR}" fill="${CC[type]}" stroke="#1a140d" stroke-width="2.5"/>`+
+           `<circle cx="${cx}" cy="${cy}" r="${(CR * 0.36).toFixed(1)}" fill="#1a1d20"/>`;
+  }).join("");
+  const wrap = document.createElement("div");
+  wrap.style.cssText = "position:fixed;inset:0;z-index:16;pointer-events:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;opacity:0;transition:opacity .35s";
+  wrap.innerHTML =
+    `<div style="color:#f6ecd9;font-family:Georgia,serif;font-size:22px;letter-spacing:3px;text-transform:uppercase;font-weight:700;text-shadow:0 2px 6px rgba(0,0,0,.9)">🔫 Chamber</div>`+
+    `<svg viewBox="-130 -130 260 260" width="260" height="260">`+
+      `<circle cx="0" cy="0" r="126" fill="rgba(20,14,8,.85)" stroke="#d4a656" stroke-width="2.5"/>`+
+      `<g class="chamberDisc" style="transform-box:fill-box;transform-origin:center">`+
+        chambers+
+        `<circle cx="0" cy="0" r="16" fill="#2f3338" stroke="#1a140d" stroke-width="2.2"/>`+
+      `</g>`+
+    `</svg>`+
+    `<div style="color:#cdb892;font-size:13px;display:flex;gap:18px">`+
+      `<span style="color:#7f8c8d">■ blank (${segs.filter(t=>t==="blank").length})</span>`+
+      `<span style="color:#e0453b">■ live (${segs.filter(t=>t==="live").length})</span>`+
+      `<span style="color:#e67e22">■ self (${segs.filter(t=>t==="self").length})</span>`+
+    `</div>`;
+  document.body.appendChild(wrap);
+  await raf(); wrap.style.opacity = "1";
+  await sleep(1000);                                        // let players read the layout
+  const disc = wrap.querySelector(".chamberDisc");
+  const rms = GUN.SPIN_ROT_MS, rotCount = Math.ceil(GUN.SPIN_MS / rms) + 1;
+  disc.style.animation = `tgspin ${rms}ms linear ${rotCount}`;
+  SFX.play("spin");
+  await new Promise(res => disc.addEventListener("animationend", res, { once: true }));
+  SFX.play("click");
+  await sleep(380);
+  wrap.style.opacity = "0";
+  await sleep(380);
+  wrap.remove();
+}
+
 // Build a small CSS revolver (barrel + spinning cylinder + grip) anchored at a screen point.
 function tinyRevolver(at, aimDeg){
   const g = document.createElement("div"); g.className = "tinygun";
@@ -2459,9 +2503,13 @@ async function gunFx(targetCells){
   const t0 = cellToScreen(cells[0]);
   const at = { x: Math.max(70, t0.x - 64), y: Math.max(58, t0.y - 56) };
   const gun = tinyRevolver(at, aimAt(at, cells));
-  const holes = gun.querySelector(".tg-holes"); holes.style.setProperty("--sp", "0.4s");
-  SFX.play("spin"); holes.classList.add("spin");
-  await sleep(700); holes.classList.remove("spin"); SFX.play("click"); await sleep(220);
+  const holes = gun.querySelector(".tg-holes");
+  const rms = GUN.SPIN_ROT_MS, rotCount = Math.ceil(700 / rms) + 1;
+  holes.style.animation = `tgspin ${rms}ms linear ${rotCount}`;
+  SFX.play("spin");
+  await new Promise(res => holes.addEventListener("animationend", res, { once: true }));
+  holes.style.animation = "";
+  SFX.play("click"); await sleep(220);
 
   const marks = cells.map(c=> aimMark(c));
   await sleep(260);
@@ -2488,17 +2536,14 @@ async function revolverRoulette(p){
   const dim = document.createElement("div"); dim.className = "cutdim";
   document.body.appendChild(dim); await raf(); dim.classList.add("show");
 
-  // the shooter pulls out a tiny revolver, raised a touch off their token
+  await showLargeChambers();        // large cylinder display: read odds, spin, fade out
+
+  // the shooter draws a revolver on their token after the large spin resolves
   const tok0 = cellToScreen(p.pos), at = { x: tok0.x, y: tok0.y - 30 };
   const aimCells = leaders.length ? leaders.map(q=>q.pos) : [p.pos];
   const gun = tinyRevolver(at, aimAt(at, aimCells));
   await raf();
-
-  // spin the chamber — but never reveal where it lands
-  const holes = gun.querySelector(".tg-holes"); holes.style.setProperty("--sp", "0.32s");
-  SFX.play("spin"); holes.classList.add("spin");
-  await sleep(GUN.SPIN_MS);
-  holes.classList.remove("spin"); SFX.play("click"); await sleep(260);
+  SFX.play("click"); await sleep(260);
 
   if (type === "blank"){
     const a = aimAt(at, aimCells);

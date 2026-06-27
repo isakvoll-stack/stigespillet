@@ -46,7 +46,15 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
-Recently shipped (2026-06-27): **Wheel of fortune restored to 7 slots** — the plain
+Recently shipped (2026-06-27): **Fishing + gun animation polish** — fishing minigame lasts
+~1.5× longer (drain/fill rates reduced) and the catch zone is 20% wider (`ZONE_BASE`/`ZONE_MIN`).
+Gun roulette now opens with a **large chamber display** (all 6 chambers colour-coded blank/live/self
+so you can read the odds), the cylinder spins to completion before fading out, then the revolver
+appears and fires. The gun model is ~1.7× larger and better proportioned. The `gunFx` spin (random
+"picked off" effect) also plays to completion cleanly. Tunables: `FISH.ZONE_BASE`, `FISH.ZONE_MIN`,
+`FISH.DRAIN`, `FISH.FILL`, `GUN.SPIN_ROT_MS`.
+
+Earlier (2026-06-27): **Wheel of fortune restored to 7 slots** — the plain
 🎲 random event (fires game-state events: lightning → leader, star → trailer, fate →
 swap leader/last) is back alongside the 🎯 player-targeted random (all effects aimed at
 the spinner). A brand-new 🌀 **tile shuffle** slot places every on-board player on a
