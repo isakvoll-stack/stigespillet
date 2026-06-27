@@ -175,6 +175,23 @@ is to be **thrown back past the start** (e.g. a low-tile **lightning** strike or
 
 *Toggle: `FEATURES.secretSquare`.*
 
+### The Shop (hidden rule)
+Four **gold squares** are cabin shops (tiles **6, 28, 52, 75**). Land on one and you
+pick **one item** to carry:
+
+- **👟 Speed Boots** — adds +4 to your *next* roll (activates automatically when you
+  roll; not consumed on the shop turn itself).
+- **🛡️ Shield** — absorbs the *next* hit: a sniper shot, a kick, a pile-up knockdown,
+  or a freeze. The hit is completely negated and the shield is then gone.
+- **🍀 Lucky Charm** — consumed immediately: instead of ending your turn you get to
+  **roll the die again right now** (like rolling a 6).
+
+You can carry one item at a time; visiting a new shop replaces the old item. Your
+current item appears as an icon in the scoreboard next to your name.
+
+*Toggle: `FEATURES.shop`. Shop tiles = `SHOP_TILES` (6, 28, 52, 75). Boot bonus
+tunable = `SHOP.BOOT_BONUS`.*
+
 ---
 
 ## Sound &amp; spectacle

@@ -576,6 +576,7 @@ const FEATURES = {
   freeze:        true,   // icy squares freeze you solid; the frost spreads to adjacent players
   fishPowers:    true,   // carrying fish grants escalating powers (extra movement, ice escape) + quirks (slippery ladders, teleporter overload)
   secretSquare:  true,   // a hidden square before tile 1, only revealed when a backtrack lands someone on it
+  shop:          true,   // gold squares open a shop: pick Speed Boots, Shield, or Lucky Charm
   sound:         true,   // sound effects
 };
 
@@ -605,6 +606,14 @@ const ROLE_COLORS = {
 // Extra accent tiles (plain tiles only): one dark-blue + three orange.
 const SPECIAL_TILES = { 35:"#16306e", 49:"#16306e", 70:"#16306e", 12:"#e67e22", 46:"#e67e22", 77:"#e67e22" };
 const ORANGE_TILES  = [12, 46, 77];                       // orange squares -> Wheel/Support/Gun choice
+const SHOP_TILES    = [6, 28, 52, 75];                    // gold shop squares (land here to pick an item)
+const SHOP_COLOR    = "#d4a656";                          // warm gold — same as --brass
+const SHOP          = { BOOT_BONUS: 4 };                  // speed-boot extra steps
+const SHOP_ITEMS    = [
+  { id:"boots",  ico:"👟", name:"Speed Boots", desc:`+${SHOP.BOOT_BONUS} to your next roll.` },
+  { id:"shield", ico:"🛡️",  name:"Shield",      desc:"Block the next knockdown or freeze." },
+  { id:"charm",  ico:"🍀", name:"Lucky Charm",  desc:"Roll the die again immediately." },
+];
 const BLUE_COLORS   = new Set(["#6fa8dc", "#16306e"]);    // light + dark blue squares (safe from the Nuke)
 function isBlueTile(cell){ return BLUE_COLORS.has(cellColor(cell)); }
 
@@ -696,6 +705,11 @@ const RULE_INFO = {
     ico: "🌀",
     name: "Teleporter overload",
     text: "Step onto a teleporter while weighed down with a whole catch of fish and it overloads — instead of one swap, everyone on the board is shuffled around at random.",
+  },
+  shop: {
+    ico: "🏪",
+    name: "The Shop",
+    text: "Land on a gold square and you find a cabin shop. Pick one item to carry: Speed Boots add to your next roll, a Shield absorbs the next knockdown or freeze, or a Lucky Charm earns you an extra roll right now.",
   },
 };
 
@@ -848,6 +862,7 @@ function cellColor(cell){
   if (roles.length === 1) return ROLE_COLORS[roles[0]];
   if (TELEPORTERS.includes(cell)) return TELEPORT_COLOR;   // teal teleporter
   if (FREEZE_TILES.includes(cell)) return FREEZE_COLOR;    // icy freeze square
+  if (SHOP_TILES.includes(cell)) return SHOP_COLOR;         // gold shop square
   if (cell in SPECIAL_TILES) return SPECIAL_TILES[cell];   // dark-blue / orange accents
   const h = (cell * 2654435761) >>> 0;                     // plain tile: yellow/blue scatter
   return CELL_PALETTE[h % CELL_PALETTE.length];
@@ -1093,7 +1108,7 @@ function newGame(roster){
   game = {
     players: roster.map((r,i)=>({
       name: r.name || `Player ${i+1}`, color: PLAYER_COLORS[i], pos:0, bot: !!r.bot,
-      downed:false, frozen:false, sniper:false, finished:false, shame:0, getupMin: SNIPER.GETUP_MIN, fish:0, onSecret:false,
+      downed:false, frozen:false, sniper:false, finished:false, shame:0, getupMin: SNIPER.GETUP_MIN, fish:0, onSecret:false, shopItem:null,
     })),
     current:0, winner:null, over:false, busy:false, round:1, autonomous: !!(roster[0] && roster[0].bot),
     standings: null, fishStreak: 0, fishCaught: 0,
@@ -1141,9 +1156,10 @@ function renderScoreboard(){
     const isTurn = i === game.current && !game.winner;
     row.className = "row" + (isTurn ? " active" : "");
     const medal = p.finished ? (MEDALS[p.place-1] || ("#"+p.place)) : "";
+    const shopMark = p.shopItem ? (" " + (SHOP_ITEMS.find(i=>i.id===p.shopItem)||{ico:""}).ico) : "";
     const mark = (p.finished ? " "+medal : "") + (p.downed ? (p.frozen ? " 🧊" : " 🤕") : "")
                + (p.sniper ? " 🎯" : "") + (p.shame>0 ? " 😳" : "")
-               + (p.fish>0 ? " 🐟"+(p.fish>1?p.fish:"") : "");
+               + (p.fish>0 ? " 🐟"+(p.fish>1?p.fish:"") : "") + shopMark;
     const cellTxt = p.finished ? "done" : (p.onSecret ? "secret 🚪" : (p.pos === 0 ? "—" : "tile " + p.pos));
     row.innerHTML =
       `<span class="swatch" style="background:${p.color}"></span>` +
@@ -1220,7 +1236,9 @@ async function moveCurrent(rollValue){
   p.onSecret = false;                          // leaving the secret square (if they were on it)
   // fish power: every few fish grant +1 movement this turn (the die's face is unchanged)
   const fishBonus = (FEATURES.fishPowers && p.fish) ? Math.floor(p.fish / FISH.MOVE_PER_FISH) : 0;
-  const steps = rollValue + fishBonus;
+  const bootBonus = (FEATURES.shop && p.shopItem === "boots") ? SHOP.BOOT_BONUS : 0;
+  if (bootBonus > 0){ p.shopItem = null; log(`👟 ${p.name}'s Speed Boots activate! +${SHOP.BOOT_BONUS} extra.`); renderScoreboard(); }
+  const steps = rollValue + fishBonus + bootBonus;
   const from = p.pos === 0 ? 1 : p.pos;        // first move walks from square 1
   const path = walkPath(p.pos === 0 ? 0 : p.pos, steps);
   const landed = path[path.length-1];
@@ -1262,6 +1280,17 @@ async function moveCurrent(rollValue){
   if (FEATURES.orange && ORANGE_TILES.includes(p.pos)){
     await runOrange(p);
     if (game.over) return;
+    await endTurn(); return;
+  }
+
+  // gold square -> shop (pick an item; Lucky Charm grants another roll instead of ending the turn)
+  if (FEATURES.shop && SHOP_TILES.includes(p.pos)){
+    const shopChoice = await runShop(p);
+    if (game.over) return;
+    if (shopChoice === "charm"){
+      log(`🍀 Lucky Charm — ${p.name} rolls again!`);
+      game.busy = false; refreshHUD(); maybeAuto(); return;
+    }
     await endTurn(); return;
   }
 
@@ -2242,8 +2271,12 @@ async function fateSwapYou(p){
 }
 
 /* ---- orange square: Wheel / Support / Gun -------------------------- */
-function downPlayer(pl){ pl.downed = true; pl.getupMin = SNIPER.GETUP_MIN; updateDowned(idxOf(pl)); }
+function downPlayer(pl){
+  if (pl.shopItem === "shield"){ pl.shopItem = null; log(`🛡️ ${pl.name}'s Shield blocked the hit!`); renderScoreboard(); return; }
+  pl.downed = true; pl.getupMin = SNIPER.GETUP_MIN; updateDowned(idxOf(pl));
+}
 function freezePlayer(pl){
+  if (pl.shopItem === "shield"){ pl.shopItem = null; log(`🛡️ ${pl.name}'s Shield blocked the freeze!`); renderScoreboard(); return; }
   pl.downed = true; pl.frozen = true; pl.getupMin = FREEZE.GETUP_MIN;
   const i = idxOf(pl); updateDowned(i); updateFrozen(i);
 }
@@ -2630,6 +2663,37 @@ async function runSupport(p){
   SFX.play("sparkle");
   log(`🤝 ${p.name} supports ${target.name} — forward 5!`);
   await advancePlayer(target, MOVE.SUPPORT);
+}
+
+/* ---- shop (gold square): pick Speed Boots, Shield, or Lucky Charm ----- */
+async function runShop(p){
+  await revealRuleOnce("shop");
+  log(`🏪 ${p.name} stepped into the shop!`);
+  SFX.play("sparkle");
+  let id;
+  if (game.autonomous){
+    id = SHOP_ITEMS[(Math.random()*SHOP_ITEMS.length)|0].id;
+    await sleep(900);
+  } else {
+    id = await new Promise(res => {
+      document.getElementById("pickerTitle").textContent = `🏪 ${p.name} — pick an item`;
+      const list = document.getElementById("pickerList"); list.innerHTML = "";
+      SHOP_ITEMS.forEach(item => {
+        const b = document.createElement("button"); b.className = "btn";
+        b.innerHTML = `${item.ico} <b>${item.name}</b> — ${item.desc}`;
+        b.style.textAlign = "left"; b.style.boxShadow = "none";
+        b.onclick = () => { document.getElementById("picker").classList.remove("show"); pickResolve = null; res(item.id); };
+        list.appendChild(b);
+      });
+      pickResolve = res;
+      document.getElementById("picker").classList.add("show");
+    });
+  }
+  if (id !== "charm") p.shopItem = id;
+  const item = SHOP_ITEMS.find(i => i.id === id);
+  log(`${item.ico} ${p.name} picked up: ${item.name}!`);
+  renderScoreboard();
+  return id;
 }
 
 async function runOrange(p){

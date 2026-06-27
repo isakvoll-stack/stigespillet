@@ -46,7 +46,13 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
-Recently shipped (2026-06-26): a **fish-powers + secret-square + smarter-bots batch**:
+Recently shipped (2026-06-27): **Shop tiles** — four **gold squares** (tiles 6, 28, 52, 75)
+open a cabin shop when you land on them. Pick one item: **👟 Speed Boots** (+4 to your
+next roll), **🛡️ Shield** (blocks the next knockdown or freeze), or **🍀 Lucky Charm**
+(roll again immediately). Item shown as an icon in the scoreboard; one item at a time.
+(`FEATURES.shop`; tunables in `SHOP` / `SHOP_ITEMS` DATA block.)
+
+Earlier (2026-06-26): a **fish-powers + secret-square + smarter-bots batch**:
 - **Fish are now power-ups (with quirks).** Every **3 fish** = **+1 movement** each turn;
   **2+ fish** lets you **break out of ice on a 3+** but makes ladders slippery (**1-in-10
   slip**); **3+ fish** + a teleporter **overloads it and shuffles everyone** instead of a
