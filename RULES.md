@@ -149,9 +149,14 @@ places with the player **in last** — an instant, dramatic shake-up of the orde
 
 ### Orange choice — Wheel / Support / Gun (hidden rule)
 Land on an **orange square** and pick one of three:
-- **🎡 Wheel** — spin the wheel of fortune; each slice is **1-in-5**: **Nuke**
+- **🎡 Wheel** — spin the wheel of fortune; each slice is **1-in-7**: **Nuke**
   (knocks down everyone *not* standing on a blue tile), **back to start**,
-  **forward one square**, **forward 15 squares**, or **nothing**.
+  **forward one square**, **forward 15 squares**, **🎲 Random event** (fires a game
+  event based on the current board state — lightning hits the leader, star carries
+  the trailer, fate swaps leader and last; may also do nothing), **🎯 Random (targets
+  you)** (same pool of effects but all aimed at the spinner), or **🌀 Tile shuffle**
+  (everyone on the board is sent to a fresh random tile, avoiding all snake and ladder
+  squares).
 - **🤝 Support** — choose another player and move **them** forward 5.
 - **🔫 Gun** — Russian roulette: **1-in-6** the three frontrunners go down,
   **2-in-6** you shoot yourself down, otherwise **nothing**.

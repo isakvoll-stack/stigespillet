@@ -2538,9 +2538,9 @@ async function revolverRoulette(p){
   await sleep(320); gun.remove(); dim.remove();
 }
 
-const WHEEL_LABELS = ["☢️","🔙","➡️","🚀","🎲"];   // nuke / back-to-start / next / +15 / RANDOM
-const WHEEL_COLORS = ["#d64541","#8e44ad","#2e86c1","#27ae60","#e84393"];  // RANDOM = magenta, stands out
-const WHEEL_PICKS  = ["nuke","start","next","move15","random"];
+const WHEEL_LABELS = ["☢️","🔙","➡️","🚀","🎲","🎯","🌀"];   // nuke / start / next / +15 / random / random-target / tile-shuffle
+const WHEEL_COLORS = ["#d64541","#8e44ad","#2e86c1","#27ae60","#e67e22","#e84393","#17b5a3"];
+const WHEEL_PICKS  = ["nuke","start","next","move15","random","random_target","tile_shuffle"];
 function wpol(cx,cy,r,deg){ const a = (deg-90)*Math.PI/180; return [cx+r*Math.cos(a), cy+r*Math.sin(a)]; }
 function buildWheel(){
   const g = document.getElementById("wheelSpin"); if (!g) return;
@@ -2621,6 +2621,44 @@ async function downYou(p){
   log(`🎲🎯 Random: ${p.name} gets picked off and goes down!`);
   await sleep(400);
 }
+// Plain random event (🎲 slot): effects fire based on game state — lightning hits the
+// leader, the star carries the trailer, fate swaps leader and last. The spinner is not
+// necessarily involved. Matches the behaviour before the player-targeted slot was added.
+async function randomBoardEvent(p){
+  const effects = [
+    ()=> nukeEveryone("🎲 "),
+    async()=>{ SFX.play("chute"); p.pos = 1; layoutTokens(); renderScoreboard(); log(`🎲 Random: ${p.name} back to start!`); await sleep(600); await resolveLanding(p); },
+    async()=>{ log(`🎲 Random: ${p.name} inches forward.`); await advancePlayer(p, MOVE.WHEEL_NEXT); },
+    async()=>{ log(`🎲 Random: ${p.name} leaps 15 spaces!`); await advancePlayer(p, MOVE.WHEEL_BIG); },
+    ()=> revolverRoulette(p),
+    ()=> runSupport(p),
+    async()=>{ await revealRuleOnce("lightning"); await strikeLightning(); },     // hits the LEADER
+    async()=>{ p.fish = (p.fish||0) + 1; SFX.play("catch"); renderScoreboard(); log(`🎲🐟 Random: ${p.name} gains a fish!`); await sleep(500); },
+    ()=> freezeFromRandom(p),
+    async()=>{ await revealRuleOnce("lucky"); await strikeLucky(); },             // carries the TRAILER
+    ()=> strikeFate(),                                                             // swaps LEADER and LAST
+    ()=> randomTeleport(p),
+    async()=>{ SFX.play("click"); log(`🎲 Random: … nothing happens.`); await sleep(500); },
+  ];
+  await effects[(Math.random()*effects.length)|0]();
+}
+
+// Tile shuffle (🌀 slot): place every on-board player onto a random neutral tile
+// (not a snake head/tail or ladder top/bottom), skipping landing effects.
+async function shuffleTiles(){
+  const active = game.players.filter(q => !q.finished && q.pos > 0 && !q.onSecret);
+  if (!active.length) return;
+  const pool = [];
+  for (let i = 1; i < BOARD.WIN; i++){
+    if (!(i in LADDERS) && !LADDER_TOPS.has(i) && !(i in SLIDES) && !SNAKE_TAILS.has(i)) pool.push(i);
+  }
+  active.forEach(q => { q.pos = pool[(Math.random()*pool.length)|0]; });
+  SFX.play("teleport"); flashScreen();
+  layoutTokens(); renderScoreboard();
+  log(`🌀 The wheel scrambled the board — everyone lands on a new tile!`);
+  await sleep(750);
+}
+
 async function randomWheelEffect(p){
   // Every random effect centres on YOU (the spinner): lightning hits you, the star
   // carries you, the swap trades you with the leader or the trailer, etc.
@@ -2650,7 +2688,9 @@ async function spinWheel(p){
   else if (pick === "start"){ SFX.play("chute"); p.pos = 1; layoutTokens(); renderScoreboard(); log(`🎡 The wheel sends ${p.name} back to the start!`); await sleep(650); await resolveLanding(p); }
   else if (pick === "next"){ log(`🎡 ${p.name} edges to the next square.`); await advancePlayer(p, MOVE.WHEEL_NEXT); }
   else if (pick === "move15"){ log(`🎡 ${p.name} rockets 15 spaces forward!`); await advancePlayer(p, MOVE.WHEEL_BIG); }
-  else if (pick === "random"){ log(`🎲 The wheel lands on RANDOM!`); await randomWheelEffect(p); }
+  else if (pick === "random"){ log(`🎲 Random event!`); await randomBoardEvent(p); }
+  else if (pick === "random_target"){ log(`🎯 The wheel targets ${p.name}!`); await randomWheelEffect(p); }
+  else if (pick === "tile_shuffle"){ log(`🌀 The wheel scrambled the board!`); await shuffleTiles(); }
 }
 
 async function runSupport(p){

@@ -46,7 +46,13 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
-Recently shipped (2026-06-27): **Shop tiles** — four **gold squares** (tiles 6, 28, 52, 75)
+Recently shipped (2026-06-27): **Wheel of fortune restored to 7 slots** — the plain
+🎲 random event (fires game-state events: lightning → leader, star → trailer, fate →
+swap leader/last) is back alongside the 🎯 player-targeted random (all effects aimed at
+the spinner). A brand-new 🌀 **tile shuffle** slot places every on-board player on a
+fresh random neutral tile (skipping all snake/ladder squares).
+
+Earlier (2026-06-27): **Shop tiles** — four **gold squares** (tiles 6, 28, 52, 75)
 open a cabin shop when you land on them. Pick one item: **👟 Speed Boots** (+4 to your
 next roll), **🛡️ Shield** (blocks the next knockdown or freeze), or **🍀 Lucky Charm**
 (roll again immediately). Item shown as an icon in the scoreboard; one item at a time.
