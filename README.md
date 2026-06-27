@@ -46,7 +46,17 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
-Recently shipped (2026-06-27): **Fishing + gun animation polish** — fishing minigame lasts
+Recently shipped (2026-06-27): **Coins, setback tile, coordinate-system TODO** —
+- **🪙 Coins**: two independent triggers per turn — rolling a 6 awards a coin, and landing on
+  any plain (no-effect) tile awards a coin. Both can fire on the same turn. Coin count shown
+  in the scoreboard as 🪙N. (`FEATURES.coins`; `awardCoin()` helper.)
+- **🔴 Back to start tile**: tile 7 is now a dark-red penalty square — landing on it (by roll,
+  kick, or bounce) sends you straight to tile 1. Reveals a hidden-rule popup the first time.
+  Protected from the 🌀 tile-shuffle. (`FEATURES.setback`; `SETBACK_TILES = [7]`.)
+- **TODO comment**: `cellCenter()` now has a note flagging the future grid-based coordinate
+  refactor (row/col addresses in DATA instead of boustrophedon arithmetic).
+
+Earlier (2026-06-27): **Fishing + gun animation polish** — fishing minigame lasts
 ~1.5× longer (drain/fill rates reduced) and the catch zone is 20% wider (`ZONE_BASE`/`ZONE_MIN`).
 Gun roulette now opens with a **large chamber display** (all 6 chambers colour-coded blank/live/self
 so you can read the odds), the cylinder spins to completion before fading out, then the revolver

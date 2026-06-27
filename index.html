@@ -577,6 +577,8 @@ const FEATURES = {
   fishPowers:    true,   // carrying fish grants escalating powers (extra movement, ice escape) + quirks (slippery ladders, teleporter overload)
   secretSquare:  true,   // a hidden square before tile 1, only revealed when a backtrack lands someone on it
   shop:          true,   // gold squares open a shop: pick Speed Boots, Shield, or Lucky Charm
+  coins:         true,   // players earn coins: rolling a 6, or landing on a plain tile
+  setback:       true,   // one dark-red tile near the start sends you back to tile 1
   sound:         true,   // sound effects
 };
 
@@ -608,6 +610,8 @@ const SPECIAL_TILES = { 35:"#16306e", 49:"#16306e", 70:"#16306e", 12:"#e67e22", 
 const ORANGE_TILES  = [12, 46, 77];                       // orange squares -> Wheel/Support/Gun choice
 const SHOP_TILES    = [6, 28, 52, 75];                    // gold shop squares (land here to pick an item)
 const SHOP_COLOR    = "#d4a656";                          // warm gold — same as --brass
+const SETBACK_TILES = [7];                               // dark-red "back to start" square
+const SETBACK_COLOR = "#8b1a1a";                         // deep red — clearly a penalty tile
 const SHOP          = { BOOT_BONUS: 4 };                  // speed-boot extra steps
 const SHOP_ITEMS    = [
   { id:"boots",  ico:"👟", name:"Speed Boots", desc:`+${SHOP.BOOT_BONUS} to your next roll.` },
@@ -616,6 +620,14 @@ const SHOP_ITEMS    = [
 ];
 const BLUE_COLORS   = new Set(["#6fa8dc", "#16306e"]);    // light + dark blue squares (safe from the Nuke)
 function isBlueTile(cell){ return BLUE_COLORS.has(cellColor(cell)); }
+function isPlainTile(cell){
+  if (cell in LADDERS || LADDER_TOPS.has(cell)) return false;
+  if (cell in SLIDES  || SNAKE_TAILS.has(cell)) return false;
+  if (TELEPORTERS.includes(cell) || FREEZE_TILES.includes(cell)) return false;
+  if (SHOP_TILES.includes(cell)  || SETBACK_TILES.includes(cell)) return false;
+  if (cell in SPECIAL_TILES) return false;   // fish (dark-blue) + orange
+  return true;
+}
 
 /* ---- DATA: Norwegian UI strings ------------------------------------ */
 const TXT = {
@@ -706,6 +718,11 @@ const RULE_INFO = {
     name: "Teleporter overload",
     text: "Step onto a teleporter while weighed down with a whole catch of fish and it overloads — instead of one swap, everyone on the board is shuffled around at random.",
   },
+  setback: {
+    ico: "🔴",
+    name: "Back to Start!",
+    text: "Land on the dark-red square and you're sent straight back to tile 1 — no exceptions. It's rare, but brutal when it hits.",
+  },
   shop: {
     ico: "🏪",
     name: "The Shop",
@@ -784,6 +801,11 @@ const BOT = {
    ===================================================================== */
 const TRANSITIONS = Object.assign({}, LADDERS, SLIDES);
 
+// TODO (future refactor): move the board to a grid-based coordinate system (row, col)
+// so every tile has a stable 2D address in DATA instead of being derived on the fly from a
+// cell number via boustrophedon arithmetic. Benefits: simpler rendering, easier hand-crafted
+// board layouts, cleaner collision / proximity checks, and no repeated math on hot paths.
+// All callers of cellCenter() and walkPath() would need updating.
 function cellCenter(cell){
   // Boustrophedon: cell 1 bottom-left, snaking up; cell WIN top-left.
   const i = cell - 1;
@@ -864,6 +886,7 @@ function cellColor(cell){
   if (TELEPORTERS.includes(cell)) return TELEPORT_COLOR;   // teal teleporter
   if (FREEZE_TILES.includes(cell)) return FREEZE_COLOR;    // icy freeze square
   if (SHOP_TILES.includes(cell)) return SHOP_COLOR;         // gold shop square
+  if (SETBACK_TILES.includes(cell)) return SETBACK_COLOR;  // dark-red back-to-start
   if (cell in SPECIAL_TILES) return SPECIAL_TILES[cell];   // dark-blue / orange accents
   const h = (cell * 2654435761) >>> 0;                     // plain tile: yellow/blue scatter
   return CELL_PALETTE[h % CELL_PALETTE.length];
@@ -1111,7 +1134,7 @@ function newGame(roster){
   game = {
     players: roster.map((r,i)=>({
       name: r.name || `Player ${i+1}`, color: PLAYER_COLORS[i], pos:0, bot: !!r.bot,
-      downed:false, frozen:false, sniper:false, finished:false, shame:0, getupMin: SNIPER.GETUP_MIN, fish:0, onSecret:false, shopItem:null,
+      downed:false, frozen:false, sniper:false, finished:false, shame:0, getupMin: SNIPER.GETUP_MIN, fish:0, onSecret:false, shopItem:null, coins:0,
     })),
     current:0, winner:null, over:false, busy:false, round:1, autonomous: !!(roster[0] && roster[0].bot),
     standings: null, fishStreak: 0, fishCaught: 0,
@@ -1162,7 +1185,8 @@ function renderScoreboard(){
     const shopMark = p.shopItem ? (" " + (SHOP_ITEMS.find(i=>i.id===p.shopItem)||{ico:""}).ico) : "";
     const mark = (p.finished ? " "+medal : "") + (p.downed ? (p.frozen ? " 🧊" : " 🤕") : "")
                + (p.sniper ? " 🎯" : "") + (p.shame>0 ? " 😳" : "")
-               + (p.fish>0 ? " 🐟"+(p.fish>1?p.fish:"") : "") + shopMark;
+               + (p.fish>0 ? " 🐟"+(p.fish>1?p.fish:"") : "") + shopMark
+               + (p.coins>0 ? " 🪙"+p.coins : "");
     const cellTxt = p.finished ? "done" : (p.onSecret ? "secret 🚪" : (p.pos === 0 ? "—" : "tile " + p.pos));
     row.innerHTML =
       `<span class="swatch" style="background:${p.color}"></span>` +
@@ -1297,6 +1321,15 @@ async function moveCurrent(rollValue){
     await endTurn(); return;
   }
 
+  // dark-red square -> back to start (then the turn is over)
+  if (FEATURES.setback && SETBACK_TILES.includes(p.pos)){
+    await revealRuleOnce("setback");
+    log(`🔴 ${p.name} hit the penalty tile — back to tile 1!`);
+    SFX.play("chute");
+    p.pos = 1; layoutTokens(); renderScoreboard();
+    await endTurn(); return;
+  }
+
   // icy square (or landing next to a frozen player) -> freeze (then the turn is over)
   if (FEATURES.freeze && await tryFreeze(p)){
     if (game.over) return;
@@ -1309,8 +1342,12 @@ async function moveCurrent(rollValue){
     if (game.over) return;
   }
 
+  // coin for landing on a plain tile (no special effect this stop)
+  if (FEATURES.coins && isPlainTile(p.pos)) awardCoin(p, "Plain tile");
+
   // a 6 earns another roll for the same player; otherwise end the turn
   if (FEATURES.sixRollsAgain && rollValue === RULES.DICE_SIDES){
+    if (FEATURES.coins) awardCoin(p, "Rolled a 6");
     log(TXT.rollAgain);
     game.busy = false; refreshHUD(); maybeAuto();
   } else {
@@ -2274,6 +2311,12 @@ async function fateSwapYou(p){
 }
 
 /* ---- orange square: Wheel / Support / Gun -------------------------- */
+function awardCoin(p, reason){
+  p.coins = (p.coins||0) + 1;
+  log(`🪙 ${reason} — ${p.name} earns a coin! (${p.coins} total)`);
+  renderScoreboard();
+}
+
 function downPlayer(pl){
   if (pl.shopItem === "shield"){ pl.shopItem = null; log(`🛡️ ${pl.name}'s Shield blocked the hit!`); renderScoreboard(); return; }
   pl.downed = true; pl.getupMin = SNIPER.GETUP_MIN; updateDowned(idxOf(pl));
@@ -2339,6 +2382,15 @@ async function resolveLanding(pl, depth, skipTeleport){
     if (pl.pos === BOARD.WIN){ finishPlayer(pl); return; }
     return resolveLanding(pl, depth+1);
   }
+  // dark-red tile — sent back to start on any landing (primary or secondary)
+  if (FEATURES.setback && SETBACK_TILES.includes(pl.pos)){
+    await revealRuleOnce("setback");
+    log(`🔴 ${pl.name} hit the penalty tile — back to tile 1!`);
+    SFX.play("chute");
+    pl.pos = 1; layoutTokens(); renderScoreboard();
+    return;
+  }
+
   // icy tile / frost spread — freezing ends the cascade (they're stuck solid)
   if (FEATURES.freeze && !pl.frozen && await tryFreeze(pl)) return;
 
@@ -2698,7 +2750,7 @@ async function shuffleTiles(){
   // Build a pool of eligible positions: not a snake/ladder tile, not start (1) or finish (90).
   const pool = [];
   for (let i = 2; i < BOARD.WIN; i++){
-    if (!(i in LADDERS) && !LADDER_TOPS.has(i) && !(i in SLIDES) && !SNAKE_TAILS.has(i)) pool.push(i);
+    if (!(i in LADDERS) && !LADDER_TOPS.has(i) && !(i in SLIDES) && !SNAKE_TAILS.has(i) && !SETBACK_TILES.includes(i)) pool.push(i);
   }
 
   // Fisher-Yates shuffle the pool, then take the first N positions (N = total special tiles).
