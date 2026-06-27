@@ -19,6 +19,12 @@ it). Use Git normally.
 
 ---
 
+## Ideas inbox (phone capture)
+
+`IDEAS.md` is Isak's quick-capture inbox for ideas he sends on the go (often by phone). When
+he says *"add idea: …"*, append it to the top of the Unsorted list in `IDEAS.md` and commit +
+push — capture only, don't build it. Curate into `Next/TASKS.md` later.
+
 ## Session-start protocol (do this first, every session)
 
 1. Read this file, `README.md`, and `RULES.md`.
