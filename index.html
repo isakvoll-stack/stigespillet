@@ -613,6 +613,10 @@ const SHOP_TILES    = [6, 28, 52, 75];                    // gold shop squares (
 const SHOP_COLOR    = "#d4a656";                          // warm gold — same as --brass
 const SETBACK_TILES = [7];                               // dark-red "back to start" square
 const SETBACK_COLOR = "#8b1a1a";                         // deep red — clearly a penalty tile
+// TODO: introduce slight RNG to tile placements — rather than every special tile being
+// fully fixed, some (e.g. shop, setback, orange) should spawn at randomly chosen eligible
+// positions each new game (within safe ranges, avoiding snake/ladder tiles). Keeps the
+// board feeling fresh across playthroughs. See also shuffleTiles() for mid-game reshuffling.
 const SHOP          = { BOOT_BONUS: 4 };                  // speed-boot extra steps
 // Shop item catalog lives in shop-items.js (SHOP_CATALOG); loaded via <script src> above.
 const BLUE_COLORS   = new Set(["#6fa8dc", "#16306e"]);    // light + dark blue squares (safe from the Nuke)
@@ -785,6 +789,10 @@ const MOVE = { SUPPORT:5, WHEEL_NEXT:1, WHEEL_BIG:15, PILEUP_BACK:5 };  // suppo
 // never drawn until a player is standing on it, and no one starts there — you only
 // find it by being thrown back past the start. Placed just left of tile 1.
 const SECRET = { POS:0, X:-90, Y:928, CELL:84, COLOR:"#7b3fa0" };
+// TODO: Isak wants tile 0 (this position) to become a "black market" tile — a darker /
+// riskier shop variant. NOTE: position 0 is already the secret square above. Decide
+// whether the black market replaces the secret square, shares the slot (perhaps the
+// secret square IS the black market), or lives at a different position entirely.
 /* ---- DATA: autonomous (self-play) opponent behaviour --------------- */
 const BOT = {
   TELEPORT_GOOD:0.85, TELEPORT_BAD:0.15,        // accept a teleporter swap when it improves your average position (else rarely)
