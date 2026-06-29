@@ -533,6 +533,7 @@
     </div>
   </div>
 
+<script src="shop-items.js"></script>
 <script>
 "use strict";
 /* =====================================================================
@@ -613,11 +614,7 @@ const SHOP_COLOR    = "#d4a656";                          // warm gold — same 
 const SETBACK_TILES = [7];                               // dark-red "back to start" square
 const SETBACK_COLOR = "#8b1a1a";                         // deep red — clearly a penalty tile
 const SHOP          = { BOOT_BONUS: 4 };                  // speed-boot extra steps
-const SHOP_ITEMS    = [
-  { id:"boots",  ico:"👟", name:"Speed Boots", desc:`+${SHOP.BOOT_BONUS} to your next roll.` },
-  { id:"shield", ico:"🛡️",  name:"Shield",      desc:"Block the next knockdown or freeze." },
-  { id:"charm",  ico:"🍀", name:"Lucky Charm",  desc:"Roll the die again immediately." },
-];
+// Shop item catalog lives in shop-items.js (SHOP_CATALOG); loaded via <script src> above.
 const BLUE_COLORS   = new Set(["#6fa8dc", "#16306e"]);    // light + dark blue squares (safe from the Nuke)
 function isBlueTile(cell){ return BLUE_COLORS.has(cellColor(cell)); }
 function isPlainTile(cell){
@@ -1182,7 +1179,7 @@ function renderScoreboard(){
     const isTurn = i === game.current && !game.winner;
     row.className = "row" + (isTurn ? " active" : "");
     const medal = p.finished ? (MEDALS[p.place-1] || ("#"+p.place)) : "";
-    const shopMark = p.shopItem ? (" " + (SHOP_ITEMS.find(i=>i.id===p.shopItem)||{ico:""}).ico) : "";
+    const shopMark = p.shopItem ? (" " + (SHOP_CATALOG.find(i=>i.id===p.shopItem)||{ico:""}).ico) : "";
     const mark = (p.finished ? " "+medal : "") + (p.downed ? (p.frozen ? " 🧊" : " 🤕") : "")
                + (p.sniper ? " 🎯" : "") + (p.shame>0 ? " 😳" : "")
                + (p.fish>0 ? " 🐟"+(p.fish>1?p.fish:"") : "") + shopMark
@@ -2833,20 +2830,28 @@ async function runSupport(p){
   await advancePlayer(target, MOVE.SUPPORT);
 }
 
-/* ---- shop (gold square): pick Speed Boots, Shield, or Lucky Charm ----- */
+/* ---- shop (gold square): rotating stock of 3 random enabled items ---------- */
+function buildShopStock(){
+  const src = SHOP_CATALOG.filter(i => i.enabled).slice();
+  const stock = [];
+  while (stock.length < 3 && src.length) stock.push(src.splice((Math.random()*src.length)|0, 1)[0]);
+  return stock;
+}
+
 async function runShop(p){
   await revealRuleOnce("shop");
   log(`🏪 ${p.name} stepped into the shop!`);
   SFX.play("sparkle");
+  const stock = buildShopStock();
   let id;
   if (game.autonomous){
-    id = SHOP_ITEMS[(Math.random()*SHOP_ITEMS.length)|0].id;
+    id = stock[(Math.random()*stock.length)|0].id;
     await sleep(900);
   } else {
     id = await new Promise(res => {
       document.getElementById("pickerTitle").textContent = `🏪 ${p.name} — pick an item`;
       const list = document.getElementById("pickerList"); list.innerHTML = "";
-      SHOP_ITEMS.forEach(item => {
+      stock.forEach(item => {
         const b = document.createElement("button"); b.className = "btn";
         b.innerHTML = `${item.ico} <b>${item.name}</b> — ${item.desc}`;
         b.style.textAlign = "left"; b.style.boxShadow = "none";
@@ -2858,7 +2863,7 @@ async function runShop(p){
     });
   }
   if (id !== "charm") p.shopItem = id;
-  const item = SHOP_ITEMS.find(i => i.id === id);
+  const item = SHOP_CATALOG.find(i => i.id === id);
   log(`${item.ico} ${p.name} picked up: ${item.name}!`);
   renderScoreboard();
   return id;
