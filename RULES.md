@@ -16,6 +16,10 @@ and 5th on the sides when there are enough players) followed by a full
 ## The board
 - **9 × 10 = 90 tiles**, numbered 1 (bottom-left) → 90 (top-left) in a
   boustrophedon (snaking) path.
+- Every tile also has a **grid coordinate** shown in its bottom-right corner:
+  rows are lettered **A–J top to bottom**, columns numbered **1–9 left to right**,
+  so the top-left tile is **A1** and the bottom-right is **J9**. The number tells
+  you path order; the coordinate tells you who is physically next to whom.
 - **Ladders** carry you up; **chutes** slide you down. The set is balanced:
   ladders skip **124 tiles up** in total and chutes skip **124 down**, so over
   the whole board they cancel out.
@@ -133,6 +137,18 @@ further up the board**.
 
 *Toggles: `FEATURES.teleport`, `FEATURES.teleportMalfunction`. Teleporter tiles =
 `TELEPORTERS` (22 & 66).*
+
+### Deep freeze (hidden rule)
+Land on an **icy square** and you **freeze solid** — you can't move until you roll
+**4 or higher** to break free. The ice tile itself only freezes whoever lands on it,
+but a **frozen player is contagious**: the frost reaches the **8 tiles around them**
+(orthogonal **and diagonal**, plus anyone sharing their tile), so anyone caught in
+that ring freezes too. The spread is **one ring** — a player frozen by the spread
+doesn't pass it on again. A **Shield** absorbs a freeze. Being thrown next to a
+still-frozen player later (by a knock-back, kick, etc.) can freeze you as well.
+
+*Toggle: `FEATURES.freeze`. Icy tiles = `FREEZE_TILES` (29 & 63). Reach of the spread
+= `FREEZE.ADJ` (1 grid-tile = the 8 neighbours); break-free roll = `FREEZE.GETUP_MIN`.*
 
 ### Lightning (very rare)
 Once in a blue moon (about **1.5% of turns**) a storm strikes the player in the

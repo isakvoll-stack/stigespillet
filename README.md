@@ -46,7 +46,19 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
-Recently shipped (2026-06-27): **Coins, setback tile, coordinate-system TODO** —
+Recently shipped (2026-06-30): **Coordinate grid + ice that spreads** —
+- **🗺️ Grid coordinates**: every tile now carries a 2D address shown bottom-right —
+  rows lettered **A–J top→bottom**, columns **1–9 left→right**, so top-left = **A1**,
+  bottom-right = **J9** (the 1–90 number still sits top-left). New single-source grid
+  helpers (`cellRC` / `rcToCell` / `cellLabel` / `neighborCells` / `gridNear`) now back
+  `cellCenter` and `tileBelow`, completing the long-standing coordinate-system TODO.
+- **🧊 Ice spreads to neighbours**: the icy tile still only freezes whoever *lands* on
+  it, but a frozen player now freezes anyone on the **8 surrounding tiles** (diagonals
+  included) and anyone sharing their tile — one ring, no runaway cascade; Shield still
+  blocks it. Adjacency uses real grid distance now, not cell-number distance. (`spreadFreeze`;
+  reach = `FREEZE.ADJ`.)
+
+Earlier (2026-06-27): **Coins, setback tile, coordinate-system TODO** —
 - **🪙 Coins**: two independent triggers per turn — rolling a 6 awards a coin, and landing on
   any plain (no-effect) tile awards a coin. Both can fire on the same turn. Coin count shown
   in the scoreboard as 🪙N. (`FEATURES.coins`; `awardCoin()` helper.)

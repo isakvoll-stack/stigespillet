@@ -72,6 +72,16 @@ See `LOG.md` for the running session history.
 
 ## Done
 
+### 2026-06-30 — coordinate grid + ice spreads to neighbours (Isak request)
+- [x] **Grid coordinate system** — single-source `cellRC`/`rcToCell`/`cellLabel`/
+      `neighborCells`/`gridNear`; `cellCenter`+`tileBelow` refactored onto them (verified
+      byte-identical for all 90 cells); A1…J9 badge rendered bottom-right of each tile.
+      Completes the old `cellCenter()` coordinate-system TODO.
+- [x] **Ice spreads to the 8 neighbours** — `spreadFreeze`: a newly-frozen player freezes
+      anyone on the surrounding tiles (diagonals) + same tile; single ring, Shield blocks it.
+      Reactive "moved next to a frozen player" check upgraded to real 8-way `gridNear`. The
+      ice tile itself only freezes a direct landing (per Isak's clarification). `FREEZE.ADJ` = reach.
+
 ### 2026-06-26 — fish powers + secret square + smarter bots (Isak request batch)
 - [x] **Bots vary their orange pick** — `BOT.ORANGE`/`ORANGE_WEIGHTS` reweighted to
       wheel:5 / gun:3 / support:2 so they no longer just spin the gun/roulette.

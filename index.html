@@ -706,7 +706,7 @@ const RULE_INFO = {
   freeze: {
     ico: "🧊",
     name: "Deep freeze",
-    text: "Land on an icy square and you freeze solid — you have to roll a 4 or higher to break free before you can move. Worse, the frost spreads: land on a tile right next to a frozen player and you freeze too.",
+    text: "Land on an icy square and you freeze solid — you have to roll a 4 or higher to break free before you can move. And a frozen player is contagious: anyone on a tile right next to them — including diagonally — freezes too, so the frost can catch a whole cluster.",
   },
   secret: {
     ico: "🚪",
@@ -776,7 +776,7 @@ const TELEPORTERS  = [22, 66];             // teal teleporter squares (between t
 const TELEPORT_COLOR = "#17b5a3";          // teal
 const FREEZE_TILES = [29, 63];             // icy squares — land here and you freeze solid
 const FREEZE_COLOR = "#bfe9ff";            // pale icy blue
-const FREEZE = { GETUP_MIN: 4, ADJ: 1 };   // need 4+ to break free; frost spreads to players within ADJ tiles
+const FREEZE = { GETUP_MIN: 4, ADJ: 1 };   // need 4+ to break free; a frozen player freezes others within ADJ grid-tiles (1 = the 8 around them, diagonals included)
 const LIGHTNING = { CHANCE:0.005, BACK:7,       // ~0.5% per turn: strike the leader, knock them back (3x rarer)
   GATHER_MS:1400, FLICKERS:2, STRIKES:3, FORKS:3, SPARKS:16 };  // build-up time + pre-flickers, main multi-strike, branch forks, impact sparks
 const LUCKY     = { CHANCE:0.004, FORWARD:8 };  // ~0.4% per turn: sweep the last-place player forward (3x rarer)
@@ -805,21 +805,53 @@ const BOT = {
    ===================================================================== */
 const TRANSITIONS = Object.assign({}, LADDERS, SLIDES);
 
-// TODO (future refactor): move the board to a grid-based coordinate system (row, col)
-// so every tile has a stable 2D address in DATA instead of being derived on the fly from a
-// cell number via boustrophedon arithmetic. Benefits: simpler rendering, easier hand-crafted
-// board layouts, cleaner collision / proximity checks, and no repeated math on hot paths.
-// All callers of cellCenter() and walkPath() would need updating.
-function cellCenter(cell){
-  // Boustrophedon: cell 1 bottom-left, snaking up; cell WIN top-left.
+// Grid coordinates — the single source of truth for the boustrophedon path <-> physical
+// grid mapping (cell 1 bottom-left, snaking up, cell WIN top-left). Every tile has a 2D
+// address: row 0 = top, col 0 = left, so the top-left tile is row 0/col 0 -> label "A1";
+// letters increase downward (A..J over the 10 rows), numbers increase rightward (1..9 over
+// the 9 columns). cellCenter, tileBelow and the proximity checks all read this instead of
+// repeating the arithmetic.
+function cellRC(cell){
   const i = cell - 1;
   const rowFromBottom = Math.floor(i / BOARD.COLS);
   let col = i % BOARD.COLS;
-  if (rowFromBottom % 2 === 1) col = BOARD.COLS - 1 - col;   // reverse odd rows
-  const rowFromTop = BOARD.ROWS - 1 - rowFromBottom;
+  if (rowFromBottom % 2 === 1) col = BOARD.COLS - 1 - col;   // un-snake odd rows -> physical column
+  return { row: BOARD.ROWS - 1 - rowFromBottom, col };       // row counted from the TOP
+}
+function rcToCell(row, col){
+  if (row < 0 || row >= BOARD.ROWS || col < 0 || col >= BOARD.COLS) return null;
+  const rowFromBottom = BOARD.ROWS - 1 - row;
+  const within = (rowFromBottom % 2 === 1) ? (BOARD.COLS - 1 - col) : col;
+  return rowFromBottom * BOARD.COLS + within + 1;
+}
+function cellLabel(cell){
+  const { row, col } = cellRC(cell);
+  return String.fromCharCode(65 + row) + (col + 1);          // "A1" .. "J9"
+}
+// Every tile within Chebyshev `radius` of `cell` (radius 1 = the 8 surrounding tiles,
+// diagonals included), excluding the tile itself. Off-board directions are dropped.
+function neighborCells(cell, radius){
+  const { row, col } = cellRC(cell);
+  const out = [];
+  for (let dr = -radius; dr <= radius; dr++)
+    for (let dc = -radius; dc <= radius; dc++){
+      if (!dr && !dc) continue;
+      const n = rcToCell(row + dr, col + dc);
+      if (n) out.push(n);
+    }
+  return out;
+}
+// True if cells a and b are within `radius` tiles on the physical grid (Chebyshev
+// distance — 8-way, so diagonals count).
+function gridNear(a, b, radius){
+  const A = cellRC(a), B = cellRC(b);
+  return Math.max(Math.abs(A.row - B.row), Math.abs(A.col - B.col)) <= radius;
+}
+function cellCenter(cell){
+  const { row, col } = cellRC(cell);
   return {
     x: BOARD.MARGIN + (col + 0.5) * BOARD.CELL,
-    y: BOARD.MARGIN + (rowFromTop + 0.5) * BOARD.CELL,
+    y: BOARD.MARGIN + (row + 0.5) * BOARD.CELL,
   };
 }
 
@@ -845,17 +877,11 @@ function linkAt(cell){
   return null;
 }
 
-// The tile physically one row straight down from `cell` (same column), or null
-// if `cell` is already on the bottom row. Accounts for the boustrophedon path.
+// The tile physically one row straight down from `cell` (same column), or null if
+// `cell` is already on the bottom row. Row counts from the top, so "down" is row + 1.
 function tileBelow(cell){
-  const i = cell - 1;
-  const rfb = Math.floor(i / BOARD.COLS);
-  if (rfb === 0) return null;
-  let col = i % BOARD.COLS;
-  if (rfb % 2 === 1) col = BOARD.COLS - 1 - col;          // un-snake -> physical column
-  const br = rfb - 1;
-  const cir = (br % 2 === 1) ? (BOARD.COLS - 1 - col) : col;
-  return br * BOARD.COLS + cir + 1;
+  const { row, col } = cellRC(cell);
+  return rcToCell(row + 1, col);
 }
 
 // Send a player to a backtracked tile. A target below tile 1 lands them on the
@@ -947,6 +973,10 @@ function buildBoard(){
     const t = el("text",{x:gx+18,y:gy+19,"text-anchor":"middle","font-size":"14","font-weight":"700",fill:"#2a2018","font-family":"Segoe UI, sans-serif"});
     t.textContent = cell;
     svg.appendChild(t);
+    svg.appendChild(el("rect",{x:gx+C-34,y:gy+C-21,width:30,height:17,rx:4,fill:"rgba(255,255,255,.55)"}));
+    const gl = el("text",{x:gx+C-19,y:gy+C-8,"text-anchor":"middle","font-size":"12","font-weight":"600",fill:"#3a2e22","font-family":"Segoe UI, sans-serif"});
+    gl.textContent = cellLabel(cell);
+    svg.appendChild(gl);
   }
 
   // ladders then slides on top
@@ -2337,22 +2367,42 @@ function freezePlayer(pl){
   const i = idxOf(pl); updateDowned(i); updateFrozen(i);
 }
 
-// Freeze the active player if they landed on an icy square, or onto a tile
-// right next to a frozen player (the frost spreads). Returns true if frozen.
+// Freeze the active player if they landed on an icy square, or onto a tile next to a
+// frozen player (a frozen player's frost reaches the 8 tiles around them, diagonals
+// included). Returns true if they ended up frozen.
 async function tryFreeze(p){
   if (p.frozen) return false;
   const onIce = FREEZE_TILES.includes(p.pos);
   const nearFrozen = game.players.some(q => q !== p && q.frozen && !q.finished
-    && q.pos > 0 && Math.abs(q.pos - p.pos) <= FREEZE.ADJ);
+    && q.pos > 0 && gridNear(q.pos, p.pos, FREEZE.ADJ));
   if (!onIce && !nearFrozen) return false;
   await revealRuleOnce("freeze");
   freezePlayer(p);
+  if (!p.frozen) return false;                 // a Shield absorbed it
   SFX.play("fall"); layoutTokens(); renderScoreboard();
   log(onIce
     ? `🧊 ${p.name} stepped onto the ice and froze solid! (needs ${FREEZE.GETUP_MIN}+ to break free)`
     : `🧊 ${p.name} froze — too close to a frozen player! (needs ${FREEZE.GETUP_MIN}+ to break free)`);
+  await spreadFreeze(p);
   await sleep(700);
   return true;
+}
+
+// A newly-frozen player's frost catches everyone standing on the surrounding tiles
+// (FREEZE.ADJ grid-radius, diagonals included) and anyone sharing their tile. Single
+// ring: players caught this way don't pass it on, so a cluster freezes exactly once.
+async function spreadFreeze(source){
+  if (!FEATURES.freeze) return;
+  const zone = neighborCells(source.pos, FREEZE.ADJ);
+  const caught = game.players.filter(q => q !== source && !q.finished && !q.frozen
+    && q.pos > 0 && (q.pos === source.pos || zone.includes(q.pos)));
+  if (!caught.length) return;
+  const froze = [];
+  caught.forEach(q => { freezePlayer(q); if (q.frozen) froze.push(q); });
+  if (!froze.length) return;                   // everyone nearby was shielded
+  SFX.play("fall"); layoutTokens(); renderScoreboard();
+  log(`🧊 The frost spread from ${source.name} — ${froze.map(q => q.name).join(", ")} froze too!`);
+  await sleep(650);
 }
 
 // Sliding down a chute from `head` to `tail` bowls over anyone in the way.
@@ -2714,8 +2764,11 @@ async function nukeEveryone(tag){
 // The RANDOM wheel slot: fire any single effect from anywhere in the game.
 async function freezeFromRandom(p){
   await revealRuleOnce("freeze"); freezePlayer(p);
+  if (!p.frozen){ renderScoreboard(); return; }   // a Shield absorbed it
   SFX.play("fall"); layoutTokens(); renderScoreboard();
-  log(`🎲🧊 Random freeze — ${p.name} is locked in ice!`); await sleep(600);
+  log(`🎲🧊 Random freeze — ${p.name} is locked in ice!`);
+  await spreadFreeze(p);
+  await sleep(600);
 }
 async function randomTeleport(p){
   await revealRuleOnce("teleport");

@@ -4,6 +4,31 @@ Newest first. One entry per working session; note what shipped and what's next.
 
 ---
 
+## 2026-06-30 — coordinate grid + ice spreads to neighbours
+
+Isak request. Pushed.
+- **Grid coordinate system.** Added the single-source grid mapping the long-standing
+  `cellCenter` TODO asked for: `cellRC(cell)→{row,col}` (row 0 = top, col 0 = left),
+  `rcToCell`, `cellLabel` (A1…J9), `neighborCells(cell,radius)` (the 8 around at radius 1,
+  diagonals included, off-board dropped), and `gridNear(a,b,radius)` (Chebyshev distance).
+  `cellCenter` and `tileBelow` now read these instead of repeating boustrophedon math —
+  verified byte-identical to the old formulas for all 90 cells, so rendering/movement is
+  unchanged. Each tile renders an **A1…J9 badge** bottom-right (the 1–90 number stays
+  top-left, since the whole game addresses tiles by number).
+- **Ice spreads.** Per Isak's clarification, the ice *tile* still only freezes a direct
+  landing — but a newly-frozen player now freezes anyone on the 8 surrounding tiles
+  (diagonals) + anyone on their tile via new `spreadFreeze`. **Single ring** (caught
+  players don't re-spread), Shield absorbs it. The existing "moved next to a frozen player
+  → freeze" reactive check was upgraded from cell-number distance to real `gridNear`
+  8-way adjacency. `FREEZE.ADJ` is the reach knob; rule popup + RULES.md updated.
+- **Verified headless (Chrome --dump-dom):** 0 load errors; cellCenter/tileBelow ==
+  old formula for all 90 cells; full grid round-trip/label/adjacency checks; freeze
+  catches orthogonal + diagonal + same-tile neighbours, spares far players, the ice tile
+  alone gives no aura, and a Shield blocks the spread. Screenshot confirms the coordinate
+  badges are legible and well-placed.
+- **Next:** human play-test for feel — is the freeze spread too punishing in a crowd? Are
+  the coordinate badges helpful or cluttered (could become a toggle, or replace the number)?
+
 ## 2026-06-30 — six-roll priority fix + gun rework
 
 Isak request batch. Pushed.
