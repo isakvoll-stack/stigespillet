@@ -4,24 +4,29 @@
 // The game (index.html) reads this automatically — you never need to touch
 // index.html just to change the item list.
 //
-// Items in catalog: 3  ← update this number when you add or remove items
+// Items in catalog: 4  ← update this number when you add or remove items
 // ─────────────────────────────────────────────
 //
 // Each entry:
 //   id      — internal key used by the game engine (keep stable; changing
 //             an id while a player holds that item will break their display)
-//   ico     — emoji shown in the shop picker and the scoreboard
+//   ico     — emoji shown in the shop picker, inventory and the scoreboard
 //   name    — display name (shown bold in the shop)
-//   desc    — one-line description shown to the player when shopping
+//   desc    — one-line description shown to the player
+//   kind    — "consumable" (held in your 3-slot bag, used before you roll)
+//             or "passive" (the 1 always-on item; a new one replaces the old)
+//   cost    — price in coins
 //   enabled — true = can appear in the shop; false = hidden everywhere
 
 const SHOP_CATALOG = [
 
   {
-    id:      "boots",
-    ico:     "👟",
-    name:    "Speed Boots",
+    id:      "coffee",
+    ico:     "☕",
+    name:    "Coffee",
     desc:    "+4 to your next roll.",
+    kind:    "consumable",
+    cost:    4,
     enabled: true,
   },
 
@@ -29,15 +34,29 @@ const SHOP_CATALOG = [
     id:      "shield",
     ico:     "🛡️",
     name:    "Shield",
-    desc:    "Block the next knockdown or freeze.",
+    desc:    "Blocks the next knockdown or freeze. A blue bubble shows while it's active.",
+    kind:    "consumable",
+    cost:    6,
     enabled: true,
   },
 
   {
-    id:      "charm",
+    id:      "clover",
     ico:     "🍀",
-    name:    "Lucky Charm",
-    desc:    "Roll the die again immediately.",
+    name:    "Four-leaf Clover",
+    desc:    "Guarantees a 6 on your next roll.",
+    kind:    "consumable",
+    cost:    10,
+    enabled: true,
+  },
+
+  {
+    id:      "shoes",
+    ico:     "👟",
+    name:    "Running Shoes",
+    desc:    "Passive: +1 to every roll while worn.",
+    kind:    "passive",
+    cost:    10,
     enabled: true,
   },
 

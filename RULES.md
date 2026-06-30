@@ -203,22 +203,35 @@ is to be **thrown back past the start** (e.g. a low-tile **lightning** strike or
 
 *Toggle: `FEATURES.secretSquare`.*
 
-### The Shop (hidden rule)
+### The Shop, inventory &amp; items (hidden rule)
 Four **gold squares** are cabin shops (tiles **6, 28, 52, 75**). Land on one and you
-pick **one item** to carry:
+**spend your coins** on items. You carry a small inventory: **up to 3 consumables
+plus 1 passive** at a time.
 
-- **👟 Speed Boots** — adds +4 to your *next* roll (activates automatically when you
-  roll; not consumed on the shop turn itself).
-- **🛡️ Shield** — absorbs the *next* hit: a sniper shot, a kick, a pile-up knockdown,
-  or a freeze. The hit is completely negated and the shield is then gone.
-- **🍀 Lucky Charm** — consumed immediately: instead of ending your turn you get to
-  **roll the die again right now** (like rolling a 6).
+**Consumables** (held in your bag; *used* from the inventory **before** you roll):
 
-You can carry one item at a time; visiting a new shop replaces the old item. Your
-current item appears as an icon in the scoreboard next to your name.
+- **☕ Coffee** — **4 coins.** +4 to your next roll.
+- **🛡️ Shield** — **6 coins.** Absorbs the next hit: a sniper shot, a kick, a pile-up
+  knockdown, or a freeze. While you hold it, a small **transparent blue bubble** shows
+  around your pawn; the hit is negated and the shield is then gone.
+- **🍀 Four-leaf Clover** — **10 coins.** Guarantees a **6** on your next roll (and a 6
+  rolls again, so it chains nicely).
 
-*Toggle: `FEATURES.shop`. Shop tiles = `SHOP_TILES` (6, 28, 52, 75). Boot bonus
-tunable = `SHOP.BOOT_BONUS`.*
+**Passive** (1 slot, always on while equipped):
+
+- **👟 Running Shoes** — **10 coins.** +1 to *every* roll while worn. Buying or
+  receiving any new passive **immediately replaces** the one you have, which is **lost
+  forever**.
+
+**Using items:** on your turn, before rolling, press the **🎒 Inventory** button next
+to the die. Use Coffee or the Clover (Shield guards automatically), then roll. Bots
+spend their Coffee/Clover automatically before they roll. Your held items appear as
+icons in the scoreboard next to your name.
+
+*Toggle: `FEATURES.shop`. Shop tiles = `SHOP_TILES` (6, 28, 52, 75). Bag size =
+`INV` (`CONSUMABLES` 3, `PASSIVES` 1). Bonuses = `ITEM.COFFEE_BONUS` (4) and
+`ITEM.SHOES_BONUS` (1). Item catalog (id, emoji, name, desc, kind, cost) lives in
+`shop-items.js`; what each id does is keyed by id in the item logic in `index.html`.*
 
 ---
 

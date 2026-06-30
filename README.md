@@ -46,12 +46,22 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
-Recently shipped (2026-06-30): **Coordinate grid + ice that spreads** —
-- **🗺️ Grid coordinates**: every tile now carries a 2D address shown bottom-right —
-  rows lettered **A–J top→bottom**, columns **1–9 left→right**, so top-left = **A1**,
-  bottom-right = **J9** (the 1–90 number still sits top-left). New single-source grid
-  helpers (`cellRC` / `rcToCell` / `cellLabel` / `neighborCells` / `gridNear`) now back
-  `cellCenter` and `tileBelow`, completing the long-standing coordinate-system TODO.
+Recently shipped (2026-06-30): **Inventory + items rework** —
+- **🎒 Inventory**: on your turn, before rolling, open your inventory and *use* items,
+  then roll. You carry **3 consumables + 1 passive**. Items now **cost coins** and are
+  bought at the gold shop. **☕ Coffee** (4 — +4 next roll), **🛡️ Shield** (6 —
+  auto-blocks the next knockdown/freeze and shows a blue bubble while held), **🍀
+  Four-leaf Clover** (10 — guaranteed 6 next roll), **👟 Running Shoes** (10 — passive
+  +1 to every roll; a new passive replaces the old one). (`FEATURES.shop`; bag size
+  `INV`, bonuses `ITEM`; catalog in `shop-items.js`.)
+- Also: the **encounter (bounce/kick) choice now happens before tile events**, and the
+  on-tile A1…J9 coordinate labels were removed (the coord system stays in code).
+
+Earlier (2026-06-30): **Coordinate grid + ice that spreads** —
+- **🗺️ Grid coordinates**: a single-source 2D address system — rows lettered **A–J
+  top→bottom**, columns **1–9 left→right** (top-left = **A1**). The grid helpers
+  (`cellRC` / `rcToCell` / `cellLabel` / `neighborCells` / `gridNear`) back `cellCenter`
+  and `tileBelow`. (The on-tile labels were later removed; the system stays in code.)
 - **🧊 Ice spreads to neighbours**: the icy tile still only freezes whoever *lands* on
   it, but a frozen player now freezes anyone on the **8 surrounding tiles** (diagonals
   included) and anyone sharing their tile — one ring, no runaway cascade; Shield still

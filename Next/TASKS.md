@@ -72,6 +72,20 @@ See `LOG.md` for the running session history.
 
 ## Done
 
+### 2026-06-30 — inventory + items rework, coord labels off, encounter priority (Isak)
+- [x] **Removed on-tile A1…J9 labels** — the coord *system* stays in code for
+      programming; tiles no longer draw the grid label (1–90 number stays).
+- [x] **Encounter before tile events** — `moveCurrent` resolves bounce/kick *before*
+      fishing/teleport/orange/shop/setback/freeze, so hopping forward dodges an event
+      tile and kicking lets you claim it. Plain landings unchanged.
+- [x] **Inventory + items** — 🎒 Inventory button (use consumables before rolling);
+      bag = 3 consumables + 1 passive (`INV`); items cost coins, bought at the gold shop.
+      Coffee (4, +4 next roll), Shield (6, auto-block + blue bubble), Four-leaf Clover
+      (10, guaranteed 6), Running Shoes (10, passive +1/roll, replaces old passive).
+      `items[]`/`passive`/`rollBonus`/`forceSix` replace `shopItem`; catalog is data in
+      `shop-items.js`, effects keyed by id. Bots buy + auto-use. **47/47 headless checks,
+      0 JS errors.**
+
 ### 2026-06-30 — coordinate grid + ice spreads to neighbours (Isak request)
 - [x] **Grid coordinate system** — single-source `cellRC`/`rcToCell`/`cellLabel`/
       `neighborCells`/`gridNear`; `cellCenter`+`tileBelow` refactored onto them (verified

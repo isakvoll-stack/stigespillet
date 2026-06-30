@@ -4,6 +4,36 @@ Newest first. One entry per working session; note what shipped and what's next.
 
 ---
 
+## 2026-06-30 — inventory + items rework, coord labels removed, encounter priority fix
+
+Isak requests (three in one session). Pushed.
+- **Removed the on-tile A1…J9 coordinate labels.** The grid coord *system*
+  (`cellRC`/`rcToCell`/`cellLabel`/`neighborCells`/`tileBelow`) stays in code for
+  programming; nothing is drawn on the tiles now (the 1–90 number stays).
+- **Encounter resolved before tile events.** In `moveCurrent`, the bounce/kick choice
+  now runs *before* fishing/teleporter/orange/shop/setback/freeze. Hop forward → you
+  leave the tile, its event never fires; kick the occupant back → you keep the tile and
+  the event triggers. Plain (unoccupied) landings unchanged.
+- **Inventory + item rework.** New **🎒 Inventory** button by the die: on your turn,
+  before rolling, open it and *use* consumables, then roll. Bag = **3 consumables + 1
+  passive** (`INV`). Items now **cost coins** and are bought at the gold shop (full
+  catalog with prices + a Leave button; re-renders per purchase).
+  - **☕ Coffee** (4, was Speed Boots) — +4 next roll.
+  - **🛡️ Shield** (6) — auto-blocks the next knockdown/freeze; shows a translucent
+    **blue bubble** around the pawn while held (`updateShield`/`.shieldbubble`).
+  - **🍀 Four-leaf Clover** (10, was Lucky Charm) — guarantees a **6** next roll
+    (`forceSix`; consumed in `roll()`).
+  - **👟 Running Shoes** (10, NEW passive) — +1 every roll; a new passive replaces the
+    old one (lost forever).
+  - Per-player `items[]`/`passive`/`rollBonus`/`forceSix` replace the old single
+    `shopItem`. Catalog (id/ico/name/desc/kind/cost) is data in `shop-items.js`; effects
+    are keyed by id in `index.html`. Bots buy + auto-use Coffee/Clover.
+  - **Verified**: headless-Chrome harness, 47/47 checks pass, 0 JS errors (catalog
+    costs, bag limits, passive replace, shield bubble add/pop, use→modifier wiring,
+    inventory/shop builders, bot auto-use).
+
+---
+
 ## 2026-06-30 — coordinate grid + ice spreads to neighbours
 
 Isak request. Pushed.

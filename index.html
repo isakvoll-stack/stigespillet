@@ -176,6 +176,8 @@
     100%{opacity:0;transform:translate(-50%,-78%) scale(1)}}
   .die.six{animation:diePop .5s ease}
   @keyframes diePop{0%{transform:scale(1)}45%{transform:scale(1.22)}100%{transform:scale(1)}}
+  .shieldbubble{pointer-events:none;animation:shieldPulse 2.2s ease-in-out infinite}
+  @keyframes shieldPulse{0%,100%{opacity:.9}50%{opacity:.5}}
 
   /* dramatic flash + shake */
   #flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:9}
@@ -363,6 +365,7 @@
           </div>
           <div class="roll-hint" id="rollHint">Tap the die<br>or press SPACE</div>
         </div>
+        <button class="btn ghost" id="invBtn" style="width:100%;margin-top:10px">🎒 Inventory</button>
         <div class="legend">
           <span><b>Ladder</b> ↑ up</span><span><b>Chute</b> ↓ down</span>
         </div>
@@ -486,6 +489,13 @@
       <div id="pickerList" style="display:flex;flex-direction:column;gap:8px;min-width:200px"></div>
     </div>
   </div>
+  <div class="modal" id="inv">
+    <div class="box">
+      <h3 id="invTitle">Inventory</h3>
+      <div id="invList" style="display:flex;flex-direction:column;gap:8px;min-width:260px"></div>
+      <button class="btn" id="invDone" style="margin-top:12px">Done — roll when ready</button>
+    </div>
+  </div>
   <div class="modal" id="wheel">
     <div class="box">
       <h3>Wheel of Fortune</h3>
@@ -576,7 +586,7 @@ const FEATURES = {
   freeze:        true,   // icy squares freeze you solid; the frost spreads to adjacent players
   fishPowers:    true,   // carrying fish grants escalating powers (extra movement, ice escape) + quirks (slippery ladders, teleporter overload)
   secretSquare:  true,   // a hidden square before tile 1, only revealed when a backtrack lands someone on it
-  shop:          true,   // gold squares open a shop: pick Speed Boots, Shield, or Lucky Charm
+  shop:          true,   // gold squares open a shop to buy items with coins; use them from your inventory
   coins:         true,   // players earn coins: rolling a 6, or landing on a plain tile
   setback:       true,   // one dark-red tile near the start sends you back to tile 1
   sound:         true,   // sound effects
@@ -608,7 +618,7 @@ const ROLE_COLORS = {
 // Extra accent tiles (plain tiles only): one dark-blue + three orange.
 const SPECIAL_TILES = { 35:"#16306e", 49:"#16306e", 70:"#16306e", 12:"#e67e22", 46:"#e67e22", 77:"#e67e22" };
 const ORANGE_TILES  = [12, 46, 77];                       // orange squares -> Wheel/Support/Gun choice
-const SHOP_TILES    = [6, 28, 52, 75];                    // gold shop squares (land here to pick an item)
+const SHOP_TILES    = [6, 28, 52, 75];                    // gold shop squares (land here to buy items)
 const SHOP_COLOR    = "#d4a656";                          // warm gold — same as --brass
 const SETBACK_TILES = [7];                               // dark-red "back to start" square
 const SETBACK_COLOR = "#8b1a1a";                         // deep red — clearly a penalty tile
@@ -616,8 +626,11 @@ const SETBACK_COLOR = "#8b1a1a";                         // deep red — clearly
 // fully fixed, some (e.g. shop, setback, orange) should spawn at randomly chosen eligible
 // positions each new game (within safe ranges, avoiding snake/ladder tiles). Keeps the
 // board feeling fresh across playthroughs. See also shuffleTiles() for mid-game reshuffling.
-const SHOP          = { BOOT_BONUS: 4 };                  // speed-boot extra steps
-// Shop item catalog lives in shop-items.js (SHOP_CATALOG); loaded via <script src> above.
+const ITEM = { COFFEE_BONUS: 4, SHOES_BONUS: 1 };          // coffee = +4 one-shot; running shoes = +1 every roll
+const INV  = { CONSUMABLES: 3, PASSIVES: 1 };             // bag size: 3 consumables + 1 passive at a time
+// Shop item catalog (id, ico, name, desc, kind, cost) lives in shop-items.js
+// (SHOP_CATALOG), loaded via <script src> above. The catalog is DATA; what each
+// id actually does lives in the item logic below, keyed by id.
 const BLUE_COLORS   = new Set(["#6fa8dc", "#16306e"]);    // light + dark blue squares (safe from the Nuke)
 function isBlueTile(cell){ return BLUE_COLORS.has(cellColor(cell)); }
 function isPlainTile(cell){
@@ -726,7 +739,7 @@ const RULE_INFO = {
   shop: {
     ico: "🏪",
     name: "The Shop",
-    text: "Land on a gold square and you find a cabin shop. Pick one item to carry: Speed Boots add to your next roll, a Shield absorbs the next knockdown or freeze, or a Lucky Charm earns you an extra roll right now.",
+    text: "Land on a gold square and you find a cabin shop. Spend your coins on items: Coffee, a Shield, a Four-leaf Clover, or the Running Shoes. Carry up to three consumables plus one passive, and use them from your inventory before you roll.",
   },
 };
 
@@ -1164,7 +1177,8 @@ function newGame(roster){
   game = {
     players: roster.map((r,i)=>({
       name: r.name || `Player ${i+1}`, color: PLAYER_COLORS[i], pos:0, bot: !!r.bot,
-      downed:false, frozen:false, sniper:false, finished:false, shame:0, getupMin: SNIPER.GETUP_MIN, fish:0, onSecret:false, shopItem:null, coins:0,
+      downed:false, frozen:false, sniper:false, finished:false, shame:0, getupMin: SNIPER.GETUP_MIN, fish:0, onSecret:false,
+      items:[], passive:null, rollBonus:0, forceSix:false, coins:0,
     })),
     current:0, winner:null, over:false, busy:false, round:1, autonomous: !!(roster[0] && roster[0].bot),
     standings: null, fishStreak: 0, fishCaught: 0,
@@ -1199,6 +1213,12 @@ function refreshHUD(){
       : TXT.rollHint);
     die.classList.toggle("disabled", game.busy);
   }
+  const invBtn = document.getElementById("invBtn");
+  if (invBtn){
+    const canInv = FEATURES.shop && !game.winner && !game.busy && !p.bot && !p.downed;
+    invBtn.disabled = !canInv;
+    invBtn.style.opacity = canInv ? "1" : ".5";
+  }
   updateTurnArrow();
   refreshBadges();
   renderScoreboard();
@@ -1212,7 +1232,9 @@ function renderScoreboard(){
     const isTurn = i === game.current && !game.winner;
     row.className = "row" + (isTurn ? " active" : "");
     const medal = p.finished ? (MEDALS[p.place-1] || ("#"+p.place)) : "";
-    const shopMark = p.shopItem ? (" " + (SHOP_CATALOG.find(i=>i.id===p.shopItem)||{ico:""}).ico) : "";
+    const bagMark  = (p.items||[]).map(id=>itemDef(id).ico).join("");
+    const passMark = p.passive ? itemDef(p.passive).ico : "";
+    const shopMark = (bagMark || passMark) ? " " + bagMark + passMark : "";
     const mark = (p.finished ? " "+medal : "") + (p.downed ? (p.frozen ? " 🧊" : " 🤕") : "")
                + (p.sniper ? " 🎯" : "") + (p.shame>0 ? " 😳" : "")
                + (p.fish>0 ? " 🐟"+(p.fish>1?p.fish:"") : "") + shopMark
@@ -1273,13 +1295,17 @@ function setDie(v){ die.setAttribute("data-face", v); }
 async function roll(){
   if (!game || game.winner || game.busy) return;
   if (document.querySelector(".screen.show") || document.querySelector(".modal.show")) return;
+  const cur = game.players[game.current];
+  if (cur.bot && !cur.downed) botMaybeUseItem(cur);          // bots spend coffee/clover before rolling
   game.busy = true; refreshHUD();
   die.classList.add("rolling");
   SFX.play("dice");
   const end = performance.now() + ANIM.DICE;
   while (performance.now() < end){ setDie(1+Math.floor(Math.random()*RULES.DICE_SIDES)); await sleep(70); }
   die.classList.remove("rolling");
-  const value = 1 + Math.floor(Math.random()*RULES.DICE_SIDES);
+  const forced = cur.forceSix && !cur.downed;               // a Four-leaf Clover guarantees a 6
+  cur.forceSix = false;
+  const value = forced ? RULES.DICE_SIDES : (1 + Math.floor(Math.random()*RULES.DICE_SIDES));
   setDie(value);
   if (value === RULES.DICE_SIDES && FEATURES.sixRollsAgain) sixEffect();
   await sleep(160);
@@ -1293,9 +1319,10 @@ async function moveCurrent(rollValue){
   p.onSecret = false;                          // leaving the secret square (if they were on it)
   // fish power: every few fish grant +1 movement this turn (the die's face is unchanged)
   const fishBonus = (FEATURES.fishPowers && p.fish) ? Math.floor(p.fish / FISH.MOVE_PER_FISH) : 0;
-  const bootBonus = (FEATURES.shop && p.shopItem === "boots") ? SHOP.BOOT_BONUS : 0;
-  if (bootBonus > 0){ p.shopItem = null; log(`👟 ${p.name}'s Speed Boots activate! +${SHOP.BOOT_BONUS} extra.`); renderScoreboard(); }
-  const steps = rollValue + fishBonus + bootBonus;
+  const coffeeBonus = (FEATURES.shop && p.rollBonus) ? p.rollBonus : 0;   // a used Coffee adds to this one roll
+  p.rollBonus = 0;
+  const shoesBonus = (FEATURES.shop && p.passive === "shoes") ? ITEM.SHOES_BONUS : 0;  // Running Shoes: +1 every roll
+  const steps = rollValue + fishBonus + coffeeBonus + shoesBonus;
   const from = p.pos === 0 ? 1 : p.pos;        // first move walks from square 1
   const path = walkPath(p.pos === 0 ? 0 : p.pos, steps);
   const landed = path[path.length-1];
@@ -1354,14 +1381,10 @@ async function moveCurrent(rollValue){
     await endTurn(); return;
   }
 
-  // gold square -> shop (pick an item; Lucky Charm grants another roll instead of ending the turn)
+  // gold square -> shop (spend coins on items; turn ends afterwards)
   if (!rolledSix && FEATURES.shop && SHOP_TILES.includes(p.pos)){
-    const shopChoice = await runShop(p);
+    await runShop(p);
     if (game.over) return;
-    if (shopChoice === "charm"){
-      log(`🍀 Lucky Charm — ${p.name} rolls again!`);
-      game.busy = false; refreshHUD(); maybeAuto(); return;
-    }
     await endTurn(); return;
   }
 
@@ -1679,7 +1702,22 @@ function updateShame(i){
     }
   } else if (badge){ badge.remove(); }
 }
-function refreshBadges(){ if (game) game.players.forEach((_,i)=>updateShame(i)); }
+
+// A translucent blue force-field around a player who is holding a Shield. It
+// stays as long as the Shield is in their bag and pops the moment it's spent.
+function updateShield(i){
+  const g = tokenEls[i]; if (!g) return;
+  const has = FEATURES.shop && (game.players[i].items||[]).includes("shield");
+  let bub = g.querySelector(".shieldbubble");
+  if (has && !bub){
+    bub = el("circle",{"class":"shieldbubble",cx:0,cy:-2,r:19,
+      fill:"rgba(90,165,255,.20)",stroke:"rgba(150,200,255,.8)","stroke-width":"2"});
+    const body = g.querySelector(".pawnbody");
+    if (body && body.nextSibling) g.insertBefore(bub, body.nextSibling);
+    else g.appendChild(bub);
+  } else if (!has && bub){ bub.remove(); }
+}
+function refreshBadges(){ if (game) game.players.forEach((_,i)=>{ updateShame(i); updateShield(i); }); }
 
 /* ---- turn flow: start (sniper?) / end (next + round + sniper grant) - */
 async function startTurn(){
@@ -2355,12 +2393,21 @@ function awardCoin(p, reason){
   renderScoreboard();
 }
 
+// Spend a held Shield if there is one; returns true when it absorbed the hit.
+function consumeShield(pl){
+  if (!FEATURES.shop) return false;
+  const k = (pl.items||[]).indexOf("shield");
+  if (k < 0) return false;
+  pl.items.splice(k, 1);
+  updateShield(idxOf(pl)); renderScoreboard();
+  return true;
+}
 function downPlayer(pl){
-  if (pl.shopItem === "shield"){ pl.shopItem = null; log(`🛡️ ${pl.name}'s Shield blocked the hit!`); renderScoreboard(); return; }
+  if (consumeShield(pl)){ log(`🛡️ ${pl.name}'s Shield blocked the hit!`); return; }
   pl.downed = true; pl.getupMin = SNIPER.GETUP_MIN; updateDowned(idxOf(pl));
 }
 function freezePlayer(pl){
-  if (pl.shopItem === "shield"){ pl.shopItem = null; log(`🛡️ ${pl.name}'s Shield blocked the freeze!`); renderScoreboard(); return; }
+  if (consumeShield(pl)){ log(`🛡️ ${pl.name}'s Shield blocked the freeze!`); return; }
   pl.downed = true; pl.frozen = true; pl.getupMin = FREEZE.GETUP_MIN;
   const i = idxOf(pl); updateDowned(i); updateFrozen(i);
 }
@@ -2894,43 +2941,151 @@ async function runSupport(p){
   await advancePlayer(target, MOVE.SUPPORT);
 }
 
-/* ---- shop (gold square): rotating stock of 3 random enabled items ---------- */
-function buildShopStock(){
-  const src = SHOP_CATALOG.filter(i => i.enabled).slice();
-  const stock = [];
-  while (stock.length < 3 && src.length) stock.push(src.splice((Math.random()*src.length)|0, 1)[0]);
-  return stock;
+/* ---- items: bag (3 consumables) + 1 passive ------------------------- */
+function itemDef(id){
+  return SHOP_CATALOG.find(i => i.id === id) || {ico:"", name:id, desc:"", kind:"consumable", cost:0};
+}
+// Can this player buy this item right now? (enough coins, and room/sense for its kind)
+function canBuy(p, item){
+  if (p.coins < item.cost) return false;
+  if (item.kind === "passive") return p.passive !== item.id;     // a new passive replaces the old one
+  return p.items.length < INV.CONSUMABLES;
+}
+// Put an item in the player's bag. A new passive replaces (and discards) the old.
+function giveItem(p, id){
+  const def = itemDef(id);
+  if (def.kind === "passive"){
+    const old = p.passive;
+    p.passive = id;
+    if (old && old !== id) log(`${itemDef(old).ico} ${p.name}'s ${itemDef(old).name} was replaced — gone for good.`);
+    return true;
+  }
+  if (p.items.length >= INV.CONSUMABLES) return false;
+  p.items.push(id);
+  return true;
+}
+function buyItem(p, item){
+  if (!canBuy(p, item)) return false;
+  p.coins -= item.cost;
+  giveItem(p, item.id);
+  SFX.play("sparkle");
+  log(`🛒 ${p.name} bought ${item.ico} ${item.name} for 🪙${item.cost}.`);
+  refreshBadges(); renderScoreboard();
+  return true;
+}
+// Use one consumable from the bag before rolling. Shield isn't used by hand — it
+// guards automatically — so only Coffee and the Clover do anything here.
+function useItem(p, idx){
+  const id = p.items[idx];
+  if (id === "coffee"){
+    p.rollBonus = (p.rollBonus || 0) + ITEM.COFFEE_BONUS;
+    p.items.splice(idx, 1);
+    log(`☕ ${p.name} drank Coffee — +${ITEM.COFFEE_BONUS} to this roll!`);
+    SFX.play("sparkle");
+  } else if (id === "clover"){
+    p.forceSix = true;
+    p.items.splice(idx, 1);
+    log(`🍀 ${p.name} used a Four-leaf Clover — the next roll is a 6!`);
+    SFX.play("sparkle");
+  }
+  refreshBadges(); renderScoreboard();
+}
+// Bots spend Coffee/Clover automatically right before they roll.
+function botMaybeUseItem(p){
+  if (!FEATURES.shop) return;
+  for (let k = p.items.length - 1; k >= 0; k--){
+    if (p.items[k] === "coffee" || p.items[k] === "clover") useItem(p, k);
+  }
 }
 
+/* ---- inventory panel (open before you roll) ------------------------- */
+function openInventory(){
+  if (!game || game.winner || game.busy || !FEATURES.shop) return;
+  const p = game.players[game.current];
+  if (!p || p.bot || p.downed) return;
+  if (document.querySelector(".screen.show") || document.querySelector(".modal.show")
+      || document.querySelector(".choicebar.show")) return;
+  renderInventory();
+  document.getElementById("inv").classList.add("show");
+}
+function closeInventory(){ document.getElementById("inv").classList.remove("show"); }
+function renderInventory(){
+  const p = game.players[game.current];
+  document.getElementById("invTitle").textContent =
+    `🎒 ${p.name} — ${p.items.length}/${INV.CONSUMABLES} items · 🪙${p.coins}`;
+  const list = document.getElementById("invList"); list.innerHTML = "";
+
+  const pdef = p.passive ? itemDef(p.passive) : null;
+  const prow = document.createElement("div");
+  prow.style.cssText = "padding:8px 10px;border:1px dashed var(--brass);border-radius:10px;color:var(--cream);font-size:14px;text-align:left";
+  prow.innerHTML = pdef ? `${pdef.ico} <b>${pdef.name}</b> — ${pdef.desc}`
+                        : `<span style="opacity:.6">No passive equipped</span>`;
+  list.appendChild(prow);
+
+  if (!p.items.length){
+    const e = document.createElement("div");
+    e.style.cssText = "opacity:.6;color:var(--cream);font-size:14px;padding:4px 2px;text-align:left";
+    e.textContent = "No consumables. Land on a gold shop tile to buy some.";
+    list.appendChild(e);
+  }
+  p.items.forEach((id, idx) => {
+    const def = itemDef(id);
+    const row = document.createElement("div");
+    row.style.cssText = "display:flex;align-items:center;gap:8px";
+    const label = document.createElement("div");
+    label.style.cssText = "flex:1;text-align:left;color:var(--cream);font-size:14px";
+    label.innerHTML = `${def.ico} <b>${def.name}</b> — ${def.desc}`;
+    row.appendChild(label);
+    if (id === "shield"){
+      const tag = document.createElement("span");
+      tag.style.cssText = "color:#9cc7ff;font-weight:700;font-size:13px;white-space:nowrap";
+      tag.textContent = "active";
+      row.appendChild(tag);
+    } else {
+      const b = document.createElement("button"); b.className = "btn"; b.style.padding = "8px 14px"; b.textContent = "Use";
+      b.onclick = () => { useItem(p, idx); renderInventory(); };
+      row.appendChild(b);
+    }
+    list.appendChild(row);
+  });
+}
+
+/* ---- shop (gold square): spend coins on items ----------------------- */
 async function runShop(p){
   await revealRuleOnce("shop");
-  log(`🏪 ${p.name} stepped into the shop!`);
+  log(`🏪 ${p.name} stepped into the shop! (🪙${p.coins})`);
   SFX.play("sparkle");
-  const stock = buildShopStock();
-  let id;
-  if (game.autonomous){
-    id = stock[(Math.random()*stock.length)|0].id;
-    await sleep(900);
-  } else {
-    id = await new Promise(res => {
-      document.getElementById("pickerTitle").textContent = `🏪 ${p.name} — pick an item`;
-      const list = document.getElementById("pickerList"); list.innerHTML = "";
-      stock.forEach(item => {
-        const b = document.createElement("button"); b.className = "btn";
-        b.innerHTML = `${item.ico} <b>${item.name}</b> — ${item.desc}`;
-        b.style.textAlign = "left"; b.style.boxShadow = "none";
-        b.onclick = () => { document.getElementById("picker").classList.remove("show"); pickResolve = null; res(item.id); };
-        list.appendChild(b);
-      });
-      pickResolve = res;
-      document.getElementById("picker").classList.add("show");
-    });
+  if (game.autonomous || p.bot){
+    const buyable = SHOP_CATALOG.filter(i => i.enabled && canBuy(p, i)).sort((a,b)=>b.cost-a.cost);
+    if (buyable.length) buyItem(p, buyable[0]);
+    else log(`🏪 ${p.name} couldn't afford anything and left.`);
+    await sleep(800);
+    return;
   }
-  if (id !== "charm") p.shopItem = id;
-  const item = SHOP_CATALOG.find(i => i.id === id);
-  log(`${item.ico} ${p.name} picked up: ${item.name}!`);
-  renderScoreboard();
-  return id;
+  await new Promise(res => {
+    const close = () => { document.getElementById("picker").classList.remove("show"); pickResolve = null; res(); };
+    pickResolve = close;
+    renderShop(p, close);
+    document.getElementById("picker").classList.add("show");
+  });
+}
+function renderShop(p, close){
+  document.getElementById("pickerTitle").textContent = `🏪 Shop — ${p.name} has 🪙${p.coins}`;
+  const list = document.getElementById("pickerList"); list.innerHTML = "";
+  SHOP_CATALOG.filter(i => i.enabled).forEach(item => {
+    const can = canBuy(p, item);
+    const tag = item.kind === "passive" ? " · passive" : "";
+    const b = document.createElement("button"); b.className = "btn";
+    b.innerHTML = `${item.ico} <b>${item.name}</b> — ${item.desc} <span style="opacity:.85">(🪙${item.cost}${tag})</span>`;
+    b.style.textAlign = "left"; b.style.boxShadow = "none";
+    b.disabled = !can; b.style.opacity = can ? "1" : ".45";
+    b.onclick = () => { if (buyItem(p, item)) renderShop(p, close); };
+    list.appendChild(b);
+  });
+  const leave = document.createElement("button");
+  leave.className = "btn ghost"; leave.textContent = "Leave shop"; leave.style.marginTop = "4px";
+  leave.onclick = close;
+  list.appendChild(leave);
 }
 
 async function runOrange(p){
@@ -3028,6 +3183,10 @@ function startFromSetup(){
 die.addEventListener("click", roll);
 document.addEventListener("keydown", e=>{
   if (document.getElementById("fish").classList.contains("show")) return;   // minigame owns its keys
+  if (document.getElementById("inv").classList.contains("show")){
+    if (e.code === "Enter"){ e.preventDefault(); closeInventory(); }
+    return;                                                                 // inventory uses buttons
+  }
   if (document.getElementById("picker").classList.contains("show")) return; // pick via buttons
   if (document.getElementById("wheel").classList.contains("show")) return;  // wheel is spinning
   if (document.getElementById("orange").classList.contains("show")){
@@ -3066,6 +3225,8 @@ document.getElementById("optSupport").addEventListener("click", ()=>{ if (orange
 document.getElementById("optGun").addEventListener("click", ()=>{ if (orangeResolve) orangeResolve("gun"); });
 ["pointerdown","keydown"].forEach(ev => document.addEventListener(ev, ()=>SFX.play("click"), { once:true }));
 
+document.getElementById("invBtn").addEventListener("click", openInventory);
+document.getElementById("invDone").addEventListener("click", closeInventory);
 document.getElementById("playBtn").addEventListener("click", openSetup);
 document.getElementById("toSetup").addEventListener("click", openSetup);
 document.getElementById("backBtn").addEventListener("click", ()=>showScreen("title"));
