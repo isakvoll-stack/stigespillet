@@ -4,6 +4,33 @@ Newest first. One entry per working session; note what shipped and what's next.
 
 ---
 
+## 2026-06-30 — six-roll priority fix + gun rework
+
+Isak request batch. Pushed.
+- **Roll-again priority bug fixed.** Rolling a 6 then landing on a choice/minigame tile
+  (orange, gold shop, fishing, teleporter, setback, freeze) used to fire that tile's effect
+  immediately and end the turn — cancelling the extra roll. Now `moveCurrent` computes
+  `rolledSix` and gates each of those special-tile branches on `!rolledSix`: on a 6 the
+  square you land on does nothing and you roll again. Special tiles only activate on the
+  square you FINISH your turn on (a non-6 landing). Ladders/slides still apply on every
+  landing (movement, not a choice). Verified headless: a 6 onto an orange tile leaves the
+  player on it, turn not handed off, no choice bar, no hang; full autonomous game still
+  terminates with 0 JS errors.
+- **Gun cutscene slowed + reshaped.** Timing: chamber-read-before-spin 1.0s→2.4s,
+  gun-drawn-but-not-fired 0.26s→1.1s, `SPIN_MS` 1.2s→2.0s, `SHOT_GAP` 0.24s→0.43s, plus
+  longer self/blank/final beats. Visual: the tiny revolver's fat 32px round cylinder (which
+  read as an upside-down cannon) replaced with a simple flat-gray blocky pixel pistol
+  (slide + barrel + small chamber + angled grip, 1.5px hard outlines) in the `.tg-*` CSS.
+
+### Next when resumed
+- Eyeball the new pixel gun in-browser (silhouette can't be verified headlessly); tweak the
+  `.tg-*` block sizes/positions if it reads off, esp. aiming left (the sprite rotates, so the
+  grip can point up — add a vertical flip if that bothers you).
+- Decide whether the hidden encounter (bounce/kick) should also defer on a 6 (left firing for
+  now — it's a positional rule, not a tile effect).
+
+---
+
 ## 2026-06-26 — fish powers + secret square + smarter bots
 
 Isak request batch (one message, several asks). Pushed.

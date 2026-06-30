@@ -47,6 +47,13 @@ the leftover steps (e.g. on 88, a roll of 5 goes 89 → 90 → 89 → 88).
 ### Roll a 6 → roll again
 Rolling a 6 lets the same player roll again (with a little celebration effect).
 Chains if you keep rolling 6s.
+
+**Priority:** a square you land on *because of a 6* is not your final stop, so its
+choice/minigame effect does **not** fire — you simply roll again from it. Special tiles
+(orange wheel/support/gun, gold shop, fishing, teleporter, setback, freeze) only activate on
+the square you **finish** your turn on (a non-6 landing). Ladders and slides still apply on
+every landing, since they're movement rather than a choice.
+
 *Toggle: `FEATURES.sixRollsAgain`.*
 
 ### Encounter — bounce or kick (hidden rule)

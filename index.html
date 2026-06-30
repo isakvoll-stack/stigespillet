@@ -245,21 +245,20 @@
   .tinygun{position:fixed;z-index:15;width:0;height:0;pointer-events:none;
     transform:translate(-50%,-50%) rotate(var(--aim,0deg));transform-origin:center;
     filter:drop-shadow(0 3px 4px rgba(0,0,0,.55))}
-  .tinygun .tg{position:absolute;transform:translate(-50%,-50%)}
-  .tg-barrel{width:64px;height:13px;left:30px;top:-3px;border-radius:2px 5px 4px 2px;
-    background:linear-gradient(#e9edf1,#9aa0a6 45%,#53585e)}
-  .tg-barrel::after{content:"";position:absolute;right:-1px;top:2px;width:6px;height:9px;border-radius:2px;background:#1a1d20}
-  .tg-frame{width:40px;height:22px;left:6px;top:-3px;border-radius:4px;background:linear-gradient(#aab0b6,#4a4f55)}
-  .tg-cyl{width:32px;height:32px;left:6px;top:-3px;border-radius:50%;
-    background:radial-gradient(circle at 40% 34%,#c4c9ce,#5a6066 62%,#2f3338);
-    box-shadow:inset 0 0 7px rgba(0,0,0,.7), 0 2px 4px rgba(0,0,0,.5)}
+  /* a simple tiny gray pixel pistol — flat blocks + a hard 1.5px outline on each
+     part. Barrel points +x (right) toward the aim angle; muzzle tip sits at x~62. */
+  .tinygun .tg{position:absolute;transform:translate(-50%,-50%);box-shadow:0 0 0 1.5px #23262a}
+  .tg-frame{width:38px;height:12px;left:23px;top:-6px;border-radius:1px;background:#8b9198}      /* slide / body */
+  .tg-barrel{width:22px;height:7px;left:50px;top:-6px;border-radius:1px;background:#5b6066}       /* barrel */
+  .tg-barrel::after{content:"";position:absolute;right:-1px;top:1px;width:4px;height:5px;background:#101316;box-shadow:none}  /* muzzle */
+  .tg-cyl{width:12px;height:12px;left:20px;top:2px;border-radius:2px;background:#6b7177}          /* small chamber block */
   .tg-holes{position:absolute;inset:0}
-  .tg-holes i{position:absolute;left:50%;top:50%;width:5px;height:5px;border-radius:50%;background:#15181b;
-    transform:translate(-50%,-50%) rotate(var(--h)) translateY(-10px)}
+  .tg-holes i{position:absolute;left:50%;top:50%;width:3px;height:3px;border-radius:50%;background:#15181b;box-shadow:none;
+    transform:translate(-50%,-50%) rotate(var(--h)) translateY(-3.5px)}
   .tg-holes.spin{animation:tgspin var(--sp,.4s) linear infinite}
   @keyframes tgspin{to{transform:rotate(360deg)}}
-  .tg-grip{width:15px;height:30px;left:-4px;top:14px;border-radius:2px 4px 7px 8px;
-    background:linear-gradient(#7a5733,#3d2814);transform:translate(-50%,-50%) rotate(28deg)}
+  .tg-grip{width:12px;height:21px;left:13px;top:9px;border-radius:1px;background:#4a4f55;
+    transform:translate(-50%,-50%) rotate(20deg)}                                                /* grip, angled down-back */
   .gunflash{position:fixed;z-index:16;width:26px;height:26px;border-radius:50%;pointer-events:none;
     transform:translate(-50%,-50%) scale(.4);background:radial-gradient(circle,#fff,#ffd23e 45%,rgba(255,160,40,0) 72%);
     animation:gunflash .22s ease-out forwards}
@@ -770,8 +769,8 @@ const GUN = {
   CHAMBERS:6,
   LAYOUT:["blank","live","blank","self","live","blank"],  // hidden chamber outcomes (the landed one is NOT shown)
   SHOTS:3,                            // a LIVE chamber fires this many shots at the leaders
-  SPIN_MS:1200, SHOT_GAP:240,         // chamber-spin length + gap between shots (ms)
-  SPIN_ROT_MS:300,                    // ms for one full cylinder rotation (controls animation smoothness)
+  SPIN_MS:2000, SHOT_GAP:430,         // chamber-spin length + gap between shots (ms) — slowed for drama
+  SPIN_ROT_MS:380,                    // ms for one full cylinder rotation (controls animation smoothness)
 };
 const TELEPORTERS  = [22, 66];             // teal teleporter squares (between tile 20 and 80)
 const TELEPORT_COLOR = "#17b5a3";          // teal
@@ -1294,29 +1293,35 @@ async function moveCurrent(rollValue){
   // reached the finish? first one out wins; the game ends and ranks everyone
   if (p.pos === BOARD.WIN){ finishPlayer(p); return; }
 
+  // A 6 means another roll is still coming, so the square you're on isn't your
+  // final stop yet. Choice/minigame tiles (fishing, teleporter, orange, shop,
+  // setback, freeze) only fire on the square you END your turn on — on a 6 we
+  // skip them here and let the player roll again from this square.
+  const rolledSix = FEATURES.sixRollsAgain && rollValue === RULES.DICE_SIDES;
+
   // dark-blue square -> fishing minigame (then the turn is over)
-  if (FEATURES.fishing && FISH.TILES.includes(p.pos)){
+  if (!rolledSix && FEATURES.fishing && FISH.TILES.includes(p.pos)){
     await runFishing(p);
     if (game.over) return;
     await endTurn(); return;
   }
 
   // teal square -> teleporter (then the turn is over)
-  if (FEATURES.teleport && TELEPORTERS.includes(p.pos)){
+  if (!rolledSix && FEATURES.teleport && TELEPORTERS.includes(p.pos)){
     await runTeleporter(p);
     if (game.over) return;
     await endTurn(); return;
   }
 
   // orange square -> Wheel / Support / Gun choice (then the turn is over)
-  if (FEATURES.orange && ORANGE_TILES.includes(p.pos)){
+  if (!rolledSix && FEATURES.orange && ORANGE_TILES.includes(p.pos)){
     await runOrange(p);
     if (game.over) return;
     await endTurn(); return;
   }
 
   // gold square -> shop (pick an item; Lucky Charm grants another roll instead of ending the turn)
-  if (FEATURES.shop && SHOP_TILES.includes(p.pos)){
+  if (!rolledSix && FEATURES.shop && SHOP_TILES.includes(p.pos)){
     const shopChoice = await runShop(p);
     if (game.over) return;
     if (shopChoice === "charm"){
@@ -1327,7 +1332,7 @@ async function moveCurrent(rollValue){
   }
 
   // dark-red square -> back to start (then the turn is over)
-  if (FEATURES.setback && SETBACK_TILES.includes(p.pos)){
+  if (!rolledSix && FEATURES.setback && SETBACK_TILES.includes(p.pos)){
     await revealRuleOnce("setback");
     log(`🔴 ${p.name} hit the penalty tile — back to tile 1!`);
     SFX.play("chute");
@@ -1336,7 +1341,7 @@ async function moveCurrent(rollValue){
   }
 
   // icy square (or landing next to a frozen player) -> freeze (then the turn is over)
-  if (FEATURES.freeze && await tryFreeze(p)){
+  if (!rolledSix && FEATURES.freeze && await tryFreeze(p)){
     if (game.over) return;
     await endTurn(); return;
   }
@@ -2507,7 +2512,7 @@ async function showLargeChambers(){
     `</div>`;
   document.body.appendChild(wrap);
   await raf(); wrap.style.opacity = "1";
-  await sleep(1000);                                        // let players read the layout
+  await sleep(2400);                                       // long, deliberate beat — read the chamber odds BEFORE it spins
   const disc = wrap.querySelector(".chamberDisc");
   disc.style.animation = `tgspin ${GUN.SPIN_ROT_MS}ms linear infinite`;
   SFX.play("spin");
@@ -2601,23 +2606,23 @@ async function revolverRoulette(p){
   const aimCells = leaders.length ? leaders.map(q=>q.pos) : [p.pos];
   const gun = tinyRevolver(at, aimAt(at, aimCells));
   await raf();
-  SFX.play("click"); await sleep(260);
+  SFX.play("click"); await sleep(1100);            // the gun is drawn and cocked, but NOT fired yet — hold the tension
 
   if (type === "blank"){
     const a = aimAt(at, aimCells);
     SFX.play("click");                                             // a dud: one twitch
-    gun.style.transform = `translate(-50%,-50%) rotate(${a}deg) translateX(-4px)`; await sleep(120);
+    gun.style.transform = `translate(-50%,-50%) rotate(${a}deg) translateX(-4px)`; await sleep(300);
     aimGun(gun, a);
     log(`🔫 *click* — a blank. ${p.name} got lucky.`);
   } else if (type === "self"){
-    SFX.play("click"); await sleep(200);
+    SFX.play("click"); await sleep(620);
     flashScreen(); explode(p.pos); SFX.play("boom");               // the only gun explosion: a self-backfire
     downPlayer(p); layoutTokens(); renderScoreboard();
     log(`🔫 BANG! ${p.name}'s gun backfired — they go down.`);
   } else {                                                         // live: three shots at the leaders
     if (leaders.length){
       const marks = leaders.map(q=> aimMark(q.pos));
-      await sleep(280);
+      await sleep(520);
       for (let k=0;k<GUN.SHOTS;k++){
         const q = leaders[k % leaders.length], a = aimAt(at, [q.pos]);
         aimGun(gun, a);
@@ -2635,7 +2640,7 @@ async function revolverRoulette(p){
     }
   }
 
-  await sleep(380);
+  await sleep(560);
   gun.style.transition = "opacity .3s"; gun.style.opacity = "0";
   dim.classList.remove("show");
   await sleep(320); gun.remove(); dim.remove();
