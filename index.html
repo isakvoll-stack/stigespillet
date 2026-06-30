@@ -973,10 +973,6 @@ function buildBoard(){
     const t = el("text",{x:gx+18,y:gy+19,"text-anchor":"middle","font-size":"14","font-weight":"700",fill:"#2a2018","font-family":"Segoe UI, sans-serif"});
     t.textContent = cell;
     svg.appendChild(t);
-    svg.appendChild(el("rect",{x:gx+C-34,y:gy+C-21,width:30,height:17,rx:4,fill:"rgba(255,255,255,.55)"}));
-    const gl = el("text",{x:gx+C-19,y:gy+C-8,"text-anchor":"middle","font-size":"12","font-weight":"600",fill:"#3a2e22","font-family":"Segoe UI, sans-serif"});
-    gl.textContent = cellLabel(cell);
-    svg.appendChild(gl);
   }
 
   // ladders then slides on top
