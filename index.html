@@ -1325,6 +1325,14 @@ async function moveCurrent(rollValue){
   // skip them here and let the player roll again from this square.
   const rolledSix = FEATURES.sixRollsAgain && rollValue === RULES.DICE_SIDES;
 
+  // Landing on an occupied tile is settled FIRST, before any tile event/minigame.
+  // Bounce forward and you leave this square (so its event never fires for you);
+  // kick the occupant back and you keep the square, so its event triggers below.
+  if (FEATURES.encounter){
+    await resolveEncounters(p);
+    if (game.over) return;
+  }
+
   // dark-blue square -> fishing minigame (then the turn is over)
   if (!rolledSix && FEATURES.fishing && FISH.TILES.includes(p.pos)){
     await runFishing(p);
@@ -1370,12 +1378,6 @@ async function moveCurrent(rollValue){
   if (!rolledSix && FEATURES.freeze && await tryFreeze(p)){
     if (game.over) return;
     await endTurn(); return;
-  }
-
-  // hidden encounter rule (bounce / kick) — may chain, and a bounce can win
-  if (FEATURES.encounter){
-    await resolveEncounters(p);
-    if (game.over) return;
   }
 
   // coin for landing on a plain tile (no special effect this stop)
