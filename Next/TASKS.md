@@ -71,6 +71,12 @@ See `LOG.md` for the running session history.
 ---
 
 ## Done
+### 2026-07-02 — shield is now tactical + blue tiles pay 3 (Isak)
+- [x] Shield no longer guards from the bag: USE it from the inventory to arm it
+      (`p.shieldOn`, bubble shows only when armed, blocks once). Bots arm theirs.
+- [x] Plain BLUE tiles award 3 coins (yellow still 1); `COIN.PLAIN/BLUE`, `awardCoin(p,r,n)`.
+- [x] Smoke 7/7, 0 errors.
+
 ### 2026-07-02 — lightning clouds, nuke rework, radioactive fallout rule, freeze fix (Isak)
 - [x] **Lightning v3** (`CUTS.lightning:3`): clouds roll in from BOTH sides at the top, meet
       in the middle, sky darkens slowly; the strike itself unchanged.

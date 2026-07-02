@@ -655,7 +655,7 @@ const SHOP_CATALOG = [
   { id:"coffee", ico:"☕",  name:"Coffee",           kind:"consumable", cost:4,  enabled:true,
     desc:"+4 to your next roll." },
   { id:"shield", ico:"🛡️", name:"Shield",           kind:"consumable", cost:6,  enabled:true,
-    desc:"Blocks the next knockdown or freeze. A blue bubble shows while it's active." },
+    desc:"Use it to raise a guard that blocks the next knockdown or freeze." },
   { id:"clover", ico:"🍀", name:"Four-leaf Clover", kind:"consumable", cost:10, enabled:true,
     desc:"Guarantees a 6 on your next roll." },
   { id:"shoes",  ico:"👟", name:"Running Shoes",    kind:"passive",    cost:10, enabled:true,
@@ -842,6 +842,7 @@ const FREEZE = { GETUP_MIN: 4, ADJ: 1 };   // need 4+ to break free; LANDING wit
 const RAD_TILES = [];                      // fallout tiles — empty until a nuke converts plain tiles
 const RAD_COLOR = "#58c81b";               // radioactive green
 const RAD = { PER_NUKE:2, GROW_TURNS:5, IMMUNE_BONUS:1 };  // tiles per nuke; sickness worsens 5 turns (to -5) then recovers; survive = permanent +1
+const COIN = { PLAIN:1, BLUE:3 };          // coins for landing on a plain yellow / plain blue tile
 const LIGHTNING = { CHANCE:0.005, BACK:7,       // ~0.5% per turn: strike the leader, knock them back (3x rarer)
   GATHER_MS:1400, FLICKERS:2, STRIKES:3, FORKS:3, SPARKS:16 };  // build-up time + pre-flickers, main multi-strike, branch forks, impact sparks
 const LUCKY     = { CHANCE:0.004, FORWARD:8 };  // ~0.4% per turn: sweep the last-place player forward (3x rarer)
@@ -1459,7 +1460,7 @@ function newGame(roster){
       name: r.name || `Player ${i+1}`, color: PLAYER_COLORS[i], pos:0, bot: !!r.bot,
       downed:false, frozen:false, sniper:false, finished:false, shame:0, getupMin: SNIPER.GETUP_MIN, fish:0, onSecret:false,
       items:[], passive:null, rollBonus:0, forceSix:false, coins:0,
-      radSick:false, radTurns:0, radLevel:0, radImmune:false,
+      radSick:false, radTurns:0, radLevel:0, radImmune:false, shieldOn:false,
     })),
     current:0, winner:null, over:false, busy:false, round:1, autonomous: !!(roster[0] && roster[0].bot),
     standings: null, fishStreak: 0, fishCaught: 0,
@@ -1652,7 +1653,10 @@ async function moveCurrent(rollValue){
   }
 
   // coin for landing on a plain tile (no special effect this stop)
-  if (FEATURES.coins && isPlainTile(p.pos)) awardCoin(p, "Plain tile");
+  if (FEATURES.coins && isPlainTile(p.pos)){
+    const blue = isBlueTile(p.pos);                        // the scattered blue tiles pay better
+    awardCoin(p, blue ? "Blue tile" : "Plain tile", blue ? COIN.BLUE : COIN.PLAIN);
+  }
 
   // a 6 earns another roll for the same player; otherwise end the turn
   if (FEATURES.sixRollsAgain && rollValue === RULES.DICE_SIDES){
@@ -1962,7 +1966,7 @@ function updateShame(i){
 // stays as long as the Shield is in their bag and pops the moment it's spent.
 function updateShield(i){
   const g = tokenEls[i]; if (!g) return;
-  const has = FEATURES.shop && (game.players[i].items||[]).includes("shield");
+  const has = FEATURES.shop && game.players[i].shieldOn;   // the bubble shows once the Shield is USED, not while it sits in the bag
   let bub = g.querySelector(".shieldbubble");
   if (has && !bub){
     bub = el("circle",{"class":"shieldbubble",cx:0,cy:-2,r:19,
@@ -2896,18 +2900,17 @@ async function fateSwapYou(p){
 }
 
 /* ---- orange square: Wheel / Support / Gun -------------------------- */
-function awardCoin(p, reason){
-  p.coins = (p.coins||0) + 1;
-  log(`🪙 ${reason} — ${p.name} earns a coin! (${p.coins} total)`);
+function awardCoin(p, reason, n){
+  const k = n || 1;
+  p.coins = (p.coins||0) + k;
+  log(`🪙 ${reason} — ${p.name} earns ${k === 1 ? "a coin" : k + " coins"}! (${p.coins} total)`);
   renderScoreboard();
 }
 
 // Spend a held Shield if there is one; returns true when it absorbed the hit.
 function consumeShield(pl){
-  if (!FEATURES.shop) return false;
-  const k = (pl.items||[]).indexOf("shield");
-  if (k < 0) return false;
-  pl.items.splice(k, 1);
+  if (!FEATURES.shop || !pl.shieldOn) return false;        // only an ARMED shield guards — one in the bag does nothing
+  pl.shieldOn = false;
   updateShield(idxOf(pl)); renderScoreboard();
   return true;
 }
@@ -3522,6 +3525,12 @@ function useItem(p, idx){
     p.items.splice(idx, 1);
     log(`🍀 ${p.name} used a Four-leaf Clover — the next roll is a 6!`);
     SFX.play("sparkle");
+  } else if (id === "shield"){
+    p.shieldOn = true;
+    p.items.splice(idx, 1);
+    updateShield(idxOf(p));
+    log(`🛡️ ${p.name} raises the Shield — the next hit is blocked!`);
+    SFX.play("sparkle");
   }
   refreshBadges(); renderScoreboard();
 }
@@ -3530,6 +3539,7 @@ function botMaybeUseItem(p){
   if (!FEATURES.shop) return;
   for (let k = p.items.length - 1; k >= 0; k--){
     if (p.items[k] === "coffee" || p.items[k] === "clover") useItem(p, k);
+    else if (p.items[k] === "shield" && !p.shieldOn) useItem(p, k);   // bots arm a held shield too
   }
 }
 
@@ -3571,16 +3581,9 @@ function renderInventory(){
     label.style.cssText = "flex:1;text-align:left;color:var(--cream);font-size:14px";
     label.innerHTML = `${def.ico} <b>${def.name}</b> — ${def.desc}`;
     row.appendChild(label);
-    if (id === "shield"){
-      const tag = document.createElement("span");
-      tag.style.cssText = "color:#9cc7ff;font-weight:700;font-size:13px;white-space:nowrap";
-      tag.textContent = "active";
-      row.appendChild(tag);
-    } else {
-      const b = document.createElement("button"); b.className = "btn"; b.style.padding = "8px 14px"; b.textContent = "Use";
-      b.onclick = () => { useItem(p, idx); renderInventory(); };
-      row.appendChild(b);
-    }
+    const b = document.createElement("button"); b.className = "btn"; b.style.padding = "8px 14px"; b.textContent = "Use";
+    b.onclick = () => { useItem(p, idx); renderInventory(); };
+    row.appendChild(b);
     list.appendChild(row);
   });
 }

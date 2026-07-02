@@ -3,6 +3,20 @@
 Newest first. One entry per working session; note what shipped and what's next.
 
 ---
+## 2026-07-02 (evening) — animation + rules batch
+
+Isak-directed, all pushed. Cutscenes now per-version switchable (`CUTS`) with a
+`#preview=<name>` viewer. Leviathan: two redos REJECTED, live = original (v1).
+Lightning v3: cloud fronts from both sides meet mid-sky. Nuke v3: drawn warhead
+(straight fall), air-raid wail, fireball swallowed by the white, soft ear-ring,
+knockdowns behind the white. NEW radioactive fallout rule (2 green tiles per nuke,
+stacking −1..−5 sickness → recovery → permanent +1) via the registry recipe.
+Freeze no longer spreads on contact — only landing adjacent freezes. Shield must be
+USED to guard; plain blue tiles pay 3 coins. ⚠ Isak's original visions for
+lightning/star/nuke were lost — capture animation specs verbatim in the future.
+
+---
+
 
 ## 2026-07-02 (later) — shop fatal-error fix: self-contained again + error trap
 

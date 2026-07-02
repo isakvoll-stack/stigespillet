@@ -223,9 +223,11 @@ passive** at a time. *(Shelf size = `SHOP.STOCK`.)*
 **Consumables** (held in your bag; *used* from the inventory **before** you roll):
 
 - **☕ Coffee** — **4 coins.** +4 to your next roll.
-- **🛡️ Shield** — **6 coins.** Absorbs the next hit: a sniper shot, a kick, a pile-up
-  knockdown, or a freeze. While you hold it, a small **transparent blue bubble** shows
-  around your pawn; the hit is negated and the shield is then gone.
+- **🛡️ Shield** — **6 coins.** *Use it* from your inventory to raise a guard that
+  absorbs the next hit: a sniper shot, a kick, a pile-up knockdown, or a freeze. While
+  raised, a small **transparent blue bubble** shows around your pawn; the hit is negated
+  and the shield is then gone. A shield still sitting in your bag does **nothing** —
+  timing it is the strategy.
 - **🍀 Four-leaf Clover** — **10 coins.** Guarantees a **6** on your next roll (and a 6
   rolls again, so it chains nicely).
 
@@ -236,8 +238,9 @@ passive** at a time. *(Shelf size = `SHOP.STOCK`.)*
   forever**.
 
 **Using items:** on your turn, before rolling, press the **🎒 Inventory** button next
-to the die. Use Coffee or the Clover (Shield guards automatically), then roll. Bots
-spend their Coffee/Clover automatically before they roll. Your held items appear as
+to the die. Use any consumable — Coffee, Clover or Shield — then roll. Bots spend
+their items automatically before they roll. Landing on a plain **blue** tile earns
+**3 coins** (a plain yellow one earns 1; `COIN` in DATA). Your held items appear as
 icons in the scoreboard next to your name.
 
 *Toggle: `FEATURES.shop`. Shop tiles = `SHOP_TILES` (6, 28, 52, 75). Bag size =
