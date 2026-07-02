@@ -102,6 +102,14 @@ See `LOG.md` for the running session history.
 - [x] Verified: 13/13 targeted (freeze bystander safe, fallout paint/infect/curve/immunity,
       too-weak turn, re-exposure, v3 cutscenes clean) + suite 25/25.
 
+### 2026-07-02 — radiation walks you backwards + wheel gets twin dice (Isak)
+- [x] **Radioactive rework**: roll + debuff < 0 now hops you BACKWARDS that many tiles
+      (`walkBackPath` in ENGINE, normal landing rules apply, floor at tile 1); exactly 0
+      is still "too weak to move".
+- [x] **Wheel**: both random slots now show 🎲 (the 🎯 dart board is gone); logs updated.
+- [x] Confirmed the 🌀 tile-shuffle slot IS reachable (uniform 1/7 pick); fixed the stale
+      "1/6" comment.
+
 ### 2026-07-02 — leviathan: V3 rejected (Isak: old is much better), V4 from-scratch redo
 - [x] Live game reverted to the ORIGINAL leviathan (`CUTS.leviathan:1`).
 - [x] V4 built from scratch, no code shared with V1/V3: body = scale-banded segment chain

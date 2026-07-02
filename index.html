@@ -950,6 +950,12 @@ function walkPath(start, roll){
   return path;                            // last entry is the landing cell
 }
 
+function walkBackPath(start, n){
+  const path = [];
+  for (let c = start-1; c >= Math.max(start-n, 1); c--) path.push(c);
+  return path;
+}
+
 function linkAt(cell){
   if (cell in LADDERS) return { kind:"ladder", to: LADDERS[cell] };
   if (cell in SLIDES)  return { kind:"slide",  to: SLIDES[cell]  };
@@ -1637,13 +1643,16 @@ async function moveCurrent(rollValue){
   const i = game.current;
   p.onSecret = false;                          // leaving the secret square (if they were on it)
   const steps = rollValue + moveBonusTotal(p); // die face + every active MOVE_BONUSES entry
-  if (steps < 1){                              // radiation can sap a roll to nothing
+  const backwards = steps < 0 && p.pos > 1;    // radiation beyond the roll drags you back
+  if (steps < 1 && !backwards){                // radiation can sap a roll to nothing
     log(`☢️ ${p.name} is too weak to move!`);
     await sleep(500);
     await endTurn(); return;
   }
   const from = p.pos === 0 ? 1 : p.pos;        // first move walks from square 1
-  const path = walkPath(p.pos === 0 ? 0 : p.pos, steps);
+  const path = backwards ? walkBackPath(p.pos, -steps)
+                         : walkPath(p.pos === 0 ? 0 : p.pos, steps);
+  if (backwards) log(`☢️ Radiation overwhelms ${p.name} — they hop ${path.length} backwards!`);
   const landed = path[path.length-1];
   const overshot = path.some(c=>c===BOARD.WIN) && landed !== BOARD.WIN;
 
@@ -3272,7 +3281,7 @@ async function revolverRoulette(p){
   await sleep(320); gun.remove(); dim.remove();
 }
 
-const WHEEL_LABELS = ["☢️","🔙","➡️","🚀","🎲","🎯","🌀"];   // nuke / start / next / +15 / random / random-target / tile-shuffle
+const WHEEL_LABELS = ["☢️","🔙","➡️","🚀","🎲","🎲","🌀"];   // nuke / start / next / +15 / random / random-target / tile-shuffle
 const WHEEL_COLORS = ["#d64541","#8e44ad","#2e86c1","#27ae60","#e67e22","#e84393","#17b5a3"];
 const WHEEL_PICKS  = ["nuke","start","next","move15","random","random_target","tile_shuffle"];
 function wpol(cx,cy,r,deg){ const a = (deg-90)*Math.PI/180; return [cx+r*Math.cos(a), cy+r*Math.sin(a)]; }
@@ -3405,7 +3414,7 @@ async function randomTeleport(p){
 async function downYou(p){
   await gunFx([p.pos]);
   downPlayer(p); layoutTokens(); renderScoreboard();
-  log(`🎲🎯 Random: ${p.name} gets picked off and goes down!`);
+  log(`🎲 Random: ${p.name} gets picked off and goes down!`);
   await sleep(400);
 }
 // Plain random event (🎲 slot): effects fire based on game state — lightning hits the
@@ -3494,7 +3503,7 @@ async function randomWheelEffect(p){
 }
 
 async function spinWheel(p){
-  const idx = Math.floor(Math.random()*WHEEL_LABELS.length);   // 1/6 each
+  const idx = Math.floor(Math.random()*WHEEL_LABELS.length);   // uniform: 1/7 each
   const pick = WHEEL_PICKS[idx];
   await showWheel(idx);
   if (pick === "nuke"){ await nukeEveryone(""); }
@@ -3502,7 +3511,7 @@ async function spinWheel(p){
   else if (pick === "next"){ log(`🎡 ${p.name} edges to the next square.`); await advancePlayer(p, MOVE.WHEEL_NEXT); }
   else if (pick === "move15"){ log(`🎡 ${p.name} rockets 15 spaces forward!`); await advancePlayer(p, MOVE.WHEEL_BIG); }
   else if (pick === "random"){ log(`🎲 Random event!`); await randomBoardEvent(p); }
-  else if (pick === "random_target"){ log(`🎯 The wheel targets ${p.name}!`); await randomWheelEffect(p); }
+  else if (pick === "random_target"){ log(`🎲 The wheel targets ${p.name}!`); await randomWheelEffect(p); }
   else if (pick === "tile_shuffle"){ log(`🌀 The wheel scrambled the board!`); await shuffleTiles(); }
 }
 

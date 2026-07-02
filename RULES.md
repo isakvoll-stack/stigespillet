@@ -161,8 +161,10 @@ trapdoor is patched: tile 89 is a completely normal tile for the rest of the gam
 A **nuke** leaves scars: after the blast, **two plain tiles turn radioactive green**.
 Land on one (or get thrown onto one) and you become **radioactive**: your rolls take
 **−1, worsening by 1 more each of your turns for 5 turns** (down to −5), then you
-**recover by +1 per turn** back to ±0. Roll less than the sickness and you're **too
-weak to move** that turn. Landing in fallout again while sick **knocks your recovery
+**recover by +1 per turn** back to ±0. Roll exactly the sickness away and you're **too
+weak to move** that turn; roll *less* than the sickness and you **hop backwards** the
+difference (slides, ladders and tile effects apply where you land, but you never drop
+below tile 1). Landing in fallout again while sick **knocks your recovery
 back** to the worst point. Survive the whole sickness and you emerge **hardened: a
 permanent +1 to every roll** — and immune to fallout forever.
 
@@ -194,7 +196,7 @@ Land on an **orange square** and pick one of three:
   (knocks down everyone *not* standing on a blue tile), **back to start**,
   **forward one square**, **forward 15 squares**, **🎲 Random event** (fires a game
   event based on the current board state — lightning hits the leader, star carries
-  the trailer, fate swaps leader and last; may also do nothing), **🎯 Random (targets
+  the trailer, fate swaps leader and last; may also do nothing), **🎲 Random (targets
   you)** (same pool of effects but all aimed at the spinner), or **🌀 Tile shuffle**
   (everyone on the board is sent to a fresh random tile, avoiding all snake and ladder
   squares).
