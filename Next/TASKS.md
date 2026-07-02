@@ -71,6 +71,13 @@ See `LOG.md` for the running session history.
 ---
 
 ## Done
+### 2026-07-02 — leviathan: V3 rejected (Isak: old is much better), V4 from-scratch redo
+- [x] Live game reverted to the ORIGINAL leviathan (`CUTS.leviathan:1`).
+- [x] V4 built from scratch, no code shared with V1/V3: body = scale-banded segment chain
+      following the head's real swim trail; damped-spring steering (cruise sway, swoop to
+      the gulp, S-curl rear-up); fresh head (mane/horn/whisker/jaw). Tunables `LEVI4`.
+- [x] Preview can force a version: `#preview=leviathan4` (digit = CUTS version). Suite 25/25.
+
 ### 2026-07-02 — leviathan V3 redo + cutscene preview mode (Isak)
 - [x] Leviathan V3 (`CUTS.leviathan:3`): dorsal fins + spine ridge rebuilt per frame from
       the same spine, faint second ripple in the glide, blink at the gulp. `2` = splash
