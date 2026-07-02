@@ -140,15 +140,25 @@ further up the board**.
 
 ### Deep freeze (hidden rule)
 Land on an **icy square** and you **freeze solid** — you can't move until you roll
-**4 or higher** to break free. The ice tile itself only freezes whoever lands on it,
-but a **frozen player is contagious**: the frost reaches the **8 tiles around them**
-(orthogonal **and diagonal**, plus anyone sharing their tile), so anyone caught in
-that ring freezes too. The spread is **one ring** — a player frozen by the spread
-doesn't pass it on again. A **Shield** absorbs a freeze. Being thrown next to a
-still-frozen player later (by a knock-back, kick, etc.) can freeze you as well.
+**4 or higher** to break free. The cold **lingers** around a frozen player: **land**
+on any of the **8 tiles around them** (orthogonal **and diagonal**) — by a roll, a
+kick, a swap, anything that moves you there — and you freeze too. Players **already
+standing** next to someone when they freeze are safe; only a **new landing** catches
+the frost. A **Shield** absorbs a freeze.
 
-*Toggle: `FEATURES.freeze`. Icy tiles = `FREEZE_TILES` (29 & 63). Reach of the spread
+*Toggle: `FEATURES.freeze`. Icy tiles = `FREEZE_TILES` (29 & 63). Reach of the frost
 = `FREEZE.ADJ` (1 grid-tile = the 8 neighbours); break-free roll = `FREEZE.GETUP_MIN`.*
+
+### Radioactive fallout (hidden rule)
+A **nuke** leaves scars: after the blast, **two plain tiles turn radioactive green**.
+Land on one (or get thrown onto one) and you become **radioactive**: your rolls take
+**−1, worsening by 1 more each of your turns for 5 turns** (down to −5), then you
+**recover by +1 per turn** back to ±0. Roll less than the sickness and you're **too
+weak to move** that turn. Landing in fallout again while sick **knocks your recovery
+back** to the worst point. Survive the whole sickness and you emerge **hardened: a
+permanent +1 to every roll** — and immune to fallout forever.
+
+*Toggle: `FEATURES.radioactive`. Tiles per nuke / sickness length / reward in `RAD`.*
 
 ### Lightning (very rare)
 Once in a blue moon (about **1.5% of turns**) a storm strikes the player in the

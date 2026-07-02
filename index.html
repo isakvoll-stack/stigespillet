@@ -275,6 +275,11 @@
   @keyframes starspin{to{transform:rotate(360deg)}}
   .nuke.sway{animation:bombsway 1s ease-in-out infinite alternate}
   @keyframes bombsway{from{transform:translate(-50%,-50%) rotate(-13deg)}to{transform:translate(-50%,-50%) rotate(13deg)}}
+  .nukefire{position:fixed;left:50%;top:55%;z-index:13;width:230px;height:230px;border-radius:50%;pointer-events:none;
+    transform:translate(-50%,-50%) scale(.2);
+    background:radial-gradient(circle,#fff 0 12%,#ffe27a 30%,#ff8c42 55%,#e0453b 75%,rgba(224,69,59,0) 100%);
+    animation:nukefire 1.7s ease-out forwards}
+  @keyframes nukefire{35%{opacity:1}100%{opacity:.92;transform:translate(-50%,-50%) scale(3.6)}}
 
   /* leviathan cutscene — drawn as an SVG overlay (tapering ribbon body + profile maw) */
   .leviovl{z-index:13}
@@ -592,7 +597,8 @@ const FEATURES = {
   fateSwap:      true,   // very rare: the leader and last place swap places
   orange:        true,   // orange squares: choose Wheel / Support / Gun
   snakeCollision:true,   // sliding down a chute bowls over players in the way
-  freeze:        true,   // icy squares freeze you solid; the frost spreads to adjacent players
+  freeze:        true,   // icy squares freeze you solid; LANDING next to a frozen player freezes you too
+  radioactive:   true,   // a nuke leaves radioactive fallout tiles: a stacking roll sickness, then a permanent +1
   fishPowers:    true,   // carrying fish grants escalating powers (extra movement, ice escape) + quirks (slippery ladders, teleporter overload)
   secretSquare:  true,   // a hidden square before tile 1, only revealed when a backtrack lands someone on it
   shop:          true,   // gold squares open a shop to buy items with coins; use them from your inventory
@@ -740,7 +746,12 @@ const RULE_INFO = {
   freeze: {
     ico: "🧊",
     name: "Deep freeze",
-    text: "Land on an icy square and you freeze solid — you have to roll a 4 or higher to break free before you can move. And a frozen player is contagious: anyone on a tile right next to them — including diagonally — freezes too, so the frost can catch a whole cluster.",
+    text: "Land on an icy square and you freeze solid — you have to roll a 4 or higher to break free before you can move. And the cold lingers: land on a tile right next to a frozen player — including diagonally — and you freeze too. Anyone already standing nearby is safe.",
+  },
+  radioactive: {
+    ico: "☢️",
+    name: "Radioactive fallout",
+    text: "Some ground keeps glowing after a blast. Step onto it and a sickness saps your stride — worse and worse before it slowly lets go. See it through to the end, though, and you come back stronger than you ever were.",
   },
   secret: {
     ico: "🚪",
@@ -769,10 +780,11 @@ const ANIM = { STEP:210, SLIDE:600, DICE:560, HANDOFF:350, AUTO:650,
                HOP:26 };   // walking-hop arc height (px); each step is a little jump + landing squash
 /* ---- DATA: cutscene versions -----------------------------------------
    Higher = newer look; flip any single one back if a redo feels worse.
-   leviathan: 1 = the original (Isak's pick, LIVE), 2 = splash polish,
-              3 = finned ribbon (rejected), 4 = from-scratch redo (in review).
+   leviathan: 1 = the original (Isak's pick, LIVE); 2 splash / 3 fins / 4 redo = rejected.
+   lightning: 3 = clouds roll in from both sides + strike (Isak, 2026-07-02), 2/1 = older.
+   nuke:      3 = warhead + air-raid wail + ear-ring white-out (Isak, 2026-07-02), 2/1 = older.
    others:    2 = polished 2026-07-02, 1 = previous. */
-const CUTS = { gun:2, leviathan:1, lightning:2, star:2, nuke:2 };
+const CUTS = { gun:2, leviathan:1, lightning:3, star:2, nuke:3 };
 /* ---- DATA: leviathan V4 (from-scratch redo) tunables ---------------- */
 const LEVI4 = {
   SEGS:38, GAP:2,                     // body = segment chain following the head's real trail
@@ -825,7 +837,11 @@ const TELEPORTERS  = [22, 66];             // teal teleporter squares (between t
 const TELEPORT_COLOR = "#17b5a3";          // teal
 const FREEZE_TILES = [29, 63];             // icy squares — land here and you freeze solid
 const FREEZE_COLOR = "#bfe9ff";            // pale icy blue
-const FREEZE = { GETUP_MIN: 4, ADJ: 1 };   // need 4+ to break free; a frozen player freezes others within ADJ grid-tiles (1 = the 8 around them, diagonals included)
+const FREEZE = { GETUP_MIN: 4, ADJ: 1 };   // need 4+ to break free; LANDING within ADJ grid-tiles of a frozen player freezes you (1 = the 8 around them, diagonals included)
+/* ---- DATA: radioactive fallout (created by a nuke) ------------------ */
+const RAD_TILES = [];                      // fallout tiles — empty until a nuke converts plain tiles
+const RAD_COLOR = "#58c81b";               // radioactive green
+const RAD = { PER_NUKE:2, GROW_TURNS:5, IMMUNE_BONUS:1 };  // tiles per nuke; sickness worsens 5 turns (to -5) then recovers; survive = permanent +1
 const LIGHTNING = { CHANCE:0.005, BACK:7,       // ~0.5% per turn: strike the leader, knock them back (3x rarer)
   GATHER_MS:1400, FLICKERS:2, STRIKES:3, FORKS:3, SPARKS:16 };  // build-up time + pre-flickers, main multi-strike, branch forks, impact sparks
 const LUCKY     = { CHANCE:0.004, FORWARD:8 };  // ~0.4% per turn: sweep the last-place player forward (3x rarer)
@@ -1238,6 +1254,9 @@ const TILE_RULES = {
   setback: { feature:"setback", tiles:SETBACK_TILES, color:SETBACK_COLOR,
     onLand: sendBackToStart, offLand: sendBackToStart },
 
+  radioactive: { feature:"radioactive", tiles:RAD_TILES, color:RAD_COLOR,
+    onLand: irradiate, offLand: irradiate },
+
   freeze: { feature:"freeze", tiles:FREEZE_TILES, color:FREEZE_COLOR,
     matches(){ return true; },      // the frost check lives in tryFreeze (icy tile OR next to a frozen player)
     onLand: tryFreeze, offLand: tryFreeze },
@@ -1246,8 +1265,8 @@ const TILE_RULES = {
 /* Who gets the landing first, per path. On your own roll the freeze check
    runs last (only if no tile fired); off-turn the frost beats the teleporter. */
 const LANDING_ORDER = {
-  turn:    ["fishing", "teleport", "orange", "shop", "setback", "freeze"],
-  offTurn: ["setback", "freeze", "teleport"],
+  turn:    ["fishing", "teleport", "orange", "shop", "setback", "radioactive", "freeze"],
+  offTurn: ["setback", "radioactive", "freeze", "teleport"],
 };
 
 function specialTileColor(cell){
@@ -1278,6 +1297,48 @@ async function sendBackToStart(p){
   return true;
 }
 
+/* ---- radioactive fallout: infection, per-turn sickness, fallout tiles ---- */
+async function irradiate(p){
+  await revealRuleOnce("radioactive");
+  if (p.radImmune){ log(`☢️ ${p.name} is hardened — the fallout can't touch them.`); return false; }
+  if (p.radSick){
+    p.radTurns = Math.min(p.radTurns, RAD.GROW_TURNS);     // re-exposure knocks the recovery back
+    log(`☢️ ${p.name} soaks up MORE radiation — the recovery is set back!`);
+  } else {
+    p.radSick = true; p.radTurns = 0; p.radLevel = 0;
+    log(`☢️ ${p.name} lands in the fallout and turns radioactive!`);
+  }
+  SFX.play("chute"); renderScoreboard();
+  await sleep(600);
+  return true;
+}
+// Ticks at the start of each of the sick player's turns: -1 per turn down to -5,
+// then +1 per turn back to 0 — survive it and the hardening is a permanent +1.
+function progressRadiation(p){
+  p.radTurns++;
+  if (p.radTurns <= RAD.GROW_TURNS){
+    p.radLevel = -p.radTurns;
+    log(`☢️ ${p.name}'s radiation sickness worsens (${p.radLevel} on rolls).`);
+  } else if (p.radTurns < RAD.GROW_TURNS*2){
+    p.radLevel = -(RAD.GROW_TURNS*2 - p.radTurns);
+    log(`☢️ ${p.name} is recovering (${p.radLevel} on rolls).`);
+  } else {
+    p.radSick = false; p.radLevel = 0; p.radImmune = true;
+    log(`☢️ ${p.name} pulled through — hardened for good (+${RAD.IMMUNE_BONUS} to every roll)!`);
+  }
+  renderScoreboard();
+}
+// A nuke's aftermath: convert PER_NUKE random plain tiles into radioactive green.
+function falloutFromNuke(){
+  const pool = [];
+  for (let i=2;i<BOARD.WIN;i++) if (isPlainTile(i)) pool.push(i);
+  for (let k=0;k<RAD.PER_NUKE && pool.length;k++){
+    const cell = pool.splice((Math.random()*pool.length)|0, 1)[0];
+    RAD_TILES.push(cell); repaintCell(cell);
+  }
+  log(`☢️ Fallout! ${RAD.PER_NUKE} tiles are left glowing radioactive green.`);
+}
+
 /* MOVE_BONUSES: everything that adds steps on top of the die face.
    Each entry: feature flag + amount(p) (0 = inactive this roll) + an
    optional log note. moveCurrent sums them — new bonus = one entry. */
@@ -1289,6 +1350,11 @@ const MOVE_BONUSES = [
     amount: p => { const n = p.rollBonus||0; p.rollBonus = 0; return n; } },
   { id:"shoes",  feature:"shop",                          // Running Shoes: +1 on every roll while worn
     amount: p => p.passive === "shoes" ? ITEM.SHOES_BONUS : 0 },
+  { id:"radSick", feature:"radioactive",                  // radiation sickness saps the roll
+    amount: p => p.radLevel || 0,
+    note: (p,n) => n < 0 ? `☢️ Radiation saps ${p.name}'s stride (${n}).` : null },
+  { id:"radImmune", feature:"radioactive",                // survived the sickness: permanent +1
+    amount: p => p.radImmune ? RAD.IMMUNE_BONUS : 0 },
 ];
 
 function moveBonusTotal(p){
@@ -1296,7 +1362,9 @@ function moveBonusTotal(p){
   for (const b of MOVE_BONUSES){
     if (!FEATURES[b.feature]) continue;
     const n = b.amount(p);
-    if (n > 0){ total += n; if (b.note) log(b.note(p, n)); }
+    if (!n) continue;
+    total += n;
+    if (b.note){ const msg = b.note(p, n); if (msg) log(msg); }
   }
   return total;
 }
@@ -1358,6 +1426,22 @@ const SFX = (() => {
     rumble:()=> { const c=ac(); if(!c) return; const t=c.currentTime, o=c.createOscillator(), g=c.createGain(); o.type="sawtooth"; o.frequency.setValueAtTime(46,t); o.frequency.linearRampToValueAtTime(60,t+1.4); g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.22,t+0.3); g.gain.exponentialRampToValueAtTime(0.0001,t+1.5); o.connect(g); g.connect(c.destination); o.start(t); o.stop(t+1.6); },
     crack: ()=> { tone(2000,0.04,"square",0.26); tone(150,0.5,"sawtooth",0.32,0.02); for (let i=0;i<8;i++) tone(220+Math.random()*1100,0.05,"square",0.13,0.04+i*0.025); },
     siren: ()=> { const c=ac(); if(!c) return; const t=c.currentTime, o=c.createOscillator(), g=c.createGain(); o.type="sawtooth"; for (let i=0;i<5;i++){ o.frequency.setValueAtTime(440,t+i); o.frequency.linearRampToValueAtTime(900,t+i+0.5); o.frequency.linearRampToValueAtTime(440,t+i+1); } g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.16,t+0.15); g.gain.setValueAtTime(0.16,t+4.5); g.gain.exponentialRampToValueAtTime(0.0001,t+5); o.connect(g); g.connect(c.destination); o.start(t); o.stop(t+5.1); },
+    airraid: ()=> { const c=ac(); if(!c) return; const t=c.currentTime, g=c.createGain();   // the classic slow rise-and-fall nuclear alarm wail
+      g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.17,t+0.4);
+      g.gain.setValueAtTime(0.17,t+4.2); g.gain.exponentialRampToValueAtTime(0.0001,t+4.9);
+      [0,3].forEach(det=>{ const o=c.createOscillator(); o.type="sawtooth";
+        o.frequency.setValueAtTime(240+det,t);
+        o.frequency.linearRampToValueAtTime(660+det,t+1.9);
+        o.frequency.linearRampToValueAtTime(300+det,t+2.6);
+        o.frequency.linearRampToValueAtTime(680+det,t+4.3);
+        o.frequency.linearRampToValueAtTime(420+det,t+4.9);
+        o.connect(g); o.start(t); o.stop(t+5); });
+      g.connect(c.destination); },
+    earring: ()=> { const c=ac(); if(!c) return; const t=c.currentTime, o=c.createOscillator(), g=c.createGain();   // flashbang tinnitus ring
+      o.type="sine"; o.frequency.setValueAtTime(3400,t);
+      g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.11,t+0.05);
+      g.gain.setValueAtTime(0.11,t+1.2); g.gain.exponentialRampToValueAtTime(0.0001,t+3.8);
+      o.connect(g); g.connect(c.destination); o.start(t); o.stop(t+3.9); },
     nukefall:()=> { const c=ac(); if(!c) return; const t=c.currentTime, o=c.createOscillator(), g=c.createGain(); o.type="sine"; o.frequency.setValueAtTime(1500,t); o.frequency.exponentialRampToValueAtTime(170,t+3); g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.12,t+0.15); g.gain.setValueAtTime(0.12,t+2.6); g.gain.exponentialRampToValueAtTime(0.0001,t+3); o.connect(g); g.connect(c.destination); o.start(t); o.stop(t+3.1); },
     megaboom:()=> { tone(38,1.3,"sawtooth",0.4); tone(64,1.1,"square",0.3,0.05); for (let i=0;i<14;i++) tone(70+Math.random()*620,0.12,"square",0.18,0.05+i*0.045); },
     spin: ()=> { for (let i=0;i<22;i++) tone(300+i*28,0.04,"square",0.07,i*0.05); },
@@ -1375,6 +1459,7 @@ function newGame(roster){
       name: r.name || `Player ${i+1}`, color: PLAYER_COLORS[i], pos:0, bot: !!r.bot,
       downed:false, frozen:false, sniper:false, finished:false, shame:0, getupMin: SNIPER.GETUP_MIN, fish:0, onSecret:false,
       items:[], passive:null, rollBonus:0, forceSix:false, coins:0,
+      radSick:false, radTurns:0, radLevel:0, radImmune:false,
     })),
     current:0, winner:null, over:false, busy:false, round:1, autonomous: !!(roster[0] && roster[0].bot),
     standings: null, fishStreak: 0, fishCaught: 0,
@@ -1434,7 +1519,8 @@ function renderScoreboard(){
     const mark = (p.finished ? " "+medal : "") + (p.downed ? (p.frozen ? " 🧊" : " 🤕") : "")
                + (p.sniper ? " 🎯" : "") + (p.shame>0 ? " 😳" : "")
                + (p.fish>0 ? " 🐟"+(p.fish>1?p.fish:"") : "") + shopMark
-               + (p.coins>0 ? " 🪙"+p.coins : "");
+               + (p.coins>0 ? " 🪙"+p.coins : "")
+               + (p.radSick ? " ☢️"+(p.radLevel||"") : (p.radImmune ? " ☢️+"+RAD.IMMUNE_BONUS : ""));
     const cellTxt = p.finished ? "done" : (p.onSecret ? "secret 🚪" : (p.pos === 0 ? "—" : "tile " + p.pos));
     row.innerHTML =
       `<span class="swatch" style="background:${p.color}"></span>` +
@@ -1514,6 +1600,11 @@ async function moveCurrent(rollValue){
   const i = game.current;
   p.onSecret = false;                          // leaving the secret square (if they were on it)
   const steps = rollValue + moveBonusTotal(p); // die face + every active MOVE_BONUSES entry
+  if (steps < 1){                              // radiation can sap a roll to nothing
+    log(`☢️ ${p.name} is too weak to move!`);
+    await sleep(500);
+    await endTurn(); return;
+  }
   const from = p.pos === 0 ? 1 : p.pos;        // first move walks from square 1
   const path = walkPath(p.pos === 0 ? 0 : p.pos, steps);
   const landed = path[path.length-1];
@@ -1887,6 +1978,8 @@ function refreshBadges(){ if (game) game.players.forEach((_,i)=>{ updateShame(i)
 async function startTurn(){
   if (!game || game.over) return;
   const cur = game.players[game.current];
+  // radiation sickness ticks at the start of each of the sick player's turns
+  if (FEATURES.radioactive && cur.radSick) progressRadiation(cur);
   // shame countdown -> the kicker eventually collapses (and needs a harder roll to rise)
   if (cur.shame > 0){
     cur.shame--;
@@ -2603,15 +2696,38 @@ function lightningImpact(x, y){
 // strikes the tile several times in quick succession with an electric impact.
 async function lightningFx(cell){
   const storm = document.getElementById("storm");
-  for (let i=0;i<6;i++){
-    const cl = document.createElement("div"); cl.className = "stormcloud";
-    cl.style.left = (i*19-14)+"vw"; cl.style.top = (Math.random()*16-4)+"vh";
-    cl.style.animationDuration = (2.2+Math.random()*1.1)+"s";
-    storm.appendChild(cl); setTimeout(()=>cl.remove(), 4200);
+  if (CUTS.lightning >= 3){
+    // clouds roll in from BOTH sides at the top, meet in the middle, and fill the darkening sky
+    for (let i=0;i<12;i++){
+      const cl = document.createElement("div"); cl.className = "stormcloud";
+      const fromLeft = i % 2 === 0, ring = (i/2)|0;
+      cl.style.left = fromLeft ? "-24vw" : "112vw";
+      cl.style.top = (Math.random()*15 - 3) + "vh";
+      cl.style.animation = "none";
+      const target = 50 + (fromLeft ? -1 : 1) * (2 + ring*7.5);   // stack outward from the meeting point
+      storm.appendChild(cl);
+      requestAnimationFrame(()=>{
+        cl.style.transition = `left ${(1.5 + ring*0.24).toFixed(2)}s ease-out`;
+        cl.style.left = `calc(${target}vw - 120px)`;
+      });
+      setTimeout(()=> cl.remove(), 6500);
+    }
+    storm.style.transition = "opacity 2.4s";               // the sky darkens as they gather
+    storm.classList.add("show");
+    SFX.play("rumble");
+    await sleep(LIGHTNING.GATHER_MS*1.5);                  // let both fronts meet mid-sky
+    storm.style.transition = "";
+  } else {
+    for (let i=0;i<6;i++){
+      const cl = document.createElement("div"); cl.className = "stormcloud";
+      cl.style.left = (i*19-14)+"vw"; cl.style.top = (Math.random()*16-4)+"vh";
+      cl.style.animationDuration = (2.2+Math.random()*1.1)+"s";
+      storm.appendChild(cl); setTimeout(()=>cl.remove(), 4200);
+    }
+    storm.classList.add("show");
+    SFX.play("rumble");
+    await sleep(LIGHTNING.GATHER_MS*0.5);                  // clouds gather
   }
-  storm.classList.add("show");
-  SFX.play("rumble");
-  await sleep(LIGHTNING.GATHER_MS*0.5);                    // clouds gather
   for (let i=0;i<LIGHTNING.FLICKERS;i++){                  // distant pre-flickers build tension
     storm.style.filter = "brightness(2)"; await sleep(55);
     storm.style.filter = "";
@@ -2820,27 +2936,9 @@ async function tryFreeze(p){
   SFX.play("fall"); layoutTokens(); renderScoreboard();
   log(onIce
     ? `🧊 ${p.name} stepped onto the ice and froze solid! (needs ${FREEZE.GETUP_MIN}+ to break free)`
-    : `🧊 ${p.name} froze — too close to a frozen player! (needs ${FREEZE.GETUP_MIN}+ to break free)`);
-  await spreadFreeze(p);
+    : `🧊 ${p.name} froze — landed too close to a frozen player! (needs ${FREEZE.GETUP_MIN}+ to break free)`);
   await sleep(700);
   return true;
-}
-
-// A newly-frozen player's frost catches everyone standing on the surrounding tiles
-// (FREEZE.ADJ grid-radius, diagonals included) and anyone sharing their tile. Single
-// ring: players caught this way don't pass it on, so a cluster freezes exactly once.
-async function spreadFreeze(source){
-  if (!FEATURES.freeze) return;
-  const zone = neighborCells(source.pos, FREEZE.ADJ);
-  const caught = game.players.filter(q => q !== source && !q.finished && !q.frozen
-    && q.pos > 0 && (q.pos === source.pos || zone.includes(q.pos)));
-  if (!caught.length) return;
-  const froze = [];
-  caught.forEach(q => { freezePlayer(q); if (q.frozen) froze.push(q); });
-  if (!froze.length) return;                   // everyone nearby was shielded
-  SFX.play("fall"); layoutTokens(); renderScoreboard();
-  log(`🧊 The frost spread from ${source.name} — ${froze.map(q => q.name).join(", ")} froze too!`);
-  await sleep(650);
 }
 
 // Sliding down a chute from `head` to `tail` bowls over anyone in the way.
@@ -3168,20 +3266,39 @@ function showWheel(idx){
 }
 
 // The full nuke set-piece: siren, ~5s wait, ~3s descent, giant blast, 4s white-out.
-async function nukeSequence(){
-  SFX.play("siren");
+// V3 (onWhiteout): a drawn warhead falls to the air-raid wail; the fireball blooms and is
+// swallowed by the white; the ears ring; the knockdowns land BEHIND the white, not after.
+async function nukeSequence(onWhiteout){
+  SFX.play(CUTS.nuke >= 3 ? "airraid" : "siren");
   showPrompt("☢️ INCOMING — TAKE COVER!");
   await sleep(5000);
   hidePrompt();
-  const bomb = document.createElement("div"); bomb.className = "nuke"; bomb.textContent = "💣";
+  const bomb = document.createElement("div"); bomb.className = "nuke";
+  if (CUTS.nuke >= 3){                                                      // a proper warhead, nose-down
+    bomb.innerHTML =
+      '<svg width="62" height="132" viewBox="-31 -66 62 132">'+
+        '<path d="M-11,34 C-11,6 -13,-22 -13,-40 L13,-40 C13,-22 11,6 11,34 Z" fill="#5b6a75" stroke="#2b343c" stroke-width="2"/>'+
+        '<path d="M-11,34 C-7,52 -3,60 0,64 C3,60 7,52 11,34 Z" fill="#38424a" stroke="#2b343c" stroke-width="2"/>'+
+        '<path d="M-13,-40 L-28,-62 L-13,-52 Z" fill="#38424a" stroke="#2b343c" stroke-width="1.5"/>'+
+        '<path d="M13,-40 L28,-62 L13,-52 Z" fill="#38424a" stroke="#2b343c" stroke-width="1.5"/>'+
+        '<rect x="-2.5" y="-64" width="5" height="24" fill="#38424a" stroke="#2b343c" stroke-width="1.5"/>'+
+        '<rect x="-13" y="6" width="26" height="11" fill="#f1c40f" stroke="#2b343c" stroke-width="1.5"/>'+
+        '<circle cx="0" cy="-12" r="8.5" fill="#f1c40f" stroke="#2b343c" stroke-width="1.5"/>'+
+        '<text x="0" y="-7" text-anchor="middle" font-size="13">☢</text>'+
+      '</svg>';
+  } else bomb.textContent = "💣";
   bomb.style.top = "-12vh"; bomb.style.transition = "none";
   document.body.appendChild(bomb);
   await raf(); SFX.play("nukefall");
-  if (CUTS.nuke === 2) bomb.classList.add("sway");                          // the bomb rocks as it falls
+  if (CUTS.nuke >= 2) bomb.classList.add("sway");                           // the bomb rocks as it falls
   bomb.style.transition = "top 3s cubic-bezier(.6,0,.9,1)";
   bomb.style.top = "55%";
   await sleep(3000); bomb.remove();
   SFX.play("megaboom");
+  if (CUTS.nuke >= 3){                                                      // the fireball blooms first…
+    const fire = document.createElement("div"); fire.className = "nukefire";
+    document.body.appendChild(fire); setTimeout(()=> fire.remove(), 2600);
+  }
   if (CUTS.nuke === 2){                                                     // a shockwave ring tears outward
     const w = document.createElement("div"); w.className = "lring";
     w.style.left = "50%"; w.style.top = "55%";
@@ -3193,10 +3310,19 @@ async function nukeSequence(){
   for (let k=0;k<6;k++) explode(1 + Math.floor(Math.random()*BOARD.WIN));   // booms all across the board
   flashScreen();
   const wo = document.getElementById("whiteout");
-  wo.style.transition = "opacity .3s"; wo.classList.add("show");
-  await sleep(4000);
+  if (CUTS.nuke >= 3){
+    await sleep(450);                                                       // …then the white swallows it
+    wo.style.transition = "opacity .9s"; wo.classList.add("show");
+    SFX.play("earring");                                                    // ears ringing in the void
+    await sleep(900);
+    if (onWhiteout) onWhiteout();                                           // everyone drops behind the white
+    await sleep(2650);
+  } else {
+    wo.style.transition = "opacity .3s"; wo.classList.add("show");
+    await sleep(4000);
+  }
   wo.style.transition = "opacity 1s"; wo.classList.remove("show");          // fade back, revealing the board
-  if (CUTS.nuke === 2){                                                     // ash drifts down over the aftermath
+  if (CUTS.nuke >= 2){                                                      // ash drifts down over the aftermath
     for (let i=0;i<26;i++){
       const d = document.createElement("div"); d.className = "confetti";
       d.style.left = (Math.random()*100) + "vw";
@@ -3209,10 +3335,14 @@ async function nukeSequence(){
   await sleep(1000);
 }
 async function nukeEveryone(tag){
-  await nukeSequence();
-  const victims = game.players.filter(q => !q.finished && q.pos > 0 && !isBlueTile(q.pos));
-  victims.forEach(downPlayer); layoutTokens(); renderScoreboard();
-  log(`${tag}☢️ NUKE! Everyone not on a blue tile is knocked down.`);
+  const knock = () => {
+    const victims = game.players.filter(q => !q.finished && q.pos > 0 && !isBlueTile(q.pos));
+    victims.forEach(downPlayer); layoutTokens(); renderScoreboard();
+    log(`${tag}☢️ NUKE! Everyone not on a blue tile is knocked down.`);
+    if (FEATURES.radioactive) falloutFromNuke();
+  };
+  if (CUTS.nuke >= 3) await nukeSequence(knock);   // dropped while the screen is still white
+  else { await nukeSequence(); knock(); }
   await sleep(400);
 }
 
@@ -3222,7 +3352,6 @@ async function freezeFromRandom(p){
   if (!p.frozen){ renderScoreboard(); return; }   // a Shield absorbed it
   SFX.play("fall"); layoutTokens(); renderScoreboard();
   log(`🎲🧊 Random freeze — ${p.name} is locked in ice!`);
-  await spreadFreeze(p);
   await sleep(600);
 }
 async function randomTeleport(p){

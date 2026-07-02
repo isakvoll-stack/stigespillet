@@ -71,6 +71,23 @@ See `LOG.md` for the running session history.
 ---
 
 ## Done
+### 2026-07-02 — lightning clouds, nuke rework, radioactive fallout rule, freeze fix (Isak)
+- [x] **Lightning v3** (`CUTS.lightning:3`): clouds roll in from BOTH sides at the top, meet
+      in the middle, sky darkens slowly; the strike itself unchanged.
+- [x] **Nuke v3** (`CUTS.nuke:3`, timings kept): drawn nose-down warhead (fins + hazard band
+      + trefoil) replaces 💣; slow rise-and-fall air-raid wail (`SFX.airraid`); fireball
+      blooms then is swallowed by the white; flashbang ear-ring (`SFX.earring`) with the
+      white void; knockdowns land BEHIND the white (via `nukeSequence(onWhiteout)`).
+- [x] **NEW RULE: Radioactive fallout** (`FEATURES.radioactive`, first rule built via the
+      registry recipe): each nuke converts 2 plain tiles to radioactive green (`RAD_TILES`,
+      dynamic); landing infects: −1/turn stacking to −5 over 5 turns, then +1/turn back to 0,
+      then cured + permanent +1 (immune). Re-exposure resets recovery to −5. Roll ≤ sickness
+      = too weak to move. ☢️ badge in scoreboard. `MOVE_BONUSES` now supports negatives.
+- [x] **Freeze fix (Isak)**: freezing NO LONGER spreads to players already standing nearby
+      (`spreadFreeze` removed); you only freeze by LANDING on/next to a frozen player.
+- [x] Verified: 13/13 targeted (freeze bystander safe, fallout paint/infect/curve/immunity,
+      too-weak turn, re-exposure, v3 cutscenes clean) + suite 25/25.
+
 ### 2026-07-02 — leviathan: V3 rejected (Isak: old is much better), V4 from-scratch redo
 - [x] Live game reverted to the ORIGINAL leviathan (`CUTS.leviathan:1`).
 - [x] V4 built from scratch, no code shared with V1/V3: body = scale-banded segment chain
