@@ -265,6 +265,16 @@
     transform:translate(-50%,-50%) scale(.4);background:radial-gradient(circle,#fff,#ffd23e 45%,rgba(255,160,40,0) 72%);
     animation:gunflash .22s ease-out forwards}
   @keyframes gunflash{55%{opacity:1;transform:translate(-50%,-50%) scale(1.35)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.7)}}
+  .gunsmoke{position:fixed;z-index:15;width:18px;height:18px;border-radius:50%;pointer-events:none;
+    transform:translate(-50%,-50%) scale(.5);background:radial-gradient(circle,rgba(205,205,205,.75),rgba(150,150,150,0) 70%);
+    animation:gunsmoke .6s ease-out forwards}
+  @keyframes gunsmoke{to{opacity:0;transform:translate(-50%,-70%) scale(2.6)}}
+  .scorch{position:fixed;z-index:11;width:54px;height:54px;border-radius:50%;pointer-events:none;
+    transform:translate(-50%,-50%);background:radial-gradient(circle,rgba(20,16,10,.55),rgba(20,16,10,0) 68%);transition:opacity 2s}
+  .shootstar svg{animation:starspin 1.6s linear infinite}
+  @keyframes starspin{to{transform:rotate(360deg)}}
+  .nuke.sway{animation:bombsway 1s ease-in-out infinite alternate}
+  @keyframes bombsway{from{transform:translate(-50%,-50%) rotate(-13deg)}to{transform:translate(-50%,-50%) rotate(13deg)}}
 
   /* leviathan cutscene — drawn as an SVG overlay (tapering ribbon body + profile maw) */
   .leviovl{z-index:13}
@@ -757,6 +767,10 @@ const RULE_INFO = {
 /* ---- ANIMATION timing (ms) ----------------------------------------- */
 const ANIM = { STEP:210, SLIDE:600, DICE:560, HANDOFF:350, AUTO:650,
                HOP:26 };   // walking-hop arc height (px); each step is a little jump + landing squash
+/* ---- DATA: cutscene versions -----------------------------------------
+   2 = the polished 2026-07-02 look, 1 = the previous look. Flip any single
+   one back to 1 if the new version of that cutscene feels worse. */
+const CUTS = { gun:2, leviathan:2, lightning:2, star:2, nuke:2 };
 /* ---- DATA: sniper rule tunables ------------------------------------ */
 const SNIPER = { EVERY_ROUNDS:5, HIT_RADIUS:30, GETUP_MIN:3 };
 const SHAME  = { TURNS:3, GETUP_MIN:4 };   // kick-a-man-while-down: shame turns + harder recovery
@@ -2158,6 +2172,10 @@ async function leviathanFx(fromCell, toCell, victim){
   const head = buildLeviHead();
   ovl.appendChild(body); ovl.appendChild(head);
   document.body.appendChild(ovl);
+  if (CUTS.leviathan === 2){                               // the serpent fades in rather than popping
+    ovl.style.opacity = "0"; ovl.style.transition = "opacity .4s";
+    await raf(); ovl.style.opacity = "1";
+  }
 
   const N = LEVI.SAMPLES;
   const spineY = (x, ph) => baseY + Math.sin(x/LEVI.WAVE_LEN*Math.PI*2 + ph) * LEVI.WAVE_AMP;
@@ -2187,6 +2205,7 @@ async function leviathanFx(fromCell, toCell, victim){
     if (!swallowed && headX >= vic.x){                                // the opportunistic gulp, in passing
       swallowed = true; if (tok) tok.style.opacity = "0";
       flashScreen(); SFX.play("boom"); ripple(vic.x, vic.y);
+      if (CUTS.leviathan === 2) splashFx(vic.x, vic.y);    // spray flies up at the gulp
     }
   });
 
@@ -2224,6 +2243,7 @@ async function leviathanFx(fromCell, toCell, victim){
     setHead(hx, rearY, -12, false, Math.max(0.18, 0.8*(1-t)));
   });
   ripple(dest.x, dest.y); SFX.play("bounce");
+  if (CUTS.leviathan === 2) splashFx(dest.x, dest.y);      // splash where the victim crash-lands
 
   if (tok){ const c = cellCenter(toCell);                             // land the real token on the new tile
     tok.style.transition = "none";
@@ -2405,12 +2425,36 @@ async function lightningFx(cell){
     if (s === 0){
       lightningImpact(tgt.x, tgt.y);
       if (navigator.vibrate){ try { navigator.vibrate(90); } catch(e){} }
+      if (CUTS.lightning === 2){                           // the strike leaves a scorch that fades away
+        const sc = document.createElement("div"); sc.className = "scorch";
+        sc.style.left = tgt.x+"px"; sc.style.top = tgt.y+"px";
+        document.body.appendChild(sc);
+        setTimeout(()=>{ sc.style.opacity = "0"; }, 1600);
+        setTimeout(()=> sc.remove(), 3700);
+      }
     }
     await sleep(80); fx.style.opacity = "0.12"; await sleep(55); fx.style.opacity = "1";
     await sleep(70 + Math.random()*60);
   }
-  await sleep(160); fx.remove();
+  await sleep(160);
+  if (CUTS.lightning === 2){                               // afterglow: the last bolt fades instead of vanishing
+    fx.style.transition = "opacity .35s"; fx.style.opacity = "0"; await sleep(350);
+  }
+  fx.remove();
   storm.style.filter = ""; storm.classList.remove("show");
+}
+
+// A burst of water droplets at a screen point (leviathan gulp / spit-landing).
+function splashFx(x, y){
+  for (let i=0;i<10;i++){
+    const sp = document.createElement("div"); sp.className = "lspark";
+    sp.style.left = x+"px"; sp.style.top = y+"px";
+    sp.style.background = "#8fd0ff"; sp.style.boxShadow = "0 0 7px #4aa8ff";
+    const a = Math.PI * (1 + Math.random()), dist = 40 + Math.random()*70;
+    sp.style.setProperty("--dx", (Math.cos(a)*dist)+"px");
+    sp.style.setProperty("--dy", (Math.sin(a)*dist)+"px");
+    document.body.appendChild(sp); setTimeout(()=> sp.remove(), 520);
+  }
 }
 
 // Strike one specific player with lightning (fx + knock-back + landing).
@@ -2442,7 +2486,15 @@ async function starFx(lucky, destCell){
   const idx = idxOf(lucky);
   const from = cellToScreen(lucky.pos), to = cellToScreen(destCell);
   const star = document.createElement("div");
-  star.className = "shootstar"; star.textContent = "🌟";
+  star.className = "shootstar";
+  if (CUTS.star === 2){                                    // a drawn, slowly spinning gold star (not an emoji)
+    star.innerHTML =
+      '<svg width="54" height="54" viewBox="-27 -27 54 54">'+
+        '<path d="M0,-23 L5.5,-7.5 L22,-7 L9,3.5 L14,20 L0,10 L-14,20 L-9,3.5 L-22,-7 L-5.5,-7.5 Z" '+
+              'fill="#ffd23e" stroke="#e6a817" stroke-width="1.6" stroke-linejoin="round"/>'+
+        '<path d="M0,-12 L3,-4 L11.5,-3.6 L4.7,1.8 L7.3,10.4 L0,5.2 L-7.3,10.4 L-4.7,1.8 L-11.5,-3.6 L-3,-4 Z" fill="#fff6c9"/>'+
+      '</svg>';
+  } else star.textContent = "🌟";
   star.style.left = "-8vw"; star.style.top = "-8vh";
   document.body.appendChild(star);
   await raf();
@@ -2463,6 +2515,14 @@ async function starFx(lucky, destCell){
   }, 90);
   await sleep(2750);
   clearInterval(trail); star.remove();
+  if (CUTS.star === 2){                                    // a golden shimmer where the star sets you down
+    const ring = document.createElement("div"); ring.className = "lring";
+    ring.style.left = to.x+"px"; ring.style.top = to.y+"px";
+    ring.style.width = ring.style.height = "42px";
+    ring.style.borderColor = "rgba(255,214,90,.9)"; ring.style.boxShadow = "0 0 16px #ffd23e";
+    document.body.appendChild(ring); setTimeout(()=> ring.remove(), 540);
+    SFX.play("sparkle");
+  }
   tok.style.transition = prevT || `transform ${ANIM.STEP}ms ease-in-out`;
   layoutTokens();
 }
@@ -2743,9 +2803,18 @@ function tinyRevolver(at, aimDeg){
       '<i style="--h:180deg"></i><i style="--h:240deg"></i><i style="--h:300deg"></i>'+
     '</div></div>';
   document.body.appendChild(g);
+  aimGun(g, aimDeg);
   return g;
 }
-const aimGun = (gun, deg) => { gun.style.transform = `translate(-50%,-50%) rotate(${deg}deg)`; };
+// The gun's full pose for an aim angle. V2 keeps the grip pointing down when
+// aiming left by mirroring the gun vertically; V1 just rotates (and turned
+// the whole gun upside down past 90°).
+function gunPose(deg){
+  const d = ((deg % 360) + 540) % 360 - 180;               // normalise to -180..180
+  const flip = CUTS.gun === 2 && Math.abs(d) > 90 ? " scale(1,-1)" : "";
+  return `translate(-50%,-50%) rotate(${deg}deg)${flip}`;
+}
+const aimGun = (gun, deg) => { gun.style.transform = gunPose(deg); };
 
 // One shot from `gun` (anchored at `at`, aimed `aimDeg`) at a board cell: muzzle flash,
 // tracer, recoil, screen shake. No explosion — impacts are a knockdown + shake.
@@ -2758,7 +2827,12 @@ async function gunShot(gun, muz, cell, aimDeg){
   fx.appendChild(el("line",{x1:muz.x,y1:muz.y,x2:s.x,y2:s.y,stroke:"#ffe27a","stroke-width":"3","stroke-linecap":"round",opacity:"0.95"}));
   document.body.appendChild(fx);
   SFX.play("shoot"); flashScreen();
-  const base = `translate(-50%,-50%) rotate(${aimDeg}deg)`;
+  if (CUTS.gun === 2){                                              // a puff of smoke curls off the muzzle
+    const sm = document.createElement("div"); sm.className = "gunsmoke";
+    sm.style.left = muz.x+"px"; sm.style.top = muz.y+"px";
+    document.body.appendChild(sm); setTimeout(()=> sm.remove(), 650);
+  }
+  const base = gunPose(aimDeg);
   gun.style.transform = base + " translateX(-7px)";                 // recoil kick back along the barrel
   await sleep(110); fx.remove();
   gun.style.transform = base;
@@ -2819,7 +2893,7 @@ async function revolverRoulette(p){
   if (type === "blank"){
     const a = aimAt(at, aimCells);
     SFX.play("click");                                             // a dud: one twitch
-    gun.style.transform = `translate(-50%,-50%) rotate(${a}deg) translateX(-4px)`; await sleep(300);
+    gun.style.transform = gunPose(a) + " translateX(-4px)"; await sleep(300);
     aimGun(gun, a);
     log(`🔫 *click* — a blank. ${p.name} got lucky.`);
   } else if (type === "self"){
@@ -2899,16 +2973,35 @@ async function nukeSequence(){
   bomb.style.top = "-12vh"; bomb.style.transition = "none";
   document.body.appendChild(bomb);
   await raf(); SFX.play("nukefall");
+  if (CUTS.nuke === 2) bomb.classList.add("sway");                          // the bomb rocks as it falls
   bomb.style.transition = "top 3s cubic-bezier(.6,0,.9,1)";
   bomb.style.top = "55%";
   await sleep(3000); bomb.remove();
   SFX.play("megaboom");
+  if (CUTS.nuke === 2){                                                     // a shockwave ring tears outward
+    const w = document.createElement("div"); w.className = "lring";
+    w.style.left = "50%"; w.style.top = "55%";
+    w.style.width = w.style.height = "130px";
+    w.style.borderColor = "rgba(255,170,60,.85)"; w.style.borderWidth = "7px";
+    w.style.boxShadow = "0 0 34px #ff8c42";
+    document.body.appendChild(w); setTimeout(()=> w.remove(), 560);
+  }
   for (let k=0;k<6;k++) explode(1 + Math.floor(Math.random()*BOARD.WIN));   // booms all across the board
   flashScreen();
   const wo = document.getElementById("whiteout");
   wo.style.transition = "opacity .3s"; wo.classList.add("show");
   await sleep(4000);
   wo.style.transition = "opacity 1s"; wo.classList.remove("show");          // fade back, revealing the board
+  if (CUTS.nuke === 2){                                                     // ash drifts down over the aftermath
+    for (let i=0;i<26;i++){
+      const d = document.createElement("div"); d.className = "confetti";
+      d.style.left = (Math.random()*100) + "vw";
+      d.style.background = ["#9aa0a6","#6d7278","#c8ccd0"][i % 3];
+      const dur = 3 + Math.random()*2;
+      d.style.animationDuration = dur + "s";
+      document.body.appendChild(d); setTimeout(()=> d.remove(), (dur+1)*1000);
+    }
+  }
   await sleep(1000);
 }
 async function nukeEveryone(tag){

@@ -71,6 +71,17 @@ See `LOG.md` for the running session history.
 ---
 
 ## Done
+### 2026-07-02 — cutscene polish pass, individually revertible (Isak)
+- [x] New `CUTS` DATA block: per-cutscene version switch (`{gun, leviathan, lightning, star, nuke}`,
+      2 = polished, 1 = previous look) — flip any single one back if it feels worse.
+- [x] Gun: no longer turns upside down aiming left (`gunPose` mirrors vertically past 90°);
+      muzzle smoke puff per shot. Lightning: fading scorch mark + bolt afterglow fade-out.
+      Star: drawn spinning gold star (not emoji) + landing shimmer ring. Nuke: bomb sways
+      falling, blast shockwave ring, ash drifts down after the white-out. Leviathan: fades in,
+      water spray at the gulp and the crash-landing.
+- [x] Verified: all five fire clean in BOTH versions + gunPose flip check + suite 25/25.
+      Harness note: gunFx waits on CSS animationend — dispatch it manually under virtual time.
+
 ### 2026-07-02 — movement feel pass (Isak)
 - [x] Walking steps are hop arcs (`hopToken`: arc + landing squash, height `ANIM.HOP`);
       slides ride the drawn snake curve (`snakePoint` shared with `drawSlide`, ease-in).
