@@ -1437,11 +1437,11 @@ const SFX = (() => {
         o.frequency.linearRampToValueAtTime(420+det,t+4.9);
         o.connect(g); o.start(t); o.stop(t+5); });
       g.connect(c.destination); },
-    earring: ()=> { const c=ac(); if(!c) return; const t=c.currentTime, o=c.createOscillator(), g=c.createGain();   // flashbang tinnitus ring
-      o.type="sine"; o.frequency.setValueAtTime(3400,t);
-      g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.11,t+0.05);
-      g.gain.setValueAtTime(0.11,t+1.2); g.gain.exponentialRampToValueAtTime(0.0001,t+3.8);
-      o.connect(g); g.connect(c.destination); o.start(t); o.stop(t+3.9); },
+    earring: ()=> { const c=ac(); if(!c) return; const t=c.currentTime, o=c.createOscillator(), g=c.createGain();   // flashbang tinnitus ring (soft)
+      o.type="sine"; o.frequency.setValueAtTime(2300,t);
+      g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.05,t+0.25);
+      g.gain.setValueAtTime(0.05,t+0.8); g.gain.exponentialRampToValueAtTime(0.0001,t+3.6);
+      o.connect(g); g.connect(c.destination); o.start(t); o.stop(t+3.7); },
     nukefall:()=> { const c=ac(); if(!c) return; const t=c.currentTime, o=c.createOscillator(), g=c.createGain(); o.type="sine"; o.frequency.setValueAtTime(1500,t); o.frequency.exponentialRampToValueAtTime(170,t+3); g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.12,t+0.15); g.gain.setValueAtTime(0.12,t+2.6); g.gain.exponentialRampToValueAtTime(0.0001,t+3); o.connect(g); g.connect(c.destination); o.start(t); o.stop(t+3.1); },
     megaboom:()=> { tone(38,1.3,"sawtooth",0.4); tone(64,1.1,"square",0.3,0.05); for (let i=0;i<14;i++) tone(70+Math.random()*620,0.12,"square",0.18,0.05+i*0.045); },
     spin: ()=> { for (let i=0;i<22;i++) tone(300+i*28,0.04,"square",0.07,i*0.05); },
@@ -3290,7 +3290,7 @@ async function nukeSequence(onWhiteout){
   bomb.style.top = "-12vh"; bomb.style.transition = "none";
   document.body.appendChild(bomb);
   await raf(); SFX.play("nukefall");
-  if (CUTS.nuke >= 2) bomb.classList.add("sway");                           // the bomb rocks as it falls
+  if (CUTS.nuke === 2) bomb.classList.add("sway");                          // v2's bomb rocks; the v3 warhead falls dead straight
   bomb.style.transition = "top 3s cubic-bezier(.6,0,.9,1)";
   bomb.style.top = "55%";
   await sleep(3000); bomb.remove();
