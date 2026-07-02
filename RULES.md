@@ -205,8 +205,10 @@ is to be **thrown back past the start** (e.g. a low-tile **lightning** strike or
 
 ### The Shop, inventory &amp; items (hidden rule)
 Four **gold squares** are cabin shops (tiles **6, 28, 52, 75**). Land on one and you
-**spend your coins** on items. You carry a small inventory: **up to 3 consumables
-plus 1 passive** at a time.
+**spend your coins** on items. The shelf shows **3 items drawn at random** from the
+full catalog each visit, and each item can be **bought only once per visit** (it shows
+as *sold out* after). You carry a small inventory: **up to 3 consumables plus 1
+passive** at a time. *(Shelf size = `SHOP.STOCK`.)*
 
 **Consumables** (held in your bag; *used* from the inventory **before** you roll):
 

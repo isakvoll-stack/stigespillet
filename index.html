@@ -627,6 +627,7 @@ const SETBACK_COLOR = "#8b1a1a";                         // deep red — clearly
 // board feeling fresh across playthroughs. See also shuffleTiles() for mid-game reshuffling.
 const ITEM = { COFFEE_BONUS: 4, SHOES_BONUS: 1 };          // coffee = +4 one-shot; running shoes = +1 every roll
 const INV  = { CONSUMABLES: 3, PASSIVES: 1 };             // bag size: 3 consumables + 1 passive at a time
+const SHOP = { STOCK: 3 };                                // items on the shelf per visit, drawn at random from the catalog
 /* ---- DATA: shop item catalog ----------------------------------------
    The full item list. What each id actually DOES lives in the item logic
    (itemDef / giveItem / useItem), keyed by id. kind = "consumable" (held
@@ -3107,12 +3108,20 @@ function renderInventory(){
 }
 
 /* ---- shop (gold square): spend coins on items ----------------------- */
+// Each visit stocks SHOP.STOCK items drawn at random from the enabled catalog.
+function shopStock(){
+  const pool = SHOP_CATALOG.filter(i => i.enabled);
+  for (let i = pool.length - 1; i > 0; i--){ const j = (Math.random()*(i+1))|0; [pool[i],pool[j]] = [pool[j],pool[i]]; }
+  return pool.slice(0, SHOP.STOCK);
+}
 async function runShop(p){
   await revealRuleOnce("shop");
   log(`🏪 ${p.name} stepped into the shop! (🪙${p.coins})`);
   SFX.play("sparkle");
+  const stock = shopStock();
+  const bought = new Set();                 // ids already bought this visit — one of each per visit
   if (game.autonomous || p.bot){
-    const buyable = SHOP_CATALOG.filter(i => i.enabled && canBuy(p, i)).sort((a,b)=>b.cost-a.cost);
+    const buyable = stock.filter(i => !bought.has(i.id) && canBuy(p, i)).sort((a,b)=>b.cost-a.cost);
     if (buyable.length) buyItem(p, buyable[0]);
     else log(`🏪 ${p.name} couldn't afford anything and left.`);
     await sleep(800);
@@ -3121,21 +3130,22 @@ async function runShop(p){
   await new Promise(res => {
     const close = () => { document.getElementById("picker").classList.remove("show"); pickResolve = null; res(); };
     pickResolve = close;
-    renderShop(p, close);
+    renderShop(p, close, stock, bought);
     document.getElementById("picker").classList.add("show");
   });
 }
-function renderShop(p, close){
+function renderShop(p, close, stock, bought){
   document.getElementById("pickerTitle").textContent = `🏪 Shop — ${p.name} has 🪙${p.coins}`;
   const list = document.getElementById("pickerList"); list.innerHTML = "";
-  SHOP_CATALOG.filter(i => i.enabled).forEach(item => {
-    const can = canBuy(p, item);
+  stock.forEach(item => {
+    const sold = bought.has(item.id);
+    const can = !sold && canBuy(p, item);
     const tag = item.kind === "passive" ? " · passive" : "";
     const b = document.createElement("button"); b.className = "btn";
-    b.innerHTML = `${item.ico} <b>${item.name}</b> — ${item.desc} <span style="opacity:.85">(🪙${item.cost}${tag})</span>`;
+    b.innerHTML = `${item.ico} <b>${item.name}</b> — ${item.desc} <span style="opacity:.85">(${sold ? "sold out" : `🪙${item.cost}${tag}`})</span>`;
     b.style.textAlign = "left"; b.style.boxShadow = "none";
     b.disabled = !can; b.style.opacity = can ? "1" : ".45";
-    b.onclick = () => { if (buyItem(p, item)) renderShop(p, close); };
+    b.onclick = () => { if (buyItem(p, item)){ bought.add(item.id); renderShop(p, close, stock, bought); } };
     list.appendChild(b);
   });
   const leave = document.createElement("button");

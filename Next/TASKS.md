@@ -72,6 +72,11 @@ See `LOG.md` for the running session history.
 
 ## Done
 
+### 2026-07-02 — shop shelf: 3 random items, one buy each per visit (Isak)
+- [x] `shopStock()` draws `SHOP.STOCK` (3) random enabled items per visit; a per-visit
+      `bought` set marks purchases "sold out" (disabled). Bots buy from the same shelf.
+      Verified headless 5/5, 0 errors.
+
 ### 2026-07-02 — shop freeze fixed: catalog inlined (self-contained again) + error trap (Isak bug report)
 - [x] Root cause: downloaded single-file copies lack `shop-items.js` → `SHOP_CATALOG`
       undefined on shop landing → turn chain dies → `busy` stuck. Catalog now inline
