@@ -71,6 +71,11 @@ See `LOG.md` for the running session history.
 ---
 
 ## Done
+### 2026-07-02 — movement feel pass (Isak)
+- [x] Walking steps are hop arcs (`hopToken`: arc + landing squash, height `ANIM.HOP`);
+      slides ride the drawn snake curve (`snakePoint` shared with `drawSlide`, ease-in).
+      First move out of the START lane still glides. Suite 25/25, 0 errors.
+
 
 ### 2026-07-02 — shop shelf: 3 random items, one buy each per visit (Isak)
 - [x] `shopStock()` draws `SHOP.STOCK` (3) random enabled items per visit; a per-visit

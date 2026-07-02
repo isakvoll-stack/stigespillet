@@ -755,7 +755,8 @@ const RULE_INFO = {
 };
 
 /* ---- ANIMATION timing (ms) ----------------------------------------- */
-const ANIM = { STEP:210, SLIDE:600, DICE:560, HANDOFF:350, AUTO:650 };
+const ANIM = { STEP:210, SLIDE:600, DICE:560, HANDOFF:350, AUTO:650,
+               HOP:26 };   // walking-hop arc height (px); each step is a little jump + landing squash
 /* ---- DATA: sniper rule tunables ------------------------------------ */
 const SNIPER = { EVERY_ROUNDS:5, HIT_RADIUS:30, GETUP_MIN:3 };
 const SHAME  = { TURNS:3, GETUP_MIN:4 };   // kick-a-man-while-down: shame turns + harder recovery
@@ -957,16 +958,23 @@ function drawLadder(x1,y1,x2,y2){
   return g;
 }
 
+// A point along the snake's wavy body at progress t (0=head, 1=tail). Single
+// source for the curve: drawSlide paints it and the slide ride follows it.
+function snakePoint(a, b, t){
+  const dx=b.x-a.x, dy=b.y-a.y, len=Math.hypot(dx,dy)||1;
+  const px=-dy/len, py=dx/len;
+  const off = Math.sin(t*Math.PI*3) * 13 * (1-t*0.15);
+  return { x:a.x+dx*t+px*off, y:a.y+dy*t+py*off };
+}
+
 function drawSlide(x1,y1,x2,y2){
   // a wavy "slide/snake" from head (start) to tail (end)
-  const dx=x2-x1, dy=y2-y1, len=Math.hypot(dx,dy);
-  const ux=dx/len, uy=dy/len, px=-uy, py=ux;
-  const segs = Math.max(6, Math.round(len/26)), amp=13;
+  const len = Math.hypot(x2-x1, y2-y1);
+  const segs = Math.max(6, Math.round(len/26));
   let d = `M ${x1} ${y1}`;
   for (let i=1;i<=segs;i++){
-    const t=i/segs, bx=x1+dx*t, by=y1+dy*t;
-    const off = Math.sin(t*Math.PI*3) * amp * (1-t*0.15);
-    d += ` L ${bx+px*off} ${by+py*off}`;
+    const q = snakePoint({x:x1,y:y1}, {x:x2,y:y2}, i/segs);
+    d += ` L ${q.x} ${q.y}`;
   }
   const g = el("g", {});
   g.appendChild(el("path",{d,fill:"none",stroke:"#2c7a4b","stroke-width":"14","stroke-linecap":"round","opacity":"0.92"}));
@@ -1021,6 +1029,34 @@ function slotOffset(k, n){
 function moveTokenTo(i, cell, off){
   const c = cellCenter(cell), o = off || {x:0, y:0};
   tokenEls[i].style.transform = `translate(${c.x+o.x}px, ${c.y+o.y}px)`;
+}
+
+// Drive token i along path(t) -> {x, y, sx?, sy?} for ms (CSS transition off while tweening).
+function tweenToken(i, ms, path){
+  const el = tokenEls[i], prevT = el.style.transition, t0 = performance.now();
+  el.style.transition = "none";
+  return new Promise(res => {
+    (function frame(){
+      const t = Math.min(1, (performance.now() - t0) / ms);
+      const q = path(t);
+      el.style.transform = `translate(${q.x}px, ${q.y}px) scale(${q.sx||1}, ${q.sy||1})`;
+      if (t < 1) requestAnimationFrame(frame);
+      else { el.style.transition = prevT; res(); }
+    })();
+  });
+}
+
+// One walking step: a little arc from cell a to cell b, then a landing squash.
+function hopToken(i, a, b, ms){
+  const A = cellCenter(a), B = cellCenter(b);
+  return tweenToken(i, ms, t => {
+    if (t < 0.8){
+      const u = t / 0.8;
+      return { x:A.x+(B.x-A.x)*u, y:A.y+(B.y-A.y)*u - Math.sin(u*Math.PI)*ANIM.HOP };
+    }
+    const u = (t - 0.8) / 0.2;                    // squash on impact, then settle upright
+    return { x:B.x, y:B.y, sx:1.12-0.12*u, sy:0.85+0.15*u };
+  });
 }
 function moveTokenToXY(i, x, y){ tokenEls[i].style.transform = `translate(${x}px, ${y}px)`; }
 
@@ -1459,13 +1495,16 @@ async function moveCurrent(rollValue){
   const landed = path[path.length-1];
   const overshot = path.some(c=>c===BOARD.WIN) && landed !== BOARD.WIN;
 
-  // step the active token cell by cell (centred while in transit)
+  // step the active token cell by cell (centred while in transit) — each
+  // board step is a hop; the first move out of the START lane glides in
+  let at = p.pos;
   for (const c of path){
     p.pos = c;
-    moveTokenTo(i, c);
     SFX.play("step");
     renderScoreboard();
-    await sleep(ANIM.STEP);
+    if (at >= 1) await hopToken(i, at, c, ANIM.STEP);
+    else { moveTokenTo(i, c); await sleep(ANIM.STEP); }
+    at = c;
   }
   if (overshot) log(TXT.overshoot(BOARD.WIN));
 
@@ -1585,10 +1624,17 @@ async function applyLink(p, idx, depth){       // climb a ladder / slide a chute
   const from = p.pos;
   await sleep(120);
   p.pos = link.to;
-  tokenEls[idx].style.transition = `transform ${ANIM.SLIDE}ms ease-in-out`;
-  layoutTokens();
-  await sleep(ANIM.SLIDE);
-  tokenEls[idx].style.transition = `transform ${ANIM.STEP}ms ease-in-out`;
+  if (link.kind === "slide"){
+    // ride the drawn snake body head->tail, easing in like gravity took hold
+    const A = cellCenter(from), B = cellCenter(link.to);
+    await tweenToken(idx, ANIM.SLIDE, t => snakePoint(A, B, t*t));
+    layoutTokens();
+  } else {
+    tokenEls[idx].style.transition = `transform ${ANIM.SLIDE}ms ease-in-out`;
+    layoutTokens();
+    await sleep(ANIM.SLIDE);
+    tokenEls[idx].style.transition = `transform ${ANIM.STEP}ms ease-in-out`;
+  }
   SFX.play(link.kind === "ladder" ? "ladder" : "chute");
   log(link.kind==="ladder" ? TXT.climbed(from,link.to) : TXT.slid(from,link.to));
   if (link.kind === "slide" && FEATURES.snakeCollision) await snakeCollision(p, from, link.to, depth);
@@ -2580,7 +2626,13 @@ async function resolveLanding(pl, depth, skipTeleport){
 async function advancePlayer(pl, n){
   const idx = idxOf(pl);
   const path = walkPath(pl.pos === 0 ? 0 : pl.pos, n);
-  for (const c of path){ pl.pos = c; moveTokenTo(idx, c); SFX.play("step"); await sleep(ANIM.STEP*0.7); }
+  let at = pl.pos;
+  for (const c of path){
+    pl.pos = c; SFX.play("step");
+    if (at >= 1) await hopToken(idx, at, c, ANIM.STEP*0.7);
+    else { moveTokenTo(idx, c); await sleep(ANIM.STEP*0.7); }
+    at = c;
+  }
   await resolveLanding(pl);             // ladder/chute/ice/teleporter all fire on arrival
   layoutTokens(); renderScoreboard();
   return game.over;                     // resolveLanding finishes + flags over on a win
