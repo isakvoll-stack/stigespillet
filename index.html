@@ -542,7 +542,6 @@
     </div>
   </div>
 
-<script src="shop-items.js"></script>
 <script>
 "use strict";
 /* =====================================================================
@@ -628,9 +627,23 @@ const SETBACK_COLOR = "#8b1a1a";                         // deep red — clearly
 // board feeling fresh across playthroughs. See also shuffleTiles() for mid-game reshuffling.
 const ITEM = { COFFEE_BONUS: 4, SHOES_BONUS: 1 };          // coffee = +4 one-shot; running shoes = +1 every roll
 const INV  = { CONSUMABLES: 3, PASSIVES: 1 };             // bag size: 3 consumables + 1 passive at a time
-// Shop item catalog (id, ico, name, desc, kind, cost) lives in shop-items.js
-// (SHOP_CATALOG), loaded via <script src> above. The catalog is DATA; what each
-// id actually does lives in the item logic below, keyed by id.
+/* ---- DATA: shop item catalog ----------------------------------------
+   The full item list. What each id actually DOES lives in the item logic
+   (itemDef / giveItem / useItem), keyed by id. kind = "consumable" (held
+   in the 3-slot bag, used before you roll) or "passive" (the 1 always-on
+   item; a new one replaces the old). enabled:false hides an item.
+   Lives inline so the game stays ONE self-contained file — a downloaded
+   index.html must never depend on a sidecar file. */
+const SHOP_CATALOG = [
+  { id:"coffee", ico:"☕",  name:"Coffee",           kind:"consumable", cost:4,  enabled:true,
+    desc:"+4 to your next roll." },
+  { id:"shield", ico:"🛡️", name:"Shield",           kind:"consumable", cost:6,  enabled:true,
+    desc:"Blocks the next knockdown or freeze. A blue bubble shows while it's active." },
+  { id:"clover", ico:"🍀", name:"Four-leaf Clover", kind:"consumable", cost:10, enabled:true,
+    desc:"Guarantees a 6 on your next roll." },
+  { id:"shoes",  ico:"👟", name:"Running Shoes",    kind:"passive",    cost:10, enabled:true,
+    desc:"Passive: +1 to every roll while worn." },
+];
 const BLUE_COLORS   = new Set(["#6fa8dc", FISH_COLOR]);   // light + dark blue squares (safe from the Nuke)
 function isBlueTile(cell){ return BLUE_COLORS.has(cellColor(cell)); }
 function isPlainTile(cell){
@@ -1103,6 +1116,19 @@ let spotDark = null, spotHole = null, beamEl = null, beamFrom = {x:0,y:0};  // s
 let arrowEl = null;               // "whose turn" arrow, re-parented onto the active token
 const die = document.getElementById("die");
 const logEl = document.getElementById("log");
+
+/* ---- error trap: never soft-lock ------------------------------------
+   If something throws mid-turn, the awaited chain dies and `busy` would
+   stay true forever (a frozen die and no way to play on). Surface the
+   error in the game log and release the turn so the game stays playable. */
+function reportCrash(what){
+  try{
+    log(`💥 Something broke: ${what}`);
+    if (game){ game.busy = false; refreshHUD(); }
+  }catch(e){ /* never let the trap itself crash */ }
+}
+window.addEventListener("error", e => reportCrash(e.message));
+window.addEventListener("unhandledrejection", e => reportCrash((e.reason && e.reason.message) || e.reason));
 
 const sleep = ms => new Promise(r=>setTimeout(r,ms));
 const raf = () => new Promise(r=>requestAnimationFrame(()=>r()));

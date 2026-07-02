@@ -4,6 +4,32 @@ Newest first. One entry per working session; note what shipped and what's next.
 
 ---
 
+## 2026-07-02 (later) — shop fatal-error fix: self-contained again + error trap
+
+Isak: landing on a shop tile froze the game (can't roll, can't do anything). Root cause
+found in his **Downloads folder**: he plays downloaded single copies of `index.html`
+(6 there, incl. one from today), and since 2026-06-30 the game silently depended on a
+sidecar `shop-items.js` — missing next to a downloaded copy → `SHOP_CATALOG is not
+defined` on shop landing → the turn's promise chain died → `busy` stuck true forever.
+Reproduced headless (single-file copy), NOT reproducible with the full repo folder
+(25/25 checks, real-Chrome click-driver sessions all clean — the registry refactor was
+innocent).
+
+- **Fix 1:** `SHOP_CATALOG` moved back **inline** as a labelled DATA block; `shop-items.js`
+  deleted. The game is truly one self-contained file again (README's "send index.html to
+  share it" is true again). README/RULES.md references updated.
+- **Fix 2:** **error trap** (`reportCrash` + window `error`/`unhandledrejection` listeners):
+  any uncaught error now prints `💥 Something broke: …` into the game log and releases
+  `game.busy`, so a future bug can never silently soft-lock the game.
+- Copied `shop-items.js` into Isak's Downloads so his existing copies work immediately.
+- **Verified:** single-file scenario (land, buy, leave, next turn) 4/4; error-trap test
+  (throwing rule → visible log + unstuck) 2/2; full suite 25/25. One harness-only gotcha
+  found: bot fishing-loss → leviathan cutscene is rAF-driven and stalls under headless
+  virtual time — stub `requestAnimationFrame` with `setTimeout(cb,16)` in harnesses
+  (game itself unaffected in real browsers).
+
+---
+
 ## 2026-07-02 — rules-engine refactor (extensibility pass)
 
 Isak's direction: *"improve SS2 and make it optimally suited for adding in more and

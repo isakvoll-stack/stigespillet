@@ -72,6 +72,13 @@ See `LOG.md` for the running session history.
 
 ## Done
 
+### 2026-07-02 — shop freeze fixed: catalog inlined (self-contained again) + error trap (Isak bug report)
+- [x] Root cause: downloaded single-file copies lack `shop-items.js` → `SHOP_CATALOG`
+      undefined on shop landing → turn chain dies → `busy` stuck. Catalog now inline
+      (`SHOP_CATALOG` DATA block), `shop-items.js` deleted; `reportCrash` error trap logs
+      `💥 Something broke: …` + releases `busy`. Verified: single-file + error-trap +
+      full suite 25/25. (See LOG.md for details; harness note: stub rAF under virtual time.)
+
 ### 2026-07-02 — rules-engine refactor: registries for tiles / bonuses / rare events (Isak)
 - [x] **`TILE_RULES` registry + `LANDING_ORDER`** — every special tile is one entry
       (`feature`, `tiles`, `color`, `onLand`/`offLand`, optional `matches`); a single

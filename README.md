@@ -53,7 +53,13 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
-Recently shipped (2026-07-02): **Rules-engine refactor (extensibility pass)** —
+Recently shipped (2026-07-02, later): **Shop freeze fixed — one self-contained file again** —
+the shop catalog is back inline (`SHOP_CATALOG` DATA block; `shop-items.js` deleted), so a
+downloaded `index.html` alone plays fully — landing on a shop no longer freezes single-file
+copies. Plus an **error trap**: any uncaught error prints `💥 Something broke: …` in the
+game log and releases the turn instead of soft-locking the die.
+
+Earlier (2026-07-02): **Rules-engine refactor (extensibility pass)** —
 the turn flow is now generic and every rule plugs into a registry, so adding a rule
 is a table entry instead of edits scattered through the controller:
 - **`TILE_RULES` + `LANDING_ORDER`** — one entry per special square (fishing, teleporter,
@@ -74,7 +80,7 @@ Earlier (2026-06-30): **Inventory + items rework** —
   auto-blocks the next knockdown/freeze and shows a blue bubble while held), **🍀
   Four-leaf Clover** (10 — guaranteed 6 next roll), **👟 Running Shoes** (10 — passive
   +1 to every roll; a new passive replaces the old one). (`FEATURES.shop`; bag size
-  `INV`, bonuses `ITEM`; catalog in `shop-items.js`.)
+  `INV`, bonuses `ITEM`; catalog in the `SHOP_CATALOG` DATA block.)
 - Also: the **encounter (bounce/kick) choice now happens before tile events**, and the
   on-tile A1…J9 coordinate labels were removed (the coord system stays in code).
 

@@ -231,7 +231,7 @@ icons in the scoreboard next to your name.
 *Toggle: `FEATURES.shop`. Shop tiles = `SHOP_TILES` (6, 28, 52, 75). Bag size =
 `INV` (`CONSUMABLES` 3, `PASSIVES` 1). Bonuses = `ITEM.COFFEE_BONUS` (4) and
 `ITEM.SHOES_BONUS` (1). Item catalog (id, emoji, name, desc, kind, cost) lives in
-`shop-items.js`; what each id does is keyed by id in the item logic in `index.html`.*
+the `SHOP_CATALOG` DATA block; what each id does is keyed by id in the item logic.*
 
 ---
 
