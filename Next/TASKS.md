@@ -71,6 +71,15 @@ See `LOG.md` for the running session history.
 ---
 
 ## Done
+### 2026-07-02 — leviathan V3 redo + cutscene preview mode (Isak)
+- [x] Leviathan V3 (`CUTS.leviathan:3`): dorsal fins + spine ridge rebuilt per frame from
+      the same spine, faint second ripple in the glide, blink at the gulp. `2` = splash
+      polish, `1` = original — flip back if V3 is worse. Spec choreography untouched.
+- [x] Preview mode: open `index.html#preview=leviathan` (or lightning|star|nuke|gun) to
+      watch a cutscene without playing; SPACE/click replays. Suite 25/25.
+- [ ] ⚠ Isak has given precise visions for lightning/star/nuke that were LOST — re-capture
+      them verbatim (KEEP FOREVER) next time he dictates them.
+
 ### 2026-07-02 — cutscene polish pass, individually revertible (Isak)
 - [x] New `CUTS` DATA block: per-cutscene version switch (`{gun, leviathan, lightning, star, nuke}`,
       2 = polished, 1 = previous look) — flip any single one back if it feels worse.

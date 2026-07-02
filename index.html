@@ -768,9 +768,10 @@ const RULE_INFO = {
 const ANIM = { STEP:210, SLIDE:600, DICE:560, HANDOFF:350, AUTO:650,
                HOP:26 };   // walking-hop arc height (px); each step is a little jump + landing squash
 /* ---- DATA: cutscene versions -----------------------------------------
-   2 = the polished 2026-07-02 look, 1 = the previous look. Flip any single
-   one back to 1 if the new version of that cutscene feels worse. */
-const CUTS = { gun:2, leviathan:2, lightning:2, star:2, nuke:2 };
+   Higher = newer look; flip any single one back if a redo feels worse.
+   leviathan: 3 = finned redo (2026-07-02 evening), 2 = splash polish, 1 = original.
+   others:    2 = polished 2026-07-02, 1 = previous. */
+const CUTS = { gun:2, leviathan:3, lightning:2, star:2, nuke:2 };
 /* ---- DATA: sniper rule tunables ------------------------------------ */
 const SNIPER = { EVERY_ROUNDS:5, HIT_RADIUS:30, GETUP_MIN:3 };
 const SHAME  = { TURNS:3, GETUP_MIN:4 };   // kick-a-man-while-down: shame turns + harder recovery
@@ -2133,6 +2134,35 @@ function leviTaperPath(pts, headW, tailW){
   return d + "Z";
 }
 
+// V3 body dressing, rebuilt each frame from the same spine points as the ribbon:
+// a row of swept dorsal fins along the back, and a pale ridge highlight for depth.
+function leviFinPath(pts, headW, tailW){
+  const N = pts.length; let d = "";
+  for (let i=4;i<N-2;i+=3){
+    const a=pts[i-1], b=pts[i+1];
+    let tx=b.x-a.x, ty=b.y-a.y; const len=Math.hypot(tx,ty)||1; tx/=len; ty/=len;
+    let nx=ty, ny=-tx;                                     // outward from the back edge
+    if (ny > 0){ nx=-nx; ny=-ny; }                         // fins always crest upward, never under the belly
+    const w = headW + (tailW-headW)*(i/(N-1));
+    const fh = w*1.15 + 5;                                 // fin height follows the taper
+    const t1x=a.x+nx*w*0.85, t1y=a.y+ny*w*0.85;
+    const t2x=b.x+nx*w*0.85, t2y=b.y+ny*w*0.85;
+    const tipx=pts[i].x+nx*(w+fh)-tx*4, tipy=pts[i].y+ny*(w+fh)-ty*4;   // swept backwards
+    d += `M${t1x.toFixed(1)},${t1y.toFixed(1)} Q${tipx.toFixed(1)},${tipy.toFixed(1)} ${t2x.toFixed(1)},${t2y.toFixed(1)} Z`;
+  }
+  return d;
+}
+function leviRidgePath(pts, headW, tailW){
+  const N = pts.length; let d = "";
+  for (let i=0;i<N;i++){
+    const a=pts[Math.max(0,i-1)], b=pts[Math.min(N-1,i+1)];
+    let tx=b.x-a.x, ty=b.y-a.y; const len=Math.hypot(tx,ty)||1; tx/=len; ty/=len;
+    const w = (headW + (tailW-headW)*(i/(N-1))) * 0.45;
+    d += (i ? "L" : "M") + (pts[i].x+ty*w).toFixed(1) + "," + (pts[i].y-tx*w).toFixed(1);
+  }
+  return d;
+}
+
 // A side-profile dragon head in a local frame: snout toward +x, neck toward -x, mouth
 // hinge near (5,4). The lower jaw is its own group so it can swing open.
 function buildLeviHead(){
@@ -2169,16 +2199,27 @@ async function leviathanFx(fromCell, toCell, victim){
   grad.appendChild(el("stop", {offset:"1", "stop-color":"#0c54bf"}));
   defs.appendChild(grad); ovl.appendChild(defs);
   const body = el("path", {fill:"url(#leviGrad)", stroke:"#0c54bf", "stroke-width":"1.5", "stroke-linejoin":"round"});
+  const fins = el("path", {fill:"#3f8fe8", stroke:"#0c54bf", "stroke-width":"1.4", "stroke-linejoin":"round", opacity:"0.95"});
+  const ridge = el("path", {fill:"none", stroke:"#d6ecff", "stroke-width":"2.2", "stroke-linecap":"round", opacity:"0.8"});
   const head = buildLeviHead();
-  ovl.appendChild(body); ovl.appendChild(head);
+  ovl.appendChild(fins); ovl.appendChild(body); ovl.appendChild(ridge); ovl.appendChild(head);
   document.body.appendChild(ovl);
-  if (CUTS.leviathan === 2){                               // the serpent fades in rather than popping
+  const setBody = (pts, hw, tw) => {                       // ribbon + (V3) fins and ridge, same spine
+    body.setAttribute("d", leviTaperPath(pts, hw, tw));
+    if (CUTS.leviathan >= 3){
+      fins.setAttribute("d", leviFinPath(pts, hw, tw));
+      ridge.setAttribute("d", leviRidgePath(pts, hw, tw));
+    }
+  };
+  if (CUTS.leviathan >= 2){                                // the serpent fades in rather than popping
     ovl.style.opacity = "0"; ovl.style.transition = "opacity .4s";
     await raf(); ovl.style.opacity = "1";
   }
 
   const N = LEVI.SAMPLES;
-  const spineY = (x, ph) => baseY + Math.sin(x/LEVI.WAVE_LEN*Math.PI*2 + ph) * LEVI.WAVE_AMP;
+  // V3 layers a faint second ripple over the main wave so the glide reads alive, not mechanical
+  const spineY = (x, ph) => baseY + Math.sin(x/LEVI.WAVE_LEN*Math.PI*2 + ph) * LEVI.WAVE_AMP
+    + (CUTS.leviathan >= 3 ? Math.sin(x/(LEVI.WAVE_LEN*0.37)*Math.PI*2 + ph*1.7) * LEVI.WAVE_AMP*0.16 : 0);
   const setHead = (x,y,deg,faceRight,maw) => {
     head.setAttribute("transform", `translate(${x.toFixed(1)},${y.toFixed(1)}) scale(${faceRight?1:-1},1) rotate(${deg.toFixed(1)})`);
     head.querySelector(".jaw").setAttribute("transform", `rotate(${(maw*44).toFixed(1)} 5 4)`);
@@ -2200,12 +2241,16 @@ async function leviathanFx(fromCell, toCell, victim){
       let y = spineY(x, ph); y += (vic.y - y) * (near * Math.max(0, 1 - i/6));   // dip the neck to gulp
       pts.push({x, y});
     }
-    body.setAttribute("d", leviTaperPath(pts, LEVI.BODY_HEAD, LEVI.BODY_TAIL));
+    setBody(pts, LEVI.BODY_HEAD, LEVI.BODY_TAIL);
     setHead(pts[0].x, pts[0].y, Math.atan2(pts[0].y-pts[1].y, pts[0].x-pts[1].x)*180/Math.PI, true, Math.max(0.14, near));
     if (!swallowed && headX >= vic.x){                                // the opportunistic gulp, in passing
       swallowed = true; if (tok) tok.style.opacity = "0";
       flashScreen(); SFX.play("boom"); ripple(vic.x, vic.y);
-      if (CUTS.leviathan === 2) splashFx(vic.x, vic.y);    // spray flies up at the gulp
+      if (CUTS.leviathan >= 2) splashFx(vic.x, vic.y);     // spray flies up at the gulp
+      if (CUTS.leviathan >= 3){                            // a satisfied blink as it chomps
+        const eye = head.querySelector(".eye");
+        eye.setAttribute("r", "1.6"); setTimeout(()=> eye.setAttribute("r", "6.4"), 260);
+      }
     }
   });
 
@@ -2214,13 +2259,13 @@ async function leviathanFx(fromCell, toCell, victim){
   const peekX = W - 180;
   await leviTween(LEVI.PEEK_MS, t=>{                                   // peek the head back in from the edge
     const e = 1-(1-t)*(1-t), hx = endX + (peekX - endX)*e;
-    body.setAttribute("d", leviTaperPath(neckPts(hx, neckFrom), LEVI.BODY_HEAD, LEVI.BODY_HEAD*0.65));
+    setBody(neckPts(hx, neckFrom), LEVI.BODY_HEAD, LEVI.BODY_HEAD*0.65);
     setHead(hx, neckFrom, -8, false, 0.18);
   });
   const rearY = Math.max(LEVI.WAVE_AMP + 40, neckFrom - 210);
   await leviTween(LEVI.REAR_MS, t=>{                                   // rear up, coiling, maw opening
     const e = t*t*(3-2*t), hy = neckFrom + (rearY - neckFrom)*e;
-    body.setAttribute("d", leviTaperPath(neckPts(peekX, hy), LEVI.BODY_HEAD, LEVI.BODY_HEAD*0.65));
+    setBody(neckPts(peekX, hy), LEVI.BODY_HEAD, LEVI.BODY_HEAD*0.65);
     setHead(peekX, hy, -24 - 14*e, false, 0.2 + 0.55*e);
   });
 
@@ -2239,11 +2284,11 @@ async function leviathanFx(fromCell, toCell, victim){
     flier.style.left = x+"px"; flier.style.top = y+"px";
     flier.style.transform = `translate(-50%,-50%) rotate(${t*LEVI.SPIT_SPIN}deg)`;
     const hx = peekX + 60*t;                                          // recoil + close the maw as it spits
-    body.setAttribute("d", leviTaperPath(neckPts(hx, rearY), LEVI.BODY_HEAD, LEVI.BODY_HEAD*0.65));
+    setBody(neckPts(hx, rearY), LEVI.BODY_HEAD, LEVI.BODY_HEAD*0.65);
     setHead(hx, rearY, -12, false, Math.max(0.18, 0.8*(1-t)));
   });
   ripple(dest.x, dest.y); SFX.play("bounce");
-  if (CUTS.leviathan === 2) splashFx(dest.x, dest.y);      // splash where the victim crash-lands
+  if (CUTS.leviathan >= 2) splashFx(dest.x, dest.y);       // splash where the victim crash-lands
 
   if (tok){ const c = cellCenter(toCell);                             // land the real token on the new tile
     tok.style.transition = "none";
@@ -3453,6 +3498,41 @@ makeSnow(38);
 makeClouds(5);
 buildWheel();
 showScreen("title");
+
+/* ---- dev preview: watch a cutscene without playing a game -----------
+   Open  index.html#preview=leviathan  (or lightning | star | nuke | gun).
+   It boots a demo board and plays the cutscene; SPACE / ENTER / clicking
+   the board replays it. Has no effect on normal play. */
+let previewBusy = false;
+async function runPreview(name){
+  const fx = {
+    leviathan: () => leviathanFx(45, 12, game.players[0]),
+    lightning: () => lightningFx(45),
+    star:      () => starFx(game.players[0], 60),
+    nuke:      () => nukeSequence(),
+    gun:       () => revolverRoulette(game.players[0]),
+  }[name];
+  if (!fx || previewBusy) return;
+  previewBusy = true;
+  const P = game.players;
+  P[0].pos = 45; P[1].pos = 52;
+  P.forEach(q => { q.downed = false; q.frozen = false; });
+  game.busy = true; layoutTokens(); renderScoreboard();
+  tokenEls.forEach(t => t.style.opacity = "1");
+  try { await fx(); } catch(e){}
+  previewBusy = false;
+}
+const previewName = (location.hash.match(/preview=([a-z]+)/)||[])[1];
+if (previewName){
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("show"));
+  newGame([{name:"Demo A"},{name:"Demo B"}]);
+  Object.keys(RULE_INFO).forEach(k => rulesSeen[k] = true);
+  document.addEventListener("keydown", e => {
+    if (e.code === "Space" || e.code === "Enter"){ e.preventDefault(); e.stopImmediatePropagation(); runPreview(previewName); }
+  }, true);
+  svg.addEventListener("click", () => runPreview(previewName));
+  setTimeout(() => runPreview(previewName), 500);
+}
 </script>
 </body>
 </html>
