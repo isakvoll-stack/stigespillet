@@ -149,6 +149,14 @@ the frost. A **Shield** absorbs a freeze.
 *Toggle: `FEATURES.freeze`. Icy tiles = `FREEZE_TILES` (29 & 63). Reach of the frost
 = `FREEZE.ADJ` (1 grid-tile = the 8 neighbours); break-free roll = `FREEZE.GETUP_MIN`.*
 
+### The rotten plank (hidden rule)
+Tile **89** — one square from the finish — looks like any plain tile, but the **first**
+player to land on it (by roll, kick, swap, anything) **falls straight through** and
+plummets all the way back to **tile 1** in one dramatic arc. After that single use the
+trapdoor is patched: tile 89 is a completely normal tile for the rest of the game.
+
+*Toggle: `FEATURES.trapdoor`. Tile/arc tunables in `TRAP89`.*
+
 ### Radioactive fallout (hidden rule)
 A **nuke** leaves scars: after the blast, **two plain tiles turn radioactive green**.
 Land on one (or get thrown onto one) and you become **radioactive**: your rolls take
