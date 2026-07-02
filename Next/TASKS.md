@@ -71,6 +71,14 @@ See `LOG.md` for the running session history.
 ---
 
 ## Done
+### 2026-07-02 — sniper-shield fix + tile-89 trapdoor (Isak)
+- [x] Sniper hits now go through `downPlayer` — an ARMED shield blocks the shot
+      (was setting `.downed` directly, bypassing the shield).
+- [x] NEW: tile-89 trapdoor (`FEATURES.trapdoor`, registry rule `trap89`): disguised as
+      plain yellow; FIRST landing = dramatic arc-plunge back to tile 1, then the tile is
+      normal for the rest of the game (re-armed each newGame; fallout also cleared now).
+- [x] Smoke 7/7, 0 errors.
+
 ### 2026-07-02 — shield is now tactical + blue tiles pay 3 (Isak)
 - [x] Shield no longer guards from the bag: USE it from the inventory to arm it
       (`p.shieldOn`, bubble shows only when armed, blocks once). Bots arm theirs.

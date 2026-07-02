@@ -599,6 +599,7 @@ const FEATURES = {
   snakeCollision:true,   // sliding down a chute bowls over players in the way
   freeze:        true,   // icy squares freeze you solid; LANDING next to a frozen player freezes you too
   radioactive:   true,   // a nuke leaves radioactive fallout tiles: a stacking roll sickness, then a permanent +1
+  trapdoor:      true,   // tile 89 (disguised as plain): the FIRST player to land there drops back to start, then it's normal
   fishPowers:    true,   // carrying fish grants escalating powers (extra movement, ice escape) + quirks (slippery ladders, teleporter overload)
   secretSquare:  true,   // a hidden square before tile 1, only revealed when a backtrack lands someone on it
   shop:          true,   // gold squares open a shop to buy items with coins; use them from your inventory
@@ -748,6 +749,11 @@ const RULE_INFO = {
     name: "Deep freeze",
     text: "Land on an icy square and you freeze solid — you have to roll a 4 or higher to break free before you can move. And the cold lingers: land on a tile right next to a frozen player — including diagonally — and you freeze too. Anyone already standing nearby is safe.",
   },
+  trapdoor: {
+    ico: "🕳️",
+    name: "The rotten plank",
+    text: "One square near the top isn't as solid as it looks. The first player to land on it falls straight through — all the way back to the start. After that, someone patches it up.",
+  },
   radioactive: {
     ico: "☢️",
     name: "Radioactive fallout",
@@ -843,6 +849,13 @@ const RAD_TILES = [];                      // fallout tiles — empty until a nu
 const RAD_COLOR = "#58c81b";               // radioactive green
 const RAD = { PER_NUKE:2, GROW_TURNS:5, IMMUNE_BONUS:1 };  // tiles per nuke; sickness worsens 5 turns (to -5) then recovers; survive = permanent +1
 const COIN = { PLAIN:1, BLUE:3 };          // coins for landing on a plain yellow / plain blue tile
+/* ---- DATA: the tile-89 trapdoor -------------------------------------
+   One square from the finish, disguised as a plain tile: the FIRST player
+   to land on it drops all the way back to the start — then the trapdoor is
+   spent and 89 is a regular tile for the rest of the game. */
+const TRAP89 = { TILE:89, ARC:190, FLY_MS:1500 };
+const TRAP89_TILES = [TRAP89.TILE];        // emptied once it fires; re-armed by newGame
+const TRAP89_COLOR = "#f6d55c";            // same yellow the palette gives tile 89 — you can't see it coming
 const LIGHTNING = { CHANCE:0.005, BACK:7,       // ~0.5% per turn: strike the leader, knock them back (3x rarer)
   GATHER_MS:1400, FLICKERS:2, STRIKES:3, FORKS:3, SPARKS:16 };  // build-up time + pre-flickers, main multi-strike, branch forks, impact sparks
 const LUCKY     = { CHANCE:0.004, FORWARD:8 };  // ~0.4% per turn: sweep the last-place player forward (3x rarer)
@@ -1258,6 +1271,9 @@ const TILE_RULES = {
   radioactive: { feature:"radioactive", tiles:RAD_TILES, color:RAD_COLOR,
     onLand: irradiate, offLand: irradiate },
 
+  trap89: { feature:"trapdoor", tiles:TRAP89_TILES, color:TRAP89_COLOR,
+    onLand: springTrapdoor, offLand: springTrapdoor },
+
   freeze: { feature:"freeze", tiles:FREEZE_TILES, color:FREEZE_COLOR,
     matches(){ return true; },      // the frost check lives in tryFreeze (icy tile OR next to a frozen player)
     onLand: tryFreeze, offLand: tryFreeze },
@@ -1266,8 +1282,8 @@ const TILE_RULES = {
 /* Who gets the landing first, per path. On your own roll the freeze check
    runs last (only if no tile fired); off-turn the frost beats the teleporter. */
 const LANDING_ORDER = {
-  turn:    ["fishing", "teleport", "orange", "shop", "setback", "radioactive", "freeze"],
-  offTurn: ["setback", "radioactive", "freeze", "teleport"],
+  turn:    ["fishing", "teleport", "orange", "shop", "setback", "trap89", "radioactive", "freeze"],
+  offTurn: ["setback", "trap89", "radioactive", "freeze", "teleport"],
 };
 
 function specialTileColor(cell){
@@ -1295,6 +1311,24 @@ async function sendBackToStart(p){
   log(`🔴 ${p.name} hit the penalty tile — back to tile 1!`);
   SFX.play("chute");
   p.pos = 1; layoutTokens(); renderScoreboard();
+  return true;
+}
+
+// The tile-89 trapdoor: one dramatic plunge back to the start, then it's spent.
+async function springTrapdoor(p){
+  TRAP89_TILES.splice(0, Infinity);                        // spent — 89 is a regular tile from here on
+  await revealRuleOnce("trapdoor");
+  log(`🕳️ The floor of tile ${TRAP89.TILE} gives way — ${p.name} plummets all the way back to the start!`);
+  SFX.play("fall"); flashScreen();
+  const idx = idxOf(p), A = cellCenter(p.pos), B = cellCenter(1);
+  SFX.play("chute");
+  await tweenToken(idx, TRAP89.FLY_MS, t => {              // one long dramatic arc down the whole board
+    const e = t*t*(3 - 2*t);
+    return { x:A.x+(B.x-A.x)*e, y:A.y+(B.y-A.y)*e - Math.sin(Math.PI*t)*TRAP89.ARC };
+  });
+  p.pos = 1; layoutTokens(); renderScoreboard();
+  repaintCell(TRAP89.TILE);                                // now paints as the plain tile it has become
+  await sleep(400);
   return true;
 }
 
@@ -1466,6 +1500,8 @@ function newGame(roster){
     standings: null, fishStreak: 0, fishCaught: 0,
   };
   hideSecret();
+  TRAP89_TILES.splice(0, Infinity, TRAP89.TILE);   // re-arm the tile-89 trapdoor for the new game
+  RAD_TILES.splice(0, Infinity);                   // clear last game's fallout
   rulesSeen = {};
   buildBoard();
   buildTokens(count);
@@ -1912,10 +1948,13 @@ async function fireSniper(shooter, tx, ty){
     if (Math.hypot(c.x-px, c.y-py) <= SNIPER.HIT_RADIUS) hit.push(q);
   });
   await sleep(150);
-  hit.forEach(q => { q.downed = true; updateDowned(idxOf(q)); });
+  hit.forEach(q => downPlayer(q));                      // shield-aware: an armed Shield absorbs the shot
+  const downed = hit.filter(q => q.downed);
   if (hit.length){ SFX.play("kick"); flashScreen(); }   // knockdown + screen shake, no explosion
   renderScoreboard();
-  log(hit.length ? `${shooter.name} shot and hit: ${hit.map(q=>q.name).join(", ")} 💥` : `${shooter.name} missed!`);
+  log(hit.length
+    ? (downed.length ? `${shooter.name} shot and hit: ${downed.map(q=>q.name).join(", ")} 💥` : `${shooter.name}'s shot was blocked!`)
+    : `${shooter.name} missed!`);
   await sleep(600);
   beamEl.setAttribute("stroke-width", "4");
 }
