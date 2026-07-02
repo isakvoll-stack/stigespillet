@@ -4,6 +4,46 @@ Newest first. One entry per working session; note what shipped and what's next.
 
 ---
 
+## 2026-07-02 — rules-engine refactor (extensibility pass)
+
+Isak's direction: *"improve SS2 and make it optimally suited for adding in more and
+more rules and details."* Refactor only — no gameplay change intended. Pushed.
+
+- **The problem:** ~20 rules in, adding one meant touching 5–6 scattered places — the
+  on-turn tile chain in `moveCurrent`, the off-turn chain in `resolveLanding`,
+  `cellColor`, `isPlainTile`, plus tile consts. The two chains had already drifted
+  (different order, subtle guards), and `shuffleTiles` had to re-sync a colour map with
+  hard-coded hex literals.
+- **The fix — a RULE WIRING layer** (new labelled block at the top of CONTROLLER):
+  - `TILE_RULES` — one entry per special tile (fishing/teleport/orange/shop/setback/
+    freeze) with `tiles`, `color`, `feature`, `onLand(p,ctx)` / `offLand(p,ctx)`
+    (return `true` = consumed the landing), optional `matches` override (freeze reaches
+    beyond its own tiles; teleport honours `skipTeleport`).
+  - `LANDING_ORDER.turn` / `.offTurn` — explicit priority per path, preserving the old
+    semantics exactly (freeze checked last on-turn; setback → freeze → teleport
+    off-turn; fishing/orange/shop have no `offLand`, so they stay inert off-turn).
+  - `runTileRules(p, ctx)` — the one generic loop both `moveCurrent` and
+    `resolveLanding` now call.
+  - `cellColor` + `isPlainTile` derive from the registry (`specialTileColor`), so paint
+    and plain-tile coins can never drift from the wiring again; `SPECIAL_TILES` became
+    `FISH_COLOR`/`ORANGE_COLOR` DATA consts and `shuffleTiles` lost its sync step.
+  - `MOVE_BONUSES` (fish/coffee/shoes) + `moveBonusTotal` replace inline bonus math;
+    `RARE_EVENTS` (lightning/star/fate) + a loop replace the `startTurn` if-chain.
+- **Docs:** CLAUDE.md gained the RULE WIRING layer row + an "Adding a new rule (the
+  recipe)" cookbook; README's How-it's-built updated.
+- **Verified (headless Chrome, virtual time, ×3 runs):** pre-refactor baseline captured
+  first — `cellColor`/`isPlainTile` byte-identical for all 90 tiles after the refactor;
+  dispatch tests for all six tile rules on-turn + off-turn (feature-flag gating,
+  skipTeleport guard, freeze-by-adjacency, plain tile fires nothing); bonus pipeline
+  math; 3 full autonomous 4-bot games each reached a winner. **25/25 checks per run,
+  0 JS errors.**
+- **Next:** build the next rule *through* the registry to prove the recipe (good
+  candidates from the DATA TODOs: the black-market tile at the secret square, or
+  randomised special-tile placement at game start). A quick human eyeball in the
+  browser is still worth it, though no visual change is expected.
+
+---
+
 ## 2026-06-30 — inventory + items rework, coord labels removed, encounter priority fix
 
 Isak requests (three in one session). Pushed.

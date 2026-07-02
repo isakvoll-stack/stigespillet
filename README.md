@@ -30,9 +30,16 @@ Everything lives in `index.html`, but in clearly separated layers:
 - **ENGINE** — pure board maths: `cellCenter`, `walkPath` (bounce-aware),
   `linkAt`. No DOM.
 - **RENDER** — builds the SVG board from the data; draws ladders, slides, tokens.
-- **CONTROLLER** — turn flow, dice, animation, win.
+- **RULE WIRING** — the registries every rule plugs into: `TILE_RULES` +
+  `LANDING_ORDER` (what each special square does, on-turn and off-turn),
+  `MOVE_BONUSES` (whatever adds steps to a roll), `RARE_EVENTS` (the rare
+  turn-start strikes). Board painting derives from `TILE_RULES` too.
+- **CONTROLLER** — turn flow, dice, animation, win. Generic: it loops the
+  registries and never name-checks an individual rule.
 
 Change a ladder or a colour in the DATA block and the whole game follows.
+Adding a rule = a DATA block + a handler + one registry entry (see the
+recipe in `CLAUDE.md`).
 
 ## Background / research
 Stigespill descends from the Indian *Gyan Chaupar / Moksha Patam*. The classic
@@ -46,7 +53,21 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
-Recently shipped (2026-06-30): **Inventory + items rework** —
+Recently shipped (2026-07-02): **Rules-engine refactor (extensibility pass)** —
+the turn flow is now generic and every rule plugs into a registry, so adding a rule
+is a table entry instead of edits scattered through the controller:
+- **`TILE_RULES` + `LANDING_ORDER`** — one entry per special square (fishing, teleporter,
+  orange, shop, setback, freeze) with `onLand`/`offLand` handlers; the same table drives
+  board painting and plain-tile detection (the old duplicate if-chains in `moveCurrent` /
+  `resolveLanding` / `cellColor` / `isPlainTile` are gone, and the wheel's 🌀 tile shuffle
+  no longer needs a colour re-sync step).
+- **`MOVE_BONUSES`** — fish/coffee/shoes step bonuses as entries; new modifiers are one line.
+- **`RARE_EVENTS`** — lightning / lucky star / fate swap as entries.
+- **No gameplay change intended or observed**: tile colours verified byte-identical for all
+  90 squares, 25/25 headless checks ×3 runs, 3 full autonomous games, 0 JS errors.
+- New **“Adding a new rule (the recipe)”** section in `CLAUDE.md`.
+
+Earlier (2026-06-30): **Inventory + items rework** —
 - **🎒 Inventory**: on your turn, before rolling, open your inventory and *use* items,
   then roll. You carry **3 consumables + 1 passive**. Items now **cost coins** and are
   bought at the gold shop. **☕ Coffee** (4 — +4 next roll), **🛡️ Shield** (6 —

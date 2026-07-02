@@ -62,7 +62,8 @@ Everything lives in `index.html`, but in clearly separated, labelled blocks:
 | **DATA** | `BOARD`, `RULES`, `LADDERS`, `SLIDES`, colours, Norwegian `TXT` strings. Board content (ladders/slides) lives **only** here. |
 | **ENGINE** | Pure board maths: `cellCenter`, `walkPath` (bounce-aware), `linkAt`. No DOM. |
 | **RENDER** | Builds the SVG board from the data; draws ladders, slides, tokens. |
-| **CONTROLLER** | Turn flow, dice, animation, win condition. |
+| **RULE WIRING** | The registries that plug rules into the turn flow: `TILE_RULES` + `LANDING_ORDER` (special tiles), `MOVE_BONUSES` (step modifiers), `RARE_EVENTS` (turn-start strikes). |
+| **CONTROLLER** | Turn flow, dice, animation, win condition. Generic — it consults the registries; it never name-checks individual rules. |
 
 The goal is that any value Isak might want to change lives in exactly **one labelled place**
 you can point him to.
@@ -85,6 +86,31 @@ it (YAGNI) — a genuine one-off value doesn't need a data system wrapped around
 **Smell test (run before finishing a step):** if changing a number, a label, or an ordering
 would mean editing ENGINE/RENDER/CONTROLLER code instead of a labelled DATA line, the layers
 are tangled — pull the data out.
+
+---
+
+## Adding a new rule (the recipe)
+
+New rules plug into the **RULE WIRING** registries — never into `moveCurrent`,
+`resolveLanding`, or `startTurn` directly. Those loops are generic and finished.
+
+**A new special tile** (a square that does something when landed on):
+1. **DATA**: a tiles array + a colour const + any tunables (e.g. `const BOG_TILES=[…]; const BOG_COLOR="…";`).
+2. Write the handler function (e.g. `runBog(p)`), near the other rule handlers.
+3. Add one entry to `TILE_RULES` — `tiles`, `color`, `feature`, and `onLand` (your own roll)
+   and/or `offLand` (moved here by a kick/swap/star; omit it for interactive tiles).
+   Return `true` when the tile consumed the landing.
+4. Add its id to `LANDING_ORDER.turn` (and `.offTurn` if it has `offLand`) — position = priority.
+5. A `FEATURES` flag, a `RULE_INFO` card (call `revealRuleOnce` in the handler), and a `RULES.md` entry.
+
+Painting and plain-tile detection are automatic — `cellColor` and `isPlainTile` read `TILE_RULES`,
+so the board follows the registry (even through the wheel's 🌀 tile shuffle).
+
+**A new movement modifier** (anything that adds steps to a roll): one entry in `MOVE_BONUSES`
+(`feature`, `amount(p)`, optional `note`).
+
+**A new rare turn-start event**: one entry in `RARE_EVENTS` (`feature`, `chance()`, `run`),
+with its chance tunable in a DATA block.
 
 ---
 

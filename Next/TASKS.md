@@ -72,6 +72,28 @@ See `LOG.md` for the running session history.
 
 ## Done
 
+### 2026-07-02 — rules-engine refactor: registries for tiles / bonuses / rare events (Isak)
+- [x] **`TILE_RULES` registry + `LANDING_ORDER`** — every special tile is one entry
+      (`feature`, `tiles`, `color`, `onLand`/`offLand`, optional `matches`); a single
+      generic `runTileRules(p, ctx)` replaces the duplicate if-chains in `moveCurrent`
+      (on-turn) and `resolveLanding` (off-turn). Order per path is explicit
+      (`LANDING_ORDER.turn` / `.offTurn` — freeze last on-turn, before teleport off-turn,
+      exactly as before).
+- [x] **Painting + plainness derive from the registry** — `cellColor` and `isPlainTile`
+      read `TILE_RULES` via `specialTileColor`; `SPECIAL_TILES` dissolved into
+      `FISH_COLOR`/`ORANGE_COLOR` DATA consts; `shuffleTiles` no longer re-syncs a
+      colour map (it splices the tile arrays and everything follows).
+- [x] **`MOVE_BONUSES` pipeline** — fish (+1 per 3), coffee (+4 one-shot, consumed),
+      shoes (+1 passive) as entries; `moveBonusTotal(p)` sums them in `moveCurrent`.
+- [x] **`RARE_EVENTS` table** — lightning / lucky star / fate swap; `startTurn` loops it.
+- [x] **CLAUDE.md cookbook** — "Adding a new rule (the recipe)": DATA + handler +
+      registry entry (+ FEATURES flag, RULE_INFO card, RULES.md note).
+- [x] **Verified headless ×3 runs** — cellColor + isPlainTile byte-identical to the
+      pre-refactor baseline for all 90 tiles; on/off-turn dispatch for all six tile rules
+      (incl. feature-flag gating, skipTeleport guard, freeze-by-adjacency, interactive
+      tiles inert off-turn); bonus math; 3 full autonomous 4-bot games to a winner.
+      **25/25 checks per run, 0 JS errors.** No gameplay change intended.
+
 ### 2026-06-30 — inventory + items rework, coord labels off, encounter priority (Isak)
 - [x] **Removed on-tile A1…J9 labels** — the coord *system* stays in code for
       programming; tiles no longer draw the grid label (1–90 number stays).

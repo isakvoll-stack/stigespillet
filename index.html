@@ -615,9 +615,9 @@ const ROLE_COLORS = {
   snakeTail:    "#f4aaa4",   // light red    — where a snake/chute drops you
   conflict:     "#d3b8ec",   // light purple — a tile with two roles
 };
-// Extra accent tiles (plain tiles only): one dark-blue + three orange.
-const SPECIAL_TILES = { 35:"#16306e", 49:"#16306e", 70:"#16306e", 12:"#e67e22", 46:"#e67e22", 77:"#e67e22" };
+const FISH_COLOR    = "#16306e";                          // dark blue — the fishing squares
 const ORANGE_TILES  = [12, 46, 77];                       // orange squares -> Wheel/Support/Gun choice
+const ORANGE_COLOR  = "#e67e22";                          // orange — Wheel/Support/Gun squares
 const SHOP_TILES    = [6, 28, 52, 75];                    // gold shop squares (land here to buy items)
 const SHOP_COLOR    = "#d4a656";                          // warm gold — same as --brass
 const SETBACK_TILES = [7];                               // dark-red "back to start" square
@@ -631,15 +631,12 @@ const INV  = { CONSUMABLES: 3, PASSIVES: 1 };             // bag size: 3 consuma
 // Shop item catalog (id, ico, name, desc, kind, cost) lives in shop-items.js
 // (SHOP_CATALOG), loaded via <script src> above. The catalog is DATA; what each
 // id actually does lives in the item logic below, keyed by id.
-const BLUE_COLORS   = new Set(["#6fa8dc", "#16306e"]);    // light + dark blue squares (safe from the Nuke)
+const BLUE_COLORS   = new Set(["#6fa8dc", FISH_COLOR]);   // light + dark blue squares (safe from the Nuke)
 function isBlueTile(cell){ return BLUE_COLORS.has(cellColor(cell)); }
 function isPlainTile(cell){
   if (cell in LADDERS || LADDER_TOPS.has(cell)) return false;
   if (cell in SLIDES  || SNAKE_TAILS.has(cell)) return false;
-  if (TELEPORTERS.includes(cell) || FREEZE_TILES.includes(cell)) return false;
-  if (SHOP_TILES.includes(cell)  || SETBACK_TILES.includes(cell)) return false;
-  if (cell in SPECIAL_TILES) return false;   // fish (dark-blue) + orange
-  return true;
+  return specialTileColor(cell) === null;    // any tile a rule in TILE_RULES owns isn't plain
 }
 
 /* ---- DATA: Norwegian UI strings ------------------------------------ */
@@ -926,11 +923,8 @@ function cellColor(cell){
   if (SNAKE_TAILS.has(cell)) roles.push("snakeTail");      // tail of a snake   -> light red
   if (roles.length > 1) return ROLE_COLORS.conflict;       // two roles         -> light purple
   if (roles.length === 1) return ROLE_COLORS[roles[0]];
-  if (TELEPORTERS.includes(cell)) return TELEPORT_COLOR;   // teal teleporter
-  if (FREEZE_TILES.includes(cell)) return FREEZE_COLOR;    // icy freeze square
-  if (SHOP_TILES.includes(cell)) return SHOP_COLOR;         // gold shop square
-  if (SETBACK_TILES.includes(cell)) return SETBACK_COLOR;  // dark-red back-to-start
-  if (cell in SPECIAL_TILES) return SPECIAL_TILES[cell];   // dark-blue / orange accents
+  const special = specialTileColor(cell);                  // any rule-owned tile paints its rule colour
+  if (special) return special;
   const h = (cell * 2654435761) >>> 0;                     // plain tile: yellow/blue scatter
   return CELL_PALETTE[h % CELL_PALETTE.length];
 }
@@ -1112,6 +1106,121 @@ const logEl = document.getElementById("log");
 
 const sleep = ms => new Promise(r=>setTimeout(r,ms));
 const raf = () => new Promise(r=>requestAnimationFrame(()=>r()));
+
+/* =====================================================================
+   RULE WIRING — one registry per hook point. Adding a rule means adding
+   a table entry here (plus its DATA + RULE_INFO), not editing turn flow.
+   ===================================================================== */
+
+/* TILE_RULES: every special-tile rule, one entry each.
+   `tiles` + `color` drive the board paint (cellColor) and what counts as
+   a plain tile — single source of truth, so moving/adding tiles repaints
+   and re-wires automatically. The handlers drive play:
+     onLand(p, ctx)  — landed here on your own roll; return true = the tile
+                       consumed the landing (the turn then ends).
+     offLand(p, ctx) — MOVED here off-turn (kick, swap, star, pile-up …);
+                       return true = stop the landing cascade. No offLand
+                       = inert off-turn (the interactive tiles).
+     matches(p, ctx) — optional; overrides the default `tiles` membership
+                       test (freeze reaches beyond its own tiles).
+   ctx = { offTurn, depth, skipTeleport }. */
+const TILE_RULES = {
+  fishing: { feature:"fishing", tiles:FISH.TILES, color:FISH_COLOR,
+    async onLand(p){ await runFishing(p); return true; } },
+
+  teleport: { feature:"teleport", tiles:TELEPORTERS, color:TELEPORT_COLOR,
+    matches(p, ctx){ return TELEPORTERS.includes(p.pos) && !ctx.skipTeleport; },
+    async onLand(p){ await runTeleporter(p); return true; },
+    async offLand(p, ctx){          // arriving off-turn forces the swap
+      await revealRuleOnce("teleport");
+      const target = teleportSwap(p, false);
+      await sleep(540);
+      if (target){                  // both swap partners: no re-teleport (else swaps chain forever)
+        await resolveLanding(target, ctx.depth+1, true);
+        await resolveLanding(p, ctx.depth+1, true);
+      }
+      return true;
+    } },
+
+  orange: { feature:"orange", tiles:ORANGE_TILES, color:ORANGE_COLOR,
+    async onLand(p){ await runOrange(p); return true; } },
+
+  shop: { feature:"shop", tiles:SHOP_TILES, color:SHOP_COLOR,
+    async onLand(p){ await runShop(p); return true; } },
+
+  setback: { feature:"setback", tiles:SETBACK_TILES, color:SETBACK_COLOR,
+    onLand: sendBackToStart, offLand: sendBackToStart },
+
+  freeze: { feature:"freeze", tiles:FREEZE_TILES, color:FREEZE_COLOR,
+    matches(){ return true; },      // the frost check lives in tryFreeze (icy tile OR next to a frozen player)
+    onLand: tryFreeze, offLand: tryFreeze },
+};
+
+/* Who gets the landing first, per path. On your own roll the freeze check
+   runs last (only if no tile fired); off-turn the frost beats the teleporter. */
+const LANDING_ORDER = {
+  turn:    ["fishing", "teleport", "orange", "shop", "setback", "freeze"],
+  offTurn: ["setback", "freeze", "teleport"],
+};
+
+function specialTileColor(cell){
+  for (const id in TILE_RULES){
+    const r = TILE_RULES[id];
+    if (r.tiles.includes(cell)) return r.color;
+  }
+  return null;
+}
+
+// Offer the landing to each rule in order; the first one that consumes it wins.
+async function runTileRules(p, ctx){
+  for (const id of LANDING_ORDER[ctx.offTurn ? "offTurn" : "turn"]){
+    const r = TILE_RULES[id];
+    if (!FEATURES[r.feature]) continue;
+    if (r.matches ? !r.matches(p, ctx) : !r.tiles.includes(p.pos)) continue;
+    const land = ctx.offTurn ? r.offLand : r.onLand;
+    if (land && await land(p, ctx)) return id;
+  }
+  return null;
+}
+
+async function sendBackToStart(p){
+  await revealRuleOnce("setback");
+  log(`🔴 ${p.name} hit the penalty tile — back to tile 1!`);
+  SFX.play("chute");
+  p.pos = 1; layoutTokens(); renderScoreboard();
+  return true;
+}
+
+/* MOVE_BONUSES: everything that adds steps on top of the die face.
+   Each entry: feature flag + amount(p) (0 = inactive this roll) + an
+   optional log note. moveCurrent sums them — new bonus = one entry. */
+const MOVE_BONUSES = [
+  { id:"fish",   feature:"fishPowers",                    // every few fish grant +1 movement
+    amount: p => Math.floor((p.fish||0) / FISH.MOVE_PER_FISH),
+    note: (p,n) => `🐟 ${p.name}'s catch carries them +${n} extra.` },
+  { id:"coffee", feature:"shop",                          // a used Coffee boosts this one roll
+    amount: p => { const n = p.rollBonus||0; p.rollBonus = 0; return n; } },
+  { id:"shoes",  feature:"shop",                          // Running Shoes: +1 on every roll while worn
+    amount: p => p.passive === "shoes" ? ITEM.SHOES_BONUS : 0 },
+];
+
+function moveBonusTotal(p){
+  let total = 0;
+  for (const b of MOVE_BONUSES){
+    if (!FEATURES[b.feature]) continue;
+    const n = b.amount(p);
+    if (n > 0){ total += n; if (b.note) log(b.note(p, n)); }
+  }
+  return total;
+}
+
+/* RARE_EVENTS: the once-in-a-blue-moon turn-start strikes. Each entry is
+   feature flag + per-turn chance + effect. startTurn rolls them in order. */
+const RARE_EVENTS = [
+  { id:"lightning", feature:"lightning", chance:()=>LIGHTNING.CHANCE, run:()=>strikeLightning() },
+  { id:"luckyStar", feature:"luckyStar", chance:()=>LUCKY.CHANCE,     run:()=>strikeLucky() },
+  { id:"fateSwap",  feature:"fateSwap",  chance:()=>FATE.CHANCE,      run:()=>strikeFate() },
+];
 
 // A jagged screen-space lightning-bolt path from (x1,y1) to (x2,y2).
 function jaggedBolt(x1,y1,x2,y2,segs){
@@ -1317,17 +1426,11 @@ async function moveCurrent(rollValue){
   const p = game.players[game.current];
   const i = game.current;
   p.onSecret = false;                          // leaving the secret square (if they were on it)
-  // fish power: every few fish grant +1 movement this turn (the die's face is unchanged)
-  const fishBonus = (FEATURES.fishPowers && p.fish) ? Math.floor(p.fish / FISH.MOVE_PER_FISH) : 0;
-  const coffeeBonus = (FEATURES.shop && p.rollBonus) ? p.rollBonus : 0;   // a used Coffee adds to this one roll
-  p.rollBonus = 0;
-  const shoesBonus = (FEATURES.shop && p.passive === "shoes") ? ITEM.SHOES_BONUS : 0;  // Running Shoes: +1 every roll
-  const steps = rollValue + fishBonus + coffeeBonus + shoesBonus;
+  const steps = rollValue + moveBonusTotal(p); // die face + every active MOVE_BONUSES entry
   const from = p.pos === 0 ? 1 : p.pos;        // first move walks from square 1
   const path = walkPath(p.pos === 0 ? 0 : p.pos, steps);
   const landed = path[path.length-1];
   const overshot = path.some(c=>c===BOARD.WIN) && landed !== BOARD.WIN;
-  if (fishBonus > 0) log(`🐟 ${p.name}'s catch carries them +${fishBonus} extra.`);
 
   // step the active token cell by cell (centred while in transit)
   for (const c of path){
@@ -1360,47 +1463,11 @@ async function moveCurrent(rollValue){
     if (game.over) return;
   }
 
-  // dark-blue square -> fishing minigame (then the turn is over)
-  if (!rolledSix && FEATURES.fishing && FISH.TILES.includes(p.pos)){
-    await runFishing(p);
+  // hand the landing to the tile-rule registry; a rule that fires ends the turn
+  if (!rolledSix){
+    const fired = await runTileRules(p, {offTurn:false, depth:0});
     if (game.over) return;
-    await endTurn(); return;
-  }
-
-  // teal square -> teleporter (then the turn is over)
-  if (!rolledSix && FEATURES.teleport && TELEPORTERS.includes(p.pos)){
-    await runTeleporter(p);
-    if (game.over) return;
-    await endTurn(); return;
-  }
-
-  // orange square -> Wheel / Support / Gun choice (then the turn is over)
-  if (!rolledSix && FEATURES.orange && ORANGE_TILES.includes(p.pos)){
-    await runOrange(p);
-    if (game.over) return;
-    await endTurn(); return;
-  }
-
-  // gold square -> shop (spend coins on items; turn ends afterwards)
-  if (!rolledSix && FEATURES.shop && SHOP_TILES.includes(p.pos)){
-    await runShop(p);
-    if (game.over) return;
-    await endTurn(); return;
-  }
-
-  // dark-red square -> back to start (then the turn is over)
-  if (!rolledSix && FEATURES.setback && SETBACK_TILES.includes(p.pos)){
-    await revealRuleOnce("setback");
-    log(`🔴 ${p.name} hit the penalty tile — back to tile 1!`);
-    SFX.play("chute");
-    p.pos = 1; layoutTokens(); renderScoreboard();
-    await endTurn(); return;
-  }
-
-  // icy square (or landing next to a frozen player) -> freeze (then the turn is over)
-  if (!rolledSix && FEATURES.freeze && await tryFreeze(p)){
-    if (game.over) return;
-    await endTurn(); return;
+    if (fired){ await endTurn(); return; }
   }
 
   // coin for landing on a plain tile (no special effect this stop)
@@ -1734,22 +1801,11 @@ async function startTurn(){
       refreshHUD();
     }
   }
-  // very rare storm — strikes whoever is in the lead
-  if (FEATURES.lightning && Math.random() < LIGHTNING.CHANCE){
+  // the once-in-a-blue-moon strikes — each RARE_EVENTS entry rolls its own chance
+  for (const ev of RARE_EVENTS){
+    if (!FEATURES[ev.feature] || Math.random() >= ev.chance()) continue;
     game.busy = true; refreshHUD();
-    await strikeLightning();
-    game.busy = false; refreshHUD();
-  }
-  // very rare lucky star — sweeps whoever is in last forward
-  if (FEATURES.luckyStar && Math.random() < LUCKY.CHANCE){
-    game.busy = true; refreshHUD();
-    await strikeLucky();
-    game.busy = false; refreshHUD();
-  }
-  // very rare reversal of fortune — leader and last place swap
-  if (FEATURES.fateSwap && Math.random() < FATE.CHANCE){
-    game.busy = true; refreshHUD();
-    await strikeFate();
+    await ev.run();
     game.busy = false; refreshHUD();
   }
   if (game.over) return;                 // a rare effect's cascade may have ended the game
@@ -2487,31 +2543,9 @@ async function resolveLanding(pl, depth, skipTeleport){
     if (pl.pos === BOARD.WIN){ finishPlayer(pl); return; }
     return resolveLanding(pl, depth+1);
   }
-  // dark-red tile — sent back to start on any landing (primary or secondary)
-  if (FEATURES.setback && SETBACK_TILES.includes(pl.pos)){
-    await revealRuleOnce("setback");
-    log(`🔴 ${pl.name} hit the penalty tile — back to tile 1!`);
-    SFX.play("chute");
-    pl.pos = 1; layoutTokens(); renderScoreboard();
-    return;
-  }
-
-  // icy tile / frost spread — freezing ends the cascade (they're stuck solid)
-  if (FEATURES.freeze && !pl.frozen && await tryFreeze(pl)) return;
-
-  // teleporter — arriving here off your own turn forces the swap. A player who was
-  // just SWAPPED onto a teal tile must NOT teleport again (skipTeleport), otherwise
-  // swaps chain forever (A↔B, then B on the teal ↔ C, then C ↔ D, …).
-  if (!skipTeleport && FEATURES.teleport && TELEPORTERS.includes(pl.pos)){
-    await revealRuleOnce("teleport");
-    const target = teleportSwap(pl, false);
-    await sleep(540);
-    if (target){
-      await resolveLanding(target, depth+1, true);   // both swap partners: no re-teleport
-      await resolveLanding(pl, depth+1, true);
-    }
-    return;
-  }
+  // hand the landing to the tile-rule registry (offTurn path); a rule that
+  // fires ends the cascade — a frozen player is stuck, a setback is final
+  if (await runTileRules(pl, {offTurn:true, depth, skipTeleport})) return;
   if (pl.pos === BOARD.WIN) finishPlayer(pl);
 }
 
@@ -2874,12 +2908,8 @@ async function shuffleTiles(){
   const newSh = picks.slice(off, off += SHOP_TILES.length);
   const newFi = picks.slice(off, off += FISH.TILES.length);
 
-  // Update SPECIAL_TILES object (holds fish dark-blue + orange colour entries).
-  [...FISH.TILES, ...ORANGE_TILES].forEach(k => delete SPECIAL_TILES[k]);
-  newFi.forEach(k => { SPECIAL_TILES[k] = "#16306e"; });
-  newOr.forEach(k => { SPECIAL_TILES[k] = "#e67e22"; });
-
-  // Update the role arrays in-place (all logic checks like TELEPORTERS.includes() stay valid).
+  // Update the role arrays in-place: TILE_RULES holds live references to these same
+  // arrays, so logic checks AND tile colours (cellColor -> specialTileColor) follow along.
   TELEPORTERS.splice(0, Infinity, ...newTp);
   ORANGE_TILES.splice(0, Infinity, ...newOr);
   FREEZE_TILES.splice(0, Infinity, ...newFz);
