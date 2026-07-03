@@ -3,6 +3,33 @@
 Newest first. One entry per working session; note what shipped and what's next.
 
 ---
+## 2026-07-03 (later) — Isak's 4-point batch: blue-only coins, bigger pawns/icons, switchback arrows, bot brain
+
+All four built + pushed. (1) Plain yellow tiles pay nothing now — `COIN.PLAIN:0` and
+`awardCoin` skips 0-coin awards, so the 🪙 pop only appears on blue (3) and rolled-6.
+(2) Pawns ×1.18 via a scale wrapper in `makePawn`; every over-head icon (coin pop, item
+flourish, ❄️, SHAME, turn arrow) ×1.5 and the shield bubble follows the pawn — all from
+the new `TOKEN` DATA const. (3) White up-arrows across all nine switchback boundaries
+(9→10 … 81→82) — `SWITCHBACK` DATA + `drawUpArrow`, drawn under ladders/slides.
+(4) The queued "smarter bots" task: new BOT BRAIN section — `tileScore`/`landingScore`
+value every landing in tiles; scored kick-vs-bounce (+ jitter), support weaponised onto
+freeze/setback/fallout/chutes (`botSupportTrap`), sniper aims at the front-runner and
+skips armed shields, value-based shopping sprees (`botItemValue`), timed consumables
+(coffee held near the finish, clover waits for a clean landing/exact win, shield armed
+on real threats), and bots don't know the trapdoor until it's sprung. Every decision
+shows a 🤖 thought popup then the verdict (`botThink`/`botDecide`, `.botthink` CSS,
+`FEATURES.botThoughts` to disable, timings in `BOT.THINK_MS/DECIDE_MS`).
+
+Verified headless Chrome (`--headless=new`, virtual time, rAF + animationend stubbed):
+19/19 targeted checks ×3 runs and full 4-bot games to a winner with popups on, 0 JS
+errors; staged screenshot eyeballed (arrows alternate edges correctly, pawn/icon sizes
+read well, popup renders). Harness gotchas for next time: a driver must call
+`showScreen("game")` + `startTurn()` after `newGame()` or `roll()` silently refuses
+(title screen's `.screen.show` blocks it), and compose harness copies with UTF-8 reads
+(PS 5.1 `Get-Content -Raw` mangles emoji → cosmetic only). Open questions logged
+(rolled-6 coin, "into gunfire" support, exact sizes, popup pacing).
+
+---
 ## 2026-07-02 (evening) — animation + rules batch
 
 Isak-directed, all pushed. Cutscenes now per-version switchable (`CUTS`) with a

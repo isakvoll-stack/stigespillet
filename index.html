@@ -301,6 +301,19 @@
     transition:transform .18s cubic-bezier(.2,1.6,.4,1),opacity .3s}
   .killcall.show{transform:translate(-50%,-50%) scale(1);opacity:1}
 
+  /* bot decision popup: what the bot is weighing, then its verdict */
+  .botthink{position:fixed;left:50%;top:15%;transform:translate(-50%,-50%) scale(.8);opacity:0;z-index:7;
+    display:flex;align-items:center;gap:10px;padding:12px 20px;border-radius:14px;max-width:min(92vw,560px);
+    background:rgba(28,20,12,.95);border:2px solid var(--brass);box-shadow:0 10px 30px rgba(0,0,0,.55);
+    color:var(--cream);font-weight:700;font-size:16px;pointer-events:none;
+    transition:transform .22s cubic-bezier(.2,1.4,.4,1),opacity .22s ease}
+  .botthink.show{transform:translate(-50%,-50%) scale(1);opacity:1}
+  .botthink .bticon{font-size:26px;line-height:1}
+  .botthink .btdots i{display:inline-block;font-style:normal;animation:btdot 1s infinite}
+  .botthink .btdots i:nth-child(2){animation-delay:.2s}
+  .botthink .btdots i:nth-child(3){animation-delay:.4s}
+  @keyframes btdot{0%,100%{opacity:.15}40%{opacity:1}}
+
   /* win banner */
   .banner{
     position:fixed;inset:0;display:none;place-items:center;
@@ -610,8 +623,9 @@ const FEATURES = {
   secretSquare:  true,   // a hidden square before tile 1, only revealed when a backtrack lands someone on it
   blackMarket:   true,   // the secret square hosts a shady dealer: dynamic prices, shadier stock later
   shop:          true,   // gold squares open a shop to buy items with coins; use them from your inventory
-  coins:         true,   // players earn coins: rolling a 6, or landing on a plain tile
+  coins:         true,   // players earn coins: rolling a 6, or landing on a plain BLUE tile
   setback:       true,   // one dark-red tile near the start sends you back to tile 1
+  botThoughts:   true,   // bots pause to show the decision they're weighing (slower, watchable bot turns)
   sound:         true,   // sound effects
 };
 
@@ -645,6 +659,11 @@ const SHOP_TILES    = [6, 28, 52, 75];                    // gold shop squares (
 const SHOP_COLOR    = "#d4a656";                          // warm gold — same as --brass
 const SETBACK_TILES = [7];                               // dark-red "back to start" square
 const SETBACK_COLOR = "#8b1a1a";                         // deep red — clearly a penalty tile
+/* ---- DATA: switchback arrows (where the path turns up a row: 9→10, 18→19 …) ---- */
+const SWITCHBACK = { LEN:54, HEAD_W:30, HEAD_H:19, SHAFT_W:9,   // arrow size (px): total length, head, shaft
+  FILL:"rgba(255,255,255,.8)", EDGE:"rgba(31,63,90,.55)" };
+/* ---- DATA: token + over-head icon sizing ---------------------------- */
+const TOKEN = { SCALE:1.18, ICON_SCALE:1.5 };            // pawn size ×; icons above the pawn (coin/item/❄️/arrow) ×
 // TODO: introduce slight RNG to tile placements — rather than every special tile being
 // fully fixed, some (e.g. shop, setback, orange) should spawn at randomly chosen eligible
 // positions each new game (within safe ranges, avoiding snake/ladder tiles). Keeps the
@@ -857,7 +876,7 @@ const FREEZE = { GETUP_MIN: 4, ADJ: 1 };   // need 4+ to break free; LANDING wit
 const RAD_TILES = [];                      // fallout tiles — empty until a nuke converts plain tiles
 const RAD_COLOR = "#58c81b";               // radioactive green
 const RAD = { PER_NUKE:2, GROW_TURNS:5, IMMUNE_BONUS:1 };  // tiles per nuke; sickness worsens 5 turns (to -5) then recovers; survive = permanent +1
-const COIN = { PLAIN:1, BLUE:3 };          // coins for landing on a plain yellow / plain blue tile
+const COIN = { PLAIN:0, BLUE:3 };          // coins per plain-tile landing — only BLUE pays (yellow = 0 = no coin pop)
 /* ---- DATA: the tile-89 trapdoor -------------------------------------
    One square from the finish, disguised as a plain tile: the FIRST player
    to land on it drops all the way back to the start — then the trapdoor is
@@ -883,12 +902,30 @@ const SECRET = { POS:0, X:-90, Y:928, CELL:84, COLOR:"#7b3fa0" };
    stock TBD — see Next/TASKS.md). Prices flex: cheaper the further the
    buyer trails the pack's average, pricier for every past visit. */
 const MARKET = { STOCK:2, BEHIND_PER:8, MAX_DISCOUNT:6, VISIT_MARKUP:1 };
-/* ---- DATA: autonomous (self-play) opponent behaviour --------------- */
+/* ---- DATA: autonomous (self-play) opponent behaviour ----------------
+   The bot brain's tunables. Scores are measured in tiles: +1 ≈ one square
+   of progress, so a slide of 8 is -8. JITTER adds noise so bots stay
+   beatable and varied instead of perfectly cold. */
 const BOT = {
   TELEPORT_GOOD:0.85, TELEPORT_BAD:0.15,        // accept a teleporter swap when it improves your average position (else rarely)
-  // orange-square pick: spread across all three so bots don't just spin the gun/roulette —
-  // mostly the wheel (varied, self-affecting), sometimes the gun, sometimes support.
-  ORANGE:["wheel","gun","support"], ORANGE_WEIGHTS:[5, 3, 2],
+  ORANGE:["wheel","gun","support"], ORANGE_WEIGHTS:[5, 3, 2],   // base appeal of each orange-square pick
+  ORANGE_TRAIL_WHEEL:3, ORANGE_TRAIL_GUN:2,     // extra wheel/gun appeal when trailing the pack (gamble when behind)
+  ORANGE_TRAP_SUPPORT:9, ORANGE_SUPPORT_DAMP:0.2, // support appeal when a rival's +5 lands somewhere nasty / when it doesn't
+  SUPPORT_TRAP_MAX:-3,                          // a rival's +5 landing must score at most this to count as a trap
+  JITTER:1.5,                                   // ± random noise on option scores
+  KICK_BASE:1, KICK_LATE_PER_TILE:0.03,         // kick appeal: base + per-tile (denying a rival matters more up the board)
+  KICK_DOWNED_GAIN:9, KICK_DOWNED_PENALTY:8,    // a downed victim drops a whole row — but the shame collapse costs the kicker too
+  AIM_WOBBLE:10,                                // px of scatter on a bot's sniper aim
+  SHIELD_LEAD_MARGIN:6,                         // leading by this many tiles = expect incoming fire, arm the shield
+  COFFEE_MAX_POS:80,                            // hold coffee near the finish (a +4 overshoot bounces you back)
+  CLOVER_MIN_SCORE:6,                           // use the clover only when the guaranteed 6 lands cleanly
+  CLOVER_ENDGAME:12, CLOVER_ENDGAME_BONUS:3,    // within this many tiles of the win, a sure 6 is worth extra when shopping
+  DUPLICATE_SHIELD_DROP:3,                      // a second shield is worth much less
+  COIN_VALUE:0.15,                              // how many "tiles" one coin is worth when deciding a purchase
+  ITEM_VALUE:{ shoes:5, shield:4, clover:3, coffee:3, gloves:2 },  // base shopping appeal per item id
+  THINK_MS:1000, DECIDE_MS:900,                 // decision popup: thinking pause + verdict linger (FEATURES.botThoughts)
+  SCORE:{ WIN:60, FREEZE:-8, RADIOACTIVE:-6, FISHING:-1, ORANGE:2, SHOP:2,
+          TELEPORT_BEHIND:3, TELEPORT_AHEAD:-2, BLUE:1 },   // landing-quality guesses per special tile
 };
 
 /* =====================================================================
@@ -1057,6 +1094,17 @@ function drawSlide(x1,y1,x2,y2){
   return g;
 }
 
+// An up arrow straddling the boundary between two vertically stacked cells,
+// marking where the snaking path turns up to the next row.
+function drawUpArrow(x, y){
+  const top = y - SWITCHBACK.LEN/2, bot = y + SWITCHBACK.LEN/2;
+  const neck = top + SWITCHBACK.HEAD_H, hw = SWITCHBACK.HEAD_W/2, sw = SWITCHBACK.SHAFT_W/2;
+  const d = `M ${x} ${top} L ${x-hw} ${neck} L ${x-sw} ${neck} L ${x-sw} ${bot}` +
+            ` L ${x+sw} ${bot} L ${x+sw} ${neck} L ${x+hw} ${neck} Z`;
+  return el("path",{"class":"switchback",d,fill:SWITCHBACK.FILL,stroke:SWITCHBACK.EDGE,
+                    "stroke-width":"2","stroke-linejoin":"round"});
+}
+
 function buildBoard(){
   svg.innerHTML = "";
   const C = BOARD.CELL, M = BOARD.MARGIN;
@@ -1074,6 +1122,12 @@ function buildBoard(){
     const t = el("text",{x:gx+18,y:gy+19,"text-anchor":"middle","font-size":"14","font-weight":"700",fill:"#2a2018","font-family":"Segoe UI, sans-serif"});
     t.textContent = cell;
     svg.appendChild(t);
+  }
+
+  // up arrows on every switchback (9→10, 18→19 … 81→82: same column, one row up)
+  for (let c = BOARD.COLS; c < BOARD.COUNT; c += BOARD.COLS){
+    const a = cellCenter(c), b = cellCenter(c+1);
+    svg.appendChild(drawUpArrow(a.x, (a.y + b.y) / 2));
   }
 
   // ladders then slides on top
@@ -1181,14 +1235,16 @@ function layoutTokens(){
 // the outer translate that moves it around the board.
 function makePawn(color){
   const g = el("g", {});
+  const size = el("g", {transform:`scale(${TOKEN.SCALE})`});   // pawn size lives in TOKEN.SCALE
   const dark = "#241a12";
-  g.appendChild(el("ellipse",{cx:0,cy:21,rx:12,ry:3.3,fill:"rgba(0,0,0,.28)"}));            // ground shadow (stays)
+  size.appendChild(el("ellipse",{cx:0,cy:21,rx:12,ry:3.3,fill:"rgba(0,0,0,.28)"}));         // ground shadow (stays)
   const body = el("g", {"class":"pawnbody"});
   body.appendChild(el("path",{d:"M0,-5 C8,-5 9,4 12,16 Q13,21 6,21 L-6,21 Q-13,21 -12,16 C-9,4 -8,-5 0,-5 Z",
                            fill:color,stroke:dark,"stroke-width":2.4,"stroke-linejoin":"round"})); // cone body
   body.appendChild(el("circle",{cx:0,cy:-12,r:8.5,fill:color,stroke:dark,"stroke-width":2.4}));  // sphere head
   body.appendChild(el("ellipse",{cx:-3,cy:-14.5,rx:2.5,ry:3.2,fill:"rgba(255,255,255,.5)"}));    // head glint
-  g.appendChild(body);
+  size.appendChild(body);
+  g.appendChild(size);
   return g;
 }
 function truncName(s){ s = (s||"").trim(); return s.length > 12 ? s.slice(0,11) + "…" : s; }
@@ -1749,7 +1805,8 @@ function buildOverlays(){
 // group, so it follows that player around and hops to the next on hand-off.
 function makeArrow(){
   const g = el("g", {"class":"turnarrow"});
-  g.appendChild(el("path",{d:"M-10,-60 L10,-60 L0,-47 Z", fill:"#ffd23e",
+  const s = TOKEN.ICON_SCALE;
+  g.appendChild(el("path",{d:`M${-10*s},-72 L${10*s},-72 L0,${-72+13*s} Z`, fill:"#ffd23e",
                            stroke:"#241a12","stroke-width":"2.2","stroke-linejoin":"round"}));
   return g;
 }
@@ -1885,7 +1942,7 @@ async function kickBack(t){
 
 function getEncounterChoice(p, others){
   return new Promise(res => {
-    if (game.autonomous){ res("bounce"); return; }         // auto-bounce when self-playing
+    if (game.autonomous){ botEncounterChoice(p, others).then(res); return; }   // the bot weighs kick vs bounce
     showSpotlight(p.pos);                                  // light up the one who must choose
     const names = others.map(o => o.name).join(", ");
     document.getElementById("choiceText").innerHTML =
@@ -1918,6 +1975,163 @@ function revealRuleOnce(key){
   });
 }
 
+/* =====================================================================
+   BOT BRAIN — how a bot weighs its options. Scores are in tiles (+1 ≈ one
+   square of progress); tunables live in the BOT DATA block. Bots don't
+   know the tile-89 trapdoor until someone has sprung it — it's disguised,
+   so they fall for it like everyone else.
+   ===================================================================== */
+function botRand(){ return (Math.random()*2 - 1) * BOT.JITTER; }
+
+// How far p trails the average of the other live players (negative = ahead).
+function botBehind(p){
+  const rivals = game.players.filter(q => q !== p && !q.finished);
+  if (!rivals.length) return 0;
+  return rivals.reduce((t,q)=>t+q.pos, 0)/rivals.length - p.pos;
+}
+
+// What a bot thinks of settling on `cell` — special tiles only, no progress.
+function tileScore(cell, p){
+  const S = BOT.SCORE;
+  if (cell === BOARD.WIN) return S.WIN;
+  let s = 0;
+  if (FEATURES.setback && SETBACK_TILES.includes(cell)) s -= cell - 1;
+  if (FEATURES.trapdoor && TRAP89_TILES.includes(cell) && rulesSeen.trapdoor) s -= cell - 1;
+  if (FEATURES.freeze){
+    if (FREEZE_TILES.includes(cell)) s += S.FREEZE;
+    else if (game.players.some(q => q !== p && q.frozen && q.pos > 0 && gridNear(cell, q.pos, FREEZE.ADJ))) s += S.FREEZE;
+  }
+  if (FEATURES.radioactive && RAD_TILES.includes(cell)) s += S.RADIOACTIVE;
+  if (FEATURES.fishing && FISH.TILES.includes(cell)) s += S.FISHING;
+  if (FEATURES.orange && ORANGE_TILES.includes(cell)) s += S.ORANGE;
+  if (FEATURES.shop && SHOP_TILES.includes(cell)) s += S.SHOP;
+  if (FEATURES.teleport && TELEPORTERS.includes(cell)) s += botBehind(p) > 0 ? S.TELEPORT_BEHIND : S.TELEPORT_AHEAD;
+  if (FEATURES.coins && isPlainTile(cell) && isBlueTile(cell)) s += S.BLUE;
+  return s;
+}
+
+// Net value of walking `steps` from `from`: progress + ladder/slide + the tile you settle on.
+function landingScore(from, steps, p){
+  const path = walkPath(from, steps);
+  const cell = path[path.length - 1];
+  const link = linkAt(cell);
+  const final = link ? link.to : cell;
+  return (final - from) + tileScore(final, p);
+}
+
+// The rival whose +5 support boost would land them somewhere nasty (freeze,
+// setback, a snake, fallout …) — the "support as a weapon" play. Null if none.
+function botSupportTrap(p){
+  const rivals = game.players.filter(q => q !== p && !q.finished && q.pos > 0);
+  let best = null, worst = 0;
+  for (const q of rivals){
+    const s = landingScore(q.pos, MOVE.SUPPORT, q);
+    if (s <= BOT.SUPPORT_TRAP_MAX && s < worst){ worst = s; best = q; }
+  }
+  return best;
+}
+
+// Is it worth arming a held shield right now?
+function botShieldThreat(p){
+  if (game.players.some(q => q !== p && !q.finished && q.sniper)) return true;   // a rifle is out there
+  if (FEATURES.sniper && game.round % SNIPER.EVERY_ROUNDS === SNIPER.EVERY_ROUNDS - 1) return true;  // sniper round is next
+  return botBehind(p) <= -BOT.SHIELD_LEAD_MARGIN;   // a clear leader is gun/lightning/sniper bait
+}
+
+// Shopping appeal of an item for this bot, in tiles, minus what the coins are worth.
+function botItemValue(p, item){
+  let v = BOT.ITEM_VALUE[item.id] || 1;
+  if (item.id === "clover" && BOARD.WIN - p.pos <= BOT.CLOVER_ENDGAME) v += BOT.CLOVER_ENDGAME_BONUS;
+  if (item.id === "shield" && (p.shieldOn || p.items.includes("shield"))) v -= BOT.DUPLICATE_SHIELD_DROP;
+  return v - item.cost * BOT.COIN_VALUE;
+}
+
+// Buy everything on the shelf that's worth its price, best value first.
+// Returns the labels of what was bought (for the verdict popup).
+function botShopSpree(p, stock, bought){
+  const haul = [];
+  for (;;){
+    const buyable = stock.filter(i => !bought.has(i.id) && canBuy(p, i) && botItemValue(p, i) > 0);
+    if (!buyable.length) break;
+    const item = buyable.reduce((a,i)=> botItemValue(p, i) > botItemValue(p, a) ? i : a);
+    if (!buyItem(p, item)) break;
+    bought.add(item.id);
+    haul.push(`${item.ico} ${item.name}`);
+  }
+  return haul;
+}
+
+/* ---- the decision popup: a thinking card while the bot weighs its
+   options, then the verdict. Deliberately slows bot turns a touch so you
+   can watch them play; FEATURES.botThoughts turns it off. ---- */
+let botThinkEl = null;
+function botBubble(p, html){
+  if (botThinkEl) botThinkEl.remove();
+  const d = document.createElement("div"); d.className = "botthink";
+  d.innerHTML = `<span class="bticon">🤖</span><span><b style="color:${p.color}">${p.name}</b> ${html}</span>`;
+  document.body.appendChild(d);
+  requestAnimationFrame(()=> d.classList.add("show"));
+  botThinkEl = d;
+}
+async function botThink(p, doing){
+  if (!FEATURES.botThoughts) return;
+  botBubble(p, `${doing}<span class="btdots"><i>.</i><i>.</i><i>.</i></span>`);
+  if (p.pos > 0 && !p.onSecret) showSpotlight(p.pos);
+  await sleep(BOT.THINK_MS);
+}
+async function botDecide(p, verdict){
+  if (!FEATURES.botThoughts) return;
+  botBubble(p, verdict);
+  await sleep(BOT.DECIDE_MS);
+  if (botThinkEl){
+    const d = botThinkEl; botThinkEl = null;
+    d.classList.remove("show"); setTimeout(()=> d.remove(), 260);
+  }
+  hideSpotlight();
+}
+
+/* ---- the decisions themselves ---- */
+async function botEncounterChoice(p, others){
+  await botThink(p, "sizes up the pile-up");
+  const ahead = linkAt(p.pos + 1);
+  const bounce = landingScore(p.pos, 1, p) + botRand();
+  const downedShare = FEATURES.kickWhileDown ? others.filter(q => q.downed).length / others.length : 0;
+  let kick = tileScore(p.pos, p) + BOT.KICK_BASE + p.pos * BOT.KICK_LATE_PER_TILE + botRand();
+  kick += downedShare * (BOT.KICK_DOWNED_GAIN - BOT.KICK_DOWNED_PENALTY);
+  const choice = kick > bounce ? "kick" : "bounce";
+  await botDecide(p, choice === "kick"
+    ? (downedShare === 1 ? "kicks them while they're down! 😈" : "plants a kick — this square is taken! 🦵")
+    : (ahead && ahead.kind === "ladder" ? "bounces onward — a ladder is right there! 🪜" : "bounces onward! ⤴️"));
+  return choice;
+}
+
+async function botPickOrange(p){
+  await botThink(p, "weighs the wheel, the gun and a “helping hand”");
+  const trailing = botBehind(p) > 0;
+  const trap = botSupportTrap(p);
+  const weights = [
+    BOT.ORANGE_WEIGHTS[0] + (trailing ? BOT.ORANGE_TRAIL_WHEEL : 0),
+    BOT.ORANGE_WEIGHTS[1] + (trailing ? BOT.ORANGE_TRAIL_GUN : 0),
+    trap ? BOT.ORANGE_TRAP_SUPPORT : BOT.ORANGE_WEIGHTS[2] * BOT.ORANGE_SUPPORT_DAMP,
+  ];
+  const opt = weightedPick(BOT.ORANGE, weights);
+  await botDecide(p, opt === "wheel" ? "spins the wheel! 🎡"
+                 : opt === "gun" ? "goes for the revolver… 🔫"
+                 : trap ? "offers a “friendly” boost… 😏" : "lends a helping hand 🤝");
+  return opt;
+}
+
+async function botSupportTarget(p, others){
+  const trap = botSupportTrap(p);
+  if (trap && others.includes(trap)){
+    await botDecide(p, `boosts ${trap.name} — right into trouble 😏`);
+    return trap;
+  }
+  const t = others.reduce((a,q)=> q.pos < a.pos ? q : a, others[0]);   // waste the boost on the smallest threat
+  await botDecide(p, `boosts ${t.name} — the smallest threat around`);
+  return t;
+}
+
 /* ---- sniper rule (every 5th round the last place gets one shot) ----- */
 function grantSniperIfDue(){
   if (!FEATURES.sniper) return;
@@ -1937,8 +2151,15 @@ async function useSniper(shooter){
   showSpotlight(shooter.pos);
   showBeamFrom(shooter.pos);
   if (game.autonomous){
+    await botThink(shooter, "peers through the scope");
     const targets = game.players.filter(q => q !== shooter && q.pos > 0 && !q.finished);
-    const aim = targets.length ? cellCenter(targets[(Math.random()*targets.length)|0].pos) : {x:470,y:120};
+    const clear = targets.filter(q => !q.shieldOn);        // don't waste the shot on an armed shield
+    const pool = clear.length ? clear : targets;
+    const mark = pool.length ? pool.reduce((a,q)=> q.pos > a.pos ? q : a) : null;
+    await botDecide(shooter, mark ? `locks onto the front-runner — ${mark.name} 🎯` : "finds no one in the scope");
+    showSpotlight(shooter.pos);
+    const c = mark ? cellCenter(mark.pos) : {x:470, y:120};
+    const aim = { x: c.x + (Math.random()*2-1)*BOT.AIM_WOBBLE, y: c.y + (Math.random()*2-1)*BOT.AIM_WOBBLE };
     updateBeam(aim.x, aim.y);
     await sleep(700);
     await fireSniper(shooter, aim.x, aim.y);
@@ -2006,7 +2227,7 @@ function updateFrozen(i){
   let ice = g.querySelector(".icebadge");
   if (frozen){
     if (!ice){
-      ice = el("text",{"class":"icebadge",x:0,y:-50,"text-anchor":"middle","font-size":"16"});
+      ice = el("text",{"class":"icebadge",x:0,y:-54,"text-anchor":"middle","font-size":16*TOKEN.ICON_SCALE});
       ice.textContent = "❄️"; g.appendChild(ice);
     }
   } else if (ice){ ice.remove(); }
@@ -2018,9 +2239,10 @@ function updateShame(i){
   let badge = g.querySelector(".shamebadge");
   if (game.players[i].shame > 0){
     if (!badge){
+      const s = TOKEN.ICON_SCALE;
       badge = el("g", {"class":"shamebadge"});
-      badge.appendChild(el("rect",{x:-27,y:-80,width:54,height:16,rx:8,fill:"rgba(170,40,40,.96)",stroke:"#fff","stroke-width":"1"}));
-      const t = el("text",{x:0,y:-68,"text-anchor":"middle","font-size":"11","font-weight":"800",fill:"#fff","font-family":"Segoe UI, sans-serif"});
+      badge.appendChild(el("rect",{x:-27*s,y:-76-16*s,width:54*s,height:16*s,rx:8*s,fill:"rgba(170,40,40,.96)",stroke:"#fff","stroke-width":"1"}));
+      const t = el("text",{x:0,y:-76-4*s,"text-anchor":"middle","font-size":11*s,"font-weight":"800",fill:"#fff","font-family":"Segoe UI, sans-serif"});
       t.textContent = "SHAME"; badge.appendChild(t);
       g.appendChild(badge);
     }
@@ -2034,7 +2256,7 @@ function updateShield(i){
   const has = FEATURES.shop && game.players[i].shieldOn;   // the bubble shows once the Shield is USED, not while it sits in the bag
   let bub = g.querySelector(".shieldbubble");
   if (has && !bub){
-    bub = el("circle",{"class":"shieldbubble",cx:0,cy:-2,r:19,
+    bub = el("circle",{"class":"shieldbubble",cx:0,cy:-2,r:19*TOKEN.SCALE,
       fill:"rgba(90,165,255,.20)",stroke:"rgba(150,200,255,.8)","stroke-width":"2"});
     const body = g.querySelector(".pawnbody");
     if (body && body.nextSibling) g.insertBefore(bub, body.nextSibling);
@@ -2046,7 +2268,7 @@ function refreshBadges(){ if (game) game.players.forEach((_,i)=>{ updateShame(i)
 // Mario-style coin pop: a coin rises off the player's head and fades.
 function coinPopup(p, n){
   const g = tokenEls[idxOf(p)]; if (!g) return;
-  const t = el("text",{y:-56,"text-anchor":"middle","font-size":"20"});
+  const t = el("text",{y:-60,"text-anchor":"middle","font-size":20*TOKEN.ICON_SCALE});
   t.textContent = n > 1 ? `🪙×${n}` : "🪙";
   t.style.transition = "transform .8s ease-out, opacity .8s ease-out";
   g.appendChild(t);
@@ -2058,8 +2280,8 @@ function coinPopup(p, n){
 function itemFlourish(p, ico){
   const g = tokenEls[idxOf(p)]; if (!g) return;
   const grp = el("g",{});
-  grp.appendChild(el("circle",{cy:-58,r:16,fill:"rgba(255,225,120,.25)",stroke:"rgba(255,225,120,.85)","stroke-width":"2"}));
-  const t = el("text",{y:-51,"text-anchor":"middle","font-size":"20"}); t.textContent = ico;
+  grp.appendChild(el("circle",{cy:-64,r:16*TOKEN.ICON_SCALE,fill:"rgba(255,225,120,.25)",stroke:"rgba(255,225,120,.85)","stroke-width":"2"}));
+  const t = el("text",{y:-64+7*TOKEN.ICON_SCALE,"text-anchor":"middle","font-size":20*TOKEN.ICON_SCALE}); t.textContent = ico;
   grp.appendChild(t); g.appendChild(grp);
   grp.style.transition = "transform 1s ease, opacity .35s ease .7s";
   requestAnimationFrame(()=>{ grp.style.transform = "translateY(-10px)"; grp.style.opacity = "0"; });
@@ -2766,9 +2988,10 @@ async function runTeleporter(p){
   }
   let use;
   if (game.autonomous){                                   // smart: take a swap only when it improves your average position
-    const rivals = game.players.filter(q => q !== p && !q.finished);
-    const avg = rivals.length ? rivals.reduce((s,q)=>s+q.pos, 0)/rivals.length : p.pos;
-    use = Math.random() < (avg > p.pos ? BOT.TELEPORT_GOOD : BOT.TELEPORT_BAD);
+    await botThink(p, "eyes the teleporter");
+    use = Math.random() < (botBehind(p) > 0 ? BOT.TELEPORT_GOOD : BOT.TELEPORT_BAD);
+    await botDecide(p, use ? "takes the swap — anywhere beats back here! 🌀"
+                           : "leaves it alone. Why gamble a good spot?");
   } else use = await teleportChoice(p);
   if (use){ const tgt = teleportSwap(p, false); await sleep(540); if (tgt){ await resolveLanding(tgt, 0, true); await resolveLanding(p, 0, true); } }
   else log(`${p.name} left the teleporter alone.`);
@@ -3007,7 +3230,8 @@ async function fateSwapYou(p){
 
 /* ---- orange square: Wheel / Support / Gun -------------------------- */
 function awardCoin(p, reason, n){
-  const k = n || 1;
+  const k = n === undefined ? 1 : n;
+  if (k < 1) return;                        // a 0-coin tile (plain yellow) pays nothing — no pop, no log
   p.coins = (p.coins||0) + k;
   SFX.play("coin"); coinPopup(p, k);
   log(`🪙 ${reason} — ${p.name} earns ${k === 1 ? "a coin" : k + " coins"}! (${p.coins} total)`);
@@ -3673,7 +3897,7 @@ async function runSupport(p){
   const others = game.players.filter(q => q !== p && !q.finished);
   if (!others.length){ log(`${p.name} has no one to support.`); return; }
   const target = (game.autonomous || p.bot)
-    ? others[(Math.random()*others.length)|0]
+    ? await botSupportTarget(p, others)
     : await pickPlayerOnBoard(`${p.name}: click a player to support (+${MOVE.SUPPORT})`, others, supportPreview);
   if (!target) return;
   SFX.play("sparkle");
@@ -3737,12 +3961,21 @@ function useItem(p, idx){
   }
   refreshBadges(); renderScoreboard();
 }
-// Bots spend Coffee/Clover automatically right before they roll.
+// Bots time their consumables instead of burning them blindly: coffee is held
+// near the finish (overshoot!), the clover waits for a landing worth forcing,
+// the shield is armed when fire is actually incoming. A full bag forces a use.
 function botMaybeUseItem(p){
   if (!FEATURES.shop) return;
   for (let k = p.items.length - 1; k >= 0; k--){
-    if (p.items[k] === "coffee" || p.items[k] === "clover") useItem(p, k);
-    else if (p.items[k] === "shield" && !p.shieldOn) useItem(p, k);   // bots arm a held shield too
+    const id = p.items[k], bagFull = p.items.length >= INV.CONSUMABLES;
+    if (id === "coffee"){
+      if (bagFull || p.pos < BOT.COFFEE_MAX_POS) useItem(p, k);
+    } else if (id === "clover"){
+      const steps = RULES.DICE_SIDES + (p.passive === "shoes" ? ITEM.SHOES_BONUS : 0);
+      if (bagFull || landingScore(p.pos, steps, p) >= BOT.CLOVER_MIN_SCORE) useItem(p, k);
+    } else if (id === "shield"){
+      if (!p.shieldOn && (bagFull || botShieldThreat(p))) useItem(p, k);
+    }
   }
 }
 
@@ -3805,10 +4038,9 @@ async function runShop(p){
   const stock = shopStock();
   const bought = new Set();                 // ids already bought this visit — one of each per visit
   if (game.autonomous || p.bot){
-    const buyable = stock.filter(i => !bought.has(i.id) && canBuy(p, i)).sort((a,b)=>b.cost-a.cost);
-    if (buyable.length) buyItem(p, buyable[0]);
-    else log(`🏪 ${p.name} couldn't afford anything and left.`);
-    await sleep(800);
+    await botThink(p, "browses the shelf");
+    const haul = botShopSpree(p, stock, bought);
+    await botDecide(p, haul.length ? `buys ${haul.join(" + ")} 🛒` : "leaves empty-handed…");
     return;
   }
   await new Promise(res => {
@@ -3860,10 +4092,9 @@ async function runBlackMarket(p){
   game.marketVisits++;
   const bought = new Set();
   if (game.autonomous || p.bot){
-    const buyable = stock.filter(i => canBuy(p, i)).sort((a,b)=>a.cost-b.cost);
-    if (buyable.length) buyItem(p, buyable[0]);
-    else log(`🕯️ The dealer waves ${p.name} away.`);
-    await sleep(800);
+    await botThink(p, "haggles in the shadows");
+    const haul = botShopSpree(p, stock, bought);
+    await botDecide(p, haul.length ? `slinks off with ${haul.join(" + ")} 🕯️` : "gets waved away by the dealer…");
     return;
   }
   await new Promise(res => {
@@ -3877,7 +4108,7 @@ async function runBlackMarket(p){
 async function runOrange(p){
   await revealRuleOnce("orange");
   const opt = game.autonomous
-    ? weightedPick(BOT.ORANGE, BOT.ORANGE_WEIGHTS)   // smart: favour aggression/gamble over (altruistic) support
+    ? await botPickOrange(p)                         // smart: weigh wheel/gun/support by position + trap chances
     : await orangeChoice(p);
   if (opt === "gun") await revolverRoulette(p);
   else if (opt === "support") await runSupport(p);

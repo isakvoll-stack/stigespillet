@@ -16,10 +16,12 @@ and 5th on the sides when there are enough players) followed by a full
 ## The board
 - **9 × 10 = 90 tiles**, numbered 1 (bottom-left) → 90 (top-left) in a
   boustrophedon (snaking) path.
-- Every tile also has a **grid coordinate** shown in its bottom-right corner:
+- Every tile also has a **grid coordinate** (used internally, not drawn):
   rows are lettered **A–J top to bottom**, columns numbered **1–9 left to right**,
   so the top-left tile is **A1** and the bottom-right is **J9**. The number tells
   you path order; the coordinate tells you who is physically next to whom.
+- A white **up-arrow** sits on every switchback (9→10, 18→19 … 81→82) showing
+  where the path turns up to the next row. *(Size/colour in `SWITCHBACK`.)*
 - **Ladders** carry you up; **chutes** slide you down. The set is balanced:
   ladders skip **124 tiles up** in total and chutes skip **124 down**, so over
   the whole board they cancel out.
@@ -263,9 +265,10 @@ passive** at a time. *(Shelf size = `SHOP.STOCK`.)*
 
 **Using items:** on your turn, before rolling, press the **🎒 Inventory** button next
 to the die. Use any consumable — Coffee, Clover or Shield — then roll. Bots spend
-their items automatically before they roll. Landing on a plain **blue** tile earns
-**3 coins** (a plain yellow one earns 1; `COIN` in DATA). Your held items appear as
-icons in the scoreboard next to your name.
+their items automatically before they roll. **Only plain blue tiles pay coins** —
+**3 coins** with the 🪙 pop; plain yellow tiles pay **nothing** (`COIN` in DATA —
+yellow's payout is `COIN.PLAIN`, currently 0). Rolling a 6 still earns 1 bonus coin.
+Your held items appear as icons in the scoreboard next to your name.
 
 *Toggle: `FEATURES.shop`. Shop tiles = `SHOP_TILES` (6, 28, 52, 75). Bag size =
 `INV` (`CONSUMABLES` 3, `PASSIVES` 1). Bonuses = `ITEM.COFFEE_BONUS` (4) and
@@ -290,11 +293,35 @@ the scoreboard). The **Autonomous mode** checkbox is a shortcut that makes **eve
 a bot, so the whole game **plays itself** — auto-rolls, auto-resolves every choice, and
 auto-dismisses popups. Good for a hands-off / streamed game.
 
-**Bot decisions:** on an **orange square** a bot spreads its pick across the wheel, gun
-and support (it won't just spin the gun every time). At the **fishing** square a bot's
-odds get **harder the more fish have already been caught in the game** — roughly a 40%
-loss on the very first catch of the game, then 60% / 80% / 90% / 95% as the catches pile
-up. *(Tunables: `BOT.ORANGE`/`ORANGE_WEIGHTS`, `FISH.BOT_LOSS_BY_CATCHES`.)*
+**Bot decisions (the bot brain):** bots weigh their options like a competitive player
+would — every landing is scored in "tiles" (progress + ladders/chutes + how nasty the
+tile you settle on is), with a dash of random jitter so they stay beatable:
+
+- **Bounce or kick** — a bot bounces when the next square looks better (a ladder foot!)
+  and kicks to deny a rival and keep a good square; kicking grows more tempting later
+  in the race, and kicking a downed player is weighed against the shame collapse.
+- **Orange square** — the wheel and gun get extra appeal when the bot is trailing
+  (gamble when behind); **support turns into a weapon**: if some rival's +5 boost would
+  dump them on a freeze, the setback, fallout or a big chute, the bot "helps" them.
+  Otherwise a rare genuine support goes to the smallest threat on the board.
+- **Sniper** — bots aim at the **front-runner** and won't waste the shot on an armed
+  shield.
+- **Teleporter** — swap only when trailing the pack average (as before).
+- **Shopping** — items are bought by value for the situation (shoes first, a clover is
+  worth extra near the finish, no doubled-up shields), and bots keep buying while it's
+  worth the coins.
+- **Item timing** — coffee is held near the finish (overshoot!), the clover waits for a
+  roll that lands clean (or the exact win), the shield is armed only when fire is
+  incoming (a rifle on the board, a sniper round next, or holding a big lead).
+- Bots **don't know the tile-89 trapdoor** until someone has sprung it — they fall for
+  it like everyone else.
+
+While a bot decides, a **🤖 thought popup** shows what it's weighing and its verdict
+(deliberately slows bot turns a touch so you can watch them play — turn off with
+`FEATURES.botThoughts`). At the **fishing** square a bot's odds still get **harder the
+more fish have already been caught in the game** — roughly a 40% loss on the first
+catch, then 60% / 80% / 90% / 95%. *(Tunables: the `BOT` DATA block —
+scores/weights/popup timing — and `FISH.BOT_LOSS_BY_CATCHES`.)*
 
 ---
 

@@ -3,10 +3,25 @@
 Standing file: autonomous sessions log clarifications here instead of stopping to ask.
 Answer whenever — each answer gets folded in and the question checked off.
 
+## 2026-07-03 (later) — the 4-point batch
+
+- [ ] **Rolled-6 coin** — yellow tiles no longer pay, but **rolling a 6 still earns
+  1 coin** (with the 🪙 pop). Keep that, or make coins 100% blue-tile-only?
+- [ ] **"Into gunfire" support traps** — bot support-as-a-weapon targets rivals whose
+  +5 lands on freeze / setback / fallout / a chute / the revealed trapdoor. Literal
+  "into gunfire" (boosting someone into a sniper's line or into gun-target lead) isn't
+  modelled — want that too?
+- [ ] **Sizes** — pawns ×1.18, over-head icons ×1.5 felt right headlessly; both are
+  one number each in `TOKEN` (DATA) if you want them bigger/smaller.
+- [ ] **Bot popup pacing** — ~1.0s thinking + ~0.9s verdict per decision
+  (`BOT.THINK_MS`/`DECIDE_MS`), and `FEATURES.botThoughts:false` turns them off
+  entirely. Faster? Slower? Off for all-bot games?
+
 ## 2026-07-03 — the 11-point batch
 
-- [ ] **Coin pop scope** — the ping + 🪙 pop now plays for EVERY coin gain (blue 3,
+- [x] **Coin pop scope** — the ping + 🪙 pop now plays for EVERY coin gain (blue 3,
   yellow 1, rolled-6 bonus), not just 3-coin blue tiles. Want it blue-only?
+  **✔ Answered 2026-07-03: blue-only — built (yellow pays 0 now, no pop).**
 - [ ] **Multi-kill voice** — uses the browser's built-in speech voice pitched way down
   ("gruff-ish"). A properly gruff COD-style voice needs a recorded audio asset, which
   breaks the one-file/no-sidecar rule unless embedded as base64 (~50–200 KB). Good

@@ -53,7 +53,19 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
-Recently shipped (2026-07-02, later): **Shop freeze fixed — one self-contained file again** —
+Recently shipped (2026-07-03): **Isak's 4-point batch** —
+- **Coins are blue-only**: plain yellow tiles no longer pay (no 🪙 pop); blue still pays 3
+  (`COIN.PLAIN` is now 0 — set it back to 1 to restore yellow).
+- **Bigger pawns + bigger over-head icons**: pawns ×1.18, the icons above them (coin pop,
+  item flourish, ❄️, SHAME, whose-turn arrow) ×1.5 (`TOKEN` in DATA).
+- **Switchback up-arrows**: a white arrow on every 9→10 / 18→19 / … / 81→82 boundary
+  shows where the path turns up a row (`SWITCHBACK` in DATA).
+- **Smarter bots + visible decisions**: a scoring "bot brain" (kick vs bounce, weaponised
+  support onto bad tiles, leader-seeking sniper aim, value-based shopping, timed item use,
+  threat-aware shields) and a 🤖 thought popup that shows each decision as it's made
+  (`FEATURES.botThoughts`, tunables in `BOT`). Details in `RULES.md` → *Players & bots*.
+
+Earlier (2026-07-02, later): **Shop freeze fixed — one self-contained file again** —
 the shop catalog is back inline (`SHOP_CATALOG` DATA block; `shop-items.js` deleted), so a
 downloaded `index.html` alone plays fully — landing on a shop no longer freezes single-file
 copies. Plus an **error trap**: any uncaught error prints `💥 Something broke: …` in the

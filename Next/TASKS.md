@@ -121,10 +121,32 @@ See `LOG.md` for the running session history.
       (behind-the-pack discount, per-visit markup; `MARKET`, `runBlackMarket`).
 - [x] Verified: Edge headless parse/run OK. Open clarifications in `Next/QUESTIONS.md`.
 
+### 2026-07-03 — Isak's 4-point batch (autonomous session, later same day)
+- [x] **Coin pop is blue-only**: plain yellow pays nothing now (`COIN.PLAIN:0`,
+      `awardCoin` skips 0-coin awards); blue still pays 3 with the 🪙 pop. Rolled-6
+      bonus coin kept (question logged).
+- [x] **Bigger pawns + over-head icons**: `TOKEN = { SCALE:1.18, ICON_SCALE:1.5 }` —
+      pawn body scaled via a wrapper group; coin pop, item flourish, ❄️ badge, SHAME
+      banner, whose-turn arrow and shield bubble all scale from `TOKEN`.
+- [x] **Switchback up-arrows**: white arrow across every 9→10 … 81→82 row boundary
+      (`SWITCHBACK` DATA + `drawUpArrow` in RENDER; drawn under ladders/slides).
+- [x] **Smarter bots (the queued item) + decision popups**: new BOT BRAIN section —
+      `tileScore`/`landingScore` value landings in tiles; kick vs bounce scored (ladder
+      ahead → bounce, deny + own-tile value → kick, downed-victim maths); orange pick
+      weighs wheel/gun by standing and turns support into a trap when a rival's +5
+      lands on freeze/setback/fallout/chute (`botSupportTrap`); sniper aims at the
+      front-runner, skips armed shields, small aim wobble; shop/black-market buying by
+      situational value (`botItemValue`, keeps buying while worth it); item timing
+      (coffee held near the finish, clover waits for a clean landing or exact win,
+      shield armed on real threats). Bots don't know the trapdoor until revealed.
+      🤖 thought popup (`botThink`/`botDecide`, `.botthink` CSS) shows what's being
+      weighed + the verdict; `FEATURES.botThoughts` toggles it; all tunables in `BOT`.
+- [x] **Verified headless ×3**: 19/19 checks (coin guards, arrows drawn, pawn scale,
+      landing scores, trap89 hidden until revealed, support-trap spotting, kick/bounce
+      stats 30/30 each way, clover timing, shield threat) + full 4-bot games to a
+      winner with popups on, 0 JS errors. Screenshot eyeballed: arrows/pawns/popup OK.
+
 ### 2026-07-03 — queued from Isak's batch (not yet built)
-- [ ] **Smarter bots**: pick kick vs bounce by what's tactically smart (plus slight
-      randomness); weigh choices by progress relative to others; sometimes "support" a
-      rival when the +5 would land them on a bad tile (freeze, setback, into gunfire).
 - [ ] **Title screen: add a game-mode selection screen.**
 - [ ] **Design new game mode — King of the Hill**: earn a trophy every round you hold
       1st place + trophies for special goals; most trophies after a set number of
