@@ -112,6 +112,14 @@ so the board follows the registry (even through the wheel's 🌀 tile shuffle).
 **A new rare turn-start event**: one entry in `RARE_EVENTS` (`feature`, `chance()`, `run`),
 with its chance tunable in a DATA block.
 
+**Rule reveal cards stay vague (Isak, 2026-07-03).** Every `RULE_INFO` card — current and
+future — keeps the *why* clear but the details (numbers, exact consequences, what happens
+next) fuzzy and atmospheric. The full mechanical detail belongs in `RULES.md` only.
+
+**Autonomous batches & questions (Isak, 2026-07-03).** When working through a task batch
+autonomously, never stop to ask: pick a sensible default, build it, and log the open
+question in `Next/QUESTIONS.md` for Isak to answer later.
+
 ---
 
 ## Code style

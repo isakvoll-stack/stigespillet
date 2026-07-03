@@ -294,6 +294,12 @@
   .wheelwrap{position:relative;width:240px;height:262px;margin:4px auto 0}
   #wheelSvg{display:block;margin-top:20px}
   #wheelSpin{transform-box:fill-box;transform-origin:center}
+  /* sniper multi-kill announcer */
+  .killcall{position:fixed;left:50%;top:26%;transform:translate(-50%,-50%) scale(.4);opacity:0;
+    font:900 54px/1 "Segoe UI",sans-serif;letter-spacing:5px;color:#ff3b30;z-index:60;pointer-events:none;
+    text-shadow:0 2px 0 #40060a,0 0 18px rgba(255,60,40,.65);
+    transition:transform .18s cubic-bezier(.2,1.6,.4,1),opacity .3s}
+  .killcall.show{transform:translate(-50%,-50%) scale(1);opacity:1}
 
   /* win banner */
   .banner{
@@ -602,6 +608,7 @@ const FEATURES = {
   trapdoor:      true,   // tile 89 (disguised as plain): the FIRST player to land there drops back to start, then it's normal
   fishPowers:    true,   // carrying fish grants escalating powers (extra movement, ice escape) + quirks (slippery ladders, teleporter overload)
   secretSquare:  true,   // a hidden square before tile 1, only revealed when a backtrack lands someone on it
+  blackMarket:   true,   // the secret square hosts a shady dealer: dynamic prices, shadier stock later
   shop:          true,   // gold squares open a shop to buy items with coins; use them from your inventory
   coins:         true,   // players earn coins: rolling a 6, or landing on a plain tile
   setback:       true,   // one dark-red tile near the start sends you back to tile 1
@@ -661,6 +668,8 @@ const SHOP_CATALOG = [
     desc:"Guarantees a 6 on your next roll." },
   { id:"shoes",  ico:"👟", name:"Running Shoes",    kind:"passive",    cost:10, enabled:true,
     desc:"Passive: +1 to every roll while worn." },
+  { id:"gloves", ico:"🧤", name:"Thieves' Gloves",  kind:"passive",    cost:8,  enabled:true,
+    desc:"Passive: steal a coin whenever you kick or bounce off a player." },
 ];
 const BLUE_COLORS   = new Set(["#6fa8dc", FISH_COLOR]);   // light + dark blue squares (safe from the Nuke)
 function isBlueTile(cell){ return BLUE_COLORS.has(cellColor(cell)); }
@@ -692,92 +701,92 @@ const RULE_INFO = {
   encounter: {
     ico: "🦘",
     name: "Bounce or kick",
-    text: "Past tile 10, landing on a square that someone is already on lets you choose: bounce over their head, or kick one of them back.",
+    text: "Land on a square someone is already standing on and it won't stay peaceful — one of you isn't staying put.",
   },
   sniper: {
     ico: "🎯",
     name: "Sniper",
-    text: "Every 5th round, whoever is in last place gets a one-shot sniper rifle. Aim with the mouse and click — anyone caught on the red beam is knocked down and has to get back up before moving again.",
+    text: "Trailing dead last has its perks: every so often, the one at the back gets a rifle and a grudge.",
   },
   kickdown: {
     ico: "😳",
     name: "Kick a man while he's down",
-    text: "Kick a player who is already down, and they get knocked further back — but the shame catches up with you, and before long you topple over too.",
+    text: "Kick someone who's already down and they'll suffer for it — but word gets around, and shame has a way of catching up.",
   },
   fishing: {
     ico: "🎣",
     name: "Fishing",
-    text: "Land on the dark-blue square and you have to play a fishing minigame. Reel one in and you carry on — but fail and something far bigger drags you back.",
+    text: "The dark-blue water demands you fish. Reel one in and carry on — fail, and something far bigger is waiting.",
   },
   teleport: {
     ico: "🌀",
     name: "Teleporter",
-    text: "Land on a teal square and you may teleport — swapping places with another player at random.",
+    text: "Step onto a teal square and you may end up somewhere else entirely — and you might not travel alone.",
   },
   teleportmalf: {
     ico: "⚡",
     name: "Faulty teleporter",
-    text: "Step onto a teleporter while carrying a fish and it misfires: you're swapped whether you want it or not, and it tends to fling you toward the front of the pack.",
+    text: "Teleporters don't take kindly to fish. Bring a catch aboard and the machine gets ideas of its own.",
   },
   lightning: {
     ico: "🌩️",
     name: "Lightning",
-    text: "Once in a blue moon a storm rolls in and lightning strikes whoever is out in front — knocking them flat and back down the board.",
+    text: "Storms pick the tallest target. Being out in front isn't always the safest place to stand.",
   },
   lucky: {
     ico: "🌟",
     name: "Lucky star",
-    text: "Every so often a shooting star takes pity on whoever is trailing in last — sweeping them a good way up the board.",
+    text: "Every so often, luck takes pity on whoever's trailing behind.",
   },
   fate: {
     ico: "🔃",
     name: "Reversal of fortune",
-    text: "Now and then fate flips on a whim: the player out in front and the one trailing in last suddenly trade places.",
+    text: "Now and then fate flips the table on a whim — the mighty fall and the meek rise.",
   },
   orange: {
     ico: "🟧",
     name: "Orange choice",
-    text: "Land on an orange square and pick your poison: spin the wheel of fortune, support another player, or take your chances with the gun.",
+    text: "Land on an orange square and pick your poison: a spin, a favour, or a gamble.",
   },
   snakehit: {
     ico: "💥",
     name: "Pile-up",
-    text: "Slide down a chute and land on other players, and you bowl them over — knocking them down and back. Only the players on the square you land on get hit, not anyone you pass on the way down.",
+    text: "Ride a chute down through a crowd and someone's getting hurt — worst of all for whoever's waiting at the bottom.",
   },
   freeze: {
     ico: "🧊",
     name: "Deep freeze",
-    text: "Land on an icy square and you freeze solid — you have to roll a 4 or higher to break free before you can move. And the cold lingers: land on a tile right next to a frozen player — including diagonally — and you freeze too. Anyone already standing nearby is safe.",
+    text: "Icy ground bites — freeze solid and you're stuck until you fight your way free. And the cold reaches for anyone who lands too close.",
   },
   trapdoor: {
     ico: "🕳️",
     name: "The rotten plank",
-    text: "One square near the top isn't as solid as it looks. The first player to land on it falls straight through — all the way back to the start. After that, someone patches it up.",
+    text: "One square up near the top isn't as solid as it looks. The first player to trust it finds out why.",
   },
   radioactive: {
     ico: "☢️",
     name: "Radioactive fallout",
-    text: "Some ground keeps glowing after a blast. Step onto it and a sickness saps your stride — worse and worse before it slowly lets go. See it through to the end, though, and you come back stronger than you ever were.",
+    text: "Some ground keeps glowing after a blast. Step onto it and a sickness takes hold — see it through, and you may come out the other side stronger.",
   },
   secret: {
     ico: "🚪",
     name: "The hidden square",
-    text: "There's a secret square tucked away before the very first tile. No one starts on it — you'll only stumble onto it if something throws you back past the start.",
+    text: "There's a square that isn't on the board — you only find it by falling off the map. And someone down there has set up shop.",
   },
   teleportshuffle: {
     ico: "🌀",
     name: "Teleporter overload",
-    text: "Step onto a teleporter while weighed down with a whole catch of fish and it overloads — instead of one swap, everyone on the board is shuffled around at random.",
+    text: "Overload a teleporter badly enough and nobody ends up where they were standing.",
   },
   setback: {
     ico: "🔴",
     name: "Back to Start!",
-    text: "Land on the dark-red square and you're sent straight back to tile 1 — no exceptions. It's rare, but brutal when it hits.",
+    text: "The dark-red square has exactly one rule: back to the start. No exceptions.",
   },
   shop: {
     ico: "🏪",
     name: "The Shop",
-    text: "Land on a gold square and you find a cabin shop. Spend your coins on items: Coffee, a Shield, a Four-leaf Clover, or the Running Shoes. Carry up to three consumables plus one passive, and use them from your inventory before you roll.",
+    text: "A gold square hides a little cabin shop. Coins buy help — what's on the shelf is for you to find out.",
   },
 };
 
@@ -862,15 +871,18 @@ const LUCKY     = { CHANCE:0.004, FORWARD:8 };  // ~0.4% per turn: sweep the las
 const FATE      = { CHANCE:0.0033 };            // ~0.33% per turn: leader and last place swap places (3x rarer)
 /* ---- DATA: fixed move/knock amounts (tiles) ------------------------ */
 const MOVE = { SUPPORT:5, WHEEL_NEXT:1, WHEEL_BIG:15, PILEUP_BACK:5 };  // support +5; wheel "next"/+15; chute pile-up knock-back
+const GRAZE = { BACK_MIN:1, BACK_MAX:3, DOWN_CHANCE:0.10, RADIUS:40 }; // clipped by a passing slider: 1-3 back, rarely floored; RADIUS = px from the chute line
+const KILLSTREAK = { 2:"DOUBLE KILL", 3:"TRIPLE KILL", 4:"QUAD KILL" };  // sniper multi-hit announcer
 /* ---- DATA: the hidden "secret" square before tile 1 ---------------- */
 // Logical position 0 (shared with the start lane, told apart by p.onSecret). It is
 // never drawn until a player is standing on it, and no one starts there — you only
 // find it by being thrown back past the start. Placed just left of tile 1.
 const SECRET = { POS:0, X:-90, Y:928, CELL:84, COLOR:"#7b3fa0" };
-// TODO: Isak wants tile 0 (this position) to become a "black market" tile — a darker /
-// riskier shop variant. NOTE: position 0 is already the secret square above. Decide
-// whether the black market replaces the secret square, shares the slot (perhaps the
-// secret square IS the black market), or lives at a different position entirely.
+/* ---- DATA: the black market (the secret square IS the market) -------
+   A shady dealer on the hidden square: normal catalog for now (exotic
+   stock TBD — see Next/TASKS.md). Prices flex: cheaper the further the
+   buyer trails the pack's average, pricier for every past visit. */
+const MARKET = { STOCK:2, BEHIND_PER:8, MAX_DISCOUNT:6, VISIT_MARKUP:1 };
 /* ---- DATA: autonomous (self-play) opponent behaviour --------------- */
 const BOT = {
   TELEPORT_GOOD:0.85, TELEPORT_BAD:0.15,        // accept a teleporter swap when it improves your average position (else rarely)
@@ -1489,6 +1501,8 @@ const SFX = (() => {
     rule:  ()=> seq([660,990], "triangle", 0.16, 0.09),
     win:   ()=> seq([523,659,784,1047,1319], "triangle", 0.2, 0.1),
     click: ()=> tone(520, 0.04, "square", 0.1),
+    coin:  ()=> seq([988,1319], "square", 0.14, 0.055),
+    announce: ()=> { tone(120, 0.3, "sawtooth", 0.3); tone(80, 0.4, "square", 0.2, 0.05); },
   };
   return { play: (n) => { if (!FEATURES.sound) return; try { (table[n]||(()=>{}))(); } catch(e){} } };
 })();
@@ -1503,7 +1517,7 @@ function newGame(roster){
       radSick:false, radTurns:0, radLevel:0, radImmune:false, shieldOn:false,
     })),
     current:0, winner:null, over:false, busy:false, round:1, autonomous: !!(roster[0] && roster[0].bot),
-    standings: null, fishStreak: 0, fishCaught: 0,
+    standings: null, fishStreak: 0, fishCaught: 0, marketVisits: 0,
   };
   hideSecret();
   TRAP89_TILES.splice(0, Infinity, TRAP89.TILE);   // re-arm the tile-89 trapdoor for the new game
@@ -1821,6 +1835,7 @@ async function resolveEncounters(p){
       SFX.play("bounce");
       layoutTokens(); renderScoreboard();
       log(TXT.bounced(p.name, cell, p.pos));
+      stealCoin(p, others[(Math.random()*others.length)|0]);
       await sleep(ANIM.STEP + 60);
       await applyLink(p, i);            // a bounce onto a ladder/chute takes effect
       renderScoreboard();
@@ -1829,6 +1844,7 @@ async function resolveEncounters(p){
     } else {
       const victim = others[(Math.random()*others.length)|0];   // kick ONE random occupant
       SFX.play("kick");
+      stealCoin(p, victim);
       if (victim.downed && FEATURES.kickWhileDown){
         // KICK A MAN WHILE HE'S DOWN: drop them straight down a row, shame the kicker
         await revealRuleOnce("kickdown");
@@ -1960,6 +1976,7 @@ async function fireSniper(shooter, tx, ty){
   hit.forEach(q => downPlayer(q));                      // shield-aware: an armed Shield absorbs the shot
   const downed = hit.filter(q => q.downed);
   if (hit.length){ SFX.play("kick"); flashScreen(); }   // knockdown + screen shake, no explosion
+  if (downed.length >= 2) announceKill(downed.length);
   renderScoreboard();
   log(hit.length
     ? (downed.length ? `${shooter.name} shot and hit: ${downed.map(q=>q.name).join(", ")} 💥` : `${shooter.name}'s shot was blocked!`)
@@ -2025,6 +2042,47 @@ function updateShield(i){
   } else if (!has && bub){ bub.remove(); }
 }
 function refreshBadges(){ if (game) game.players.forEach((_,i)=>{ updateShame(i); updateShield(i); }); }
+
+// Mario-style coin pop: a coin rises off the player's head and fades.
+function coinPopup(p, n){
+  const g = tokenEls[idxOf(p)]; if (!g) return;
+  const t = el("text",{y:-56,"text-anchor":"middle","font-size":"20"});
+  t.textContent = n > 1 ? `🪙×${n}` : "🪙";
+  t.style.transition = "transform .8s ease-out, opacity .8s ease-out";
+  g.appendChild(t);
+  requestAnimationFrame(()=>{ t.style.transform = "translateY(-26px)"; t.style.opacity = "0"; });
+  setTimeout(()=> t.remove(), 850);
+}
+
+// A used consumable hovers over the player in a soft aura before taking effect.
+function itemFlourish(p, ico){
+  const g = tokenEls[idxOf(p)]; if (!g) return;
+  const grp = el("g",{});
+  grp.appendChild(el("circle",{cy:-58,r:16,fill:"rgba(255,225,120,.25)",stroke:"rgba(255,225,120,.85)","stroke-width":"2"}));
+  const t = el("text",{y:-51,"text-anchor":"middle","font-size":"20"}); t.textContent = ico;
+  grp.appendChild(t); g.appendChild(grp);
+  grp.style.transition = "transform 1s ease, opacity .35s ease .7s";
+  requestAnimationFrame(()=>{ grp.style.transform = "translateY(-10px)"; grp.style.opacity = "0"; });
+  setTimeout(()=> grp.remove(), 1100);
+}
+
+// Shooter-style multi-kill callout: big screen text + a gruff (pitched-down) voice.
+function announceKill(n){
+  const label = KILLSTREAK[Math.min(n, 4)];
+  const d = document.createElement("div"); d.className = "killcall"; d.textContent = label;
+  document.body.appendChild(d);
+  requestAnimationFrame(()=> d.classList.add("show"));
+  setTimeout(()=> d.classList.remove("show"), 1400);
+  setTimeout(()=> d.remove(), 1800);
+  SFX.play("announce");
+  if (FEATURES.sound && "speechSynthesis" in window){
+    try {
+      const u = new SpeechSynthesisUtterance(label.toLowerCase());
+      u.pitch = 0.1; u.rate = 0.85;
+      speechSynthesis.speak(u);
+    } catch(e){}
+  }
+}
 
 /* ---- turn flow: start (sniper?) / end (next + round + sniper grant) - */
 async function startTurn(){
@@ -2840,7 +2898,7 @@ async function lightningStrike(victim){
   log(onSecret
     ? `🌩️ Lightning blasted ${victim.name} clear off the board — onto the secret square!`
     : `🌩️ Lightning struck ${victim.name} — knocked flat and back to tile ${victim.pos}!`);
-  if (onSecret) await revealRuleOnce("secret");
+  if (onSecret) await visitSecret(victim);
   await sleep(500);
   await resolveLanding(victim);                            // the new tile fires too
 }
@@ -2951,7 +3009,17 @@ async function fateSwapYou(p){
 function awardCoin(p, reason, n){
   const k = n || 1;
   p.coins = (p.coins||0) + k;
+  SFX.play("coin"); coinPopup(p, k);
   log(`🪙 ${reason} — ${p.name} earns ${k === 1 ? "a coin" : k + " coins"}! (${p.coins} total)`);
+  renderScoreboard();
+}
+
+// Thieves' Gloves: brushing past a player (kick or bounce) lifts one coin.
+function stealCoin(thief, victim){
+  if (!FEATURES.shop || thief.passive !== "gloves" || (victim.coins||0) < 1) return;
+  victim.coins--; thief.coins = (thief.coins||0) + 1;
+  SFX.play("coin"); coinPopup(thief, 1);
+  log(`🧤 ${thief.name} picked ${victim.name}'s pocket — 🪙1 stolen!`);
   renderScoreboard();
 }
 
@@ -2992,20 +3060,39 @@ async function tryFreeze(p){
   return true;
 }
 
-// Sliding down a chute from `head` to `tail` bowls over anyone in the way.
+// Sliding down a chute from `head` to `tail` bowls over anyone at the bottom
+// and clips anyone standing in the chute's path on the way down (a lighter hit).
 async function snakeCollision(slider, head, tail, depth){
-  const hits = game.players.filter(q => q !== slider && !q.finished && q.pos > 0
-    && q.pos === tail);
-  if (!hits.length) return;
+  const A = cellCenter(head), B = cellCenter(tail);
+  const abx = B.x-A.x, aby = B.y-A.y, len2 = abx*abx + aby*aby || 1;
+  const hits = [], grazed = [];
+  game.players.forEach(q => {
+    if (q === slider || q.finished || q.pos <= 0) return;
+    if (q.pos === tail){ hits.push(q); return; }
+    const c = cellCenter(q.pos);
+    const t = Math.max(0, Math.min(1, ((c.x-A.x)*abx + (c.y-A.y)*aby) / len2));
+    if (Math.hypot(c.x-(A.x+abx*t), c.y-(A.y+aby*t)) <= GRAZE.RADIUS) grazed.push(q);
+  });
+  if (!hits.length && !grazed.length) return;
   await revealRuleOnce("snakehit");
-  explode(tail); SFX.play("boom");
-  let anySecret = false;
-  hits.forEach(q => { if (setBackPos(q, q.pos - MOVE.PILEUP_BACK)) anySecret = true; downPlayer(q); });
+  if (hits.length){
+    explode(tail); SFX.play("boom");
+    hits.forEach(q => { setBackPos(q, q.pos - MOVE.PILEUP_BACK); downPlayer(q); });
+    log(`💥 ${slider.name} bowled over ${hits.map(h=>h.name).join(", ")} sliding down!`);
+  }
+  for (const q of grazed){
+    const back = GRAZE.BACK_MIN + Math.floor(Math.random()*(GRAZE.BACK_MAX - GRAZE.BACK_MIN + 1));
+    setBackPos(q, q.pos - back);
+    if (Math.random() < GRAZE.DOWN_CHANCE) downPlayer(q);
+    SFX.play("bounce");
+    log(`💨 ${slider.name} clipped ${q.name} on the way down — knocked ${back} back${q.downed ? " and over" : ""}!`);
+  }
   layoutTokens(); renderScoreboard();
-  log(`💥 ${slider.name} bowled over ${hits.map(h=>h.name).join(", ")} sliding down!`);
-  if (anySecret) await revealRuleOnce("secret");
   await sleep(750);
-  for (const q of hits){ await resolveLanding(q, (depth||0)+1); if (game.over) return; }
+  for (const q of [...hits, ...grazed]){
+    if (q.onSecret) await visitSecret(q);
+    await resolveLanding(q, (depth||0)+1); if (game.over) return;
+  }
 }
 
 /* ---- passive landing resolver --------------------------------------------
@@ -3079,6 +3166,73 @@ function pickPlayer(title, candidates){
     pickResolve = res;
     document.getElementById("picker").classList.add("show");
   });
+}
+
+// Where a token currently sits on the SVG (works for the start lane + secret square too).
+function tokenXY(i){
+  const m = /translate\(\s*([-\d.]+)[ ,]+([-\d.]+)/.exec(tokenEls[i].getAttribute("transform")||"");
+  return m ? { x:+m[1], y:+m[2] } : cellCenter(Math.max(1, game.players[i].pos));
+}
+
+/* Pick a player by clicking their token on the board: a light veil falls with a
+   spotlight hole over every candidate; hovering one highlights it and draws the
+   previewFn(q) overlay (e.g. where a support would land them). */
+function pickPlayerOnBoard(promptText, candidates, previewFn){
+  return new Promise(res => {
+    showPrompt(promptText);
+    const mask = document.getElementById("spotmask");
+    spotDark.setAttribute("fill","rgba(0,0,0,.32)");
+    spotDark.style.opacity = "1";
+    const holes = [], undo = [];
+    let preview = null;
+    const clearPreview = () => { if (preview){ preview.remove(); preview = null; } };
+    const finish = () => {
+      undo.forEach(f=>f()); holes.forEach(h=>h.remove()); clearPreview();
+      spotDark.style.opacity = "0"; spotDark.setAttribute("fill","rgba(0,0,0,.5)");
+      hidePrompt();
+    };
+    candidates.forEach(q => {
+      const i = idxOf(q), g = tokenEls[i], c = tokenXY(i);
+      const hole = el("circle",{cx:c.x,cy:c.y,r:60,fill:"#000"});
+      mask.appendChild(hole); holes.push(hole);
+      const enter = () => { g.style.filter = "brightness(1.35) drop-shadow(0 0 8px #fff)";
+        clearPreview(); if (previewFn){ preview = previewFn(q); svg.appendChild(preview); } };
+      const leave = () => { g.style.filter = ""; clearPreview(); };
+      const click = (e) => { e.stopPropagation(); finish(); res(q); };
+      g.addEventListener("pointerenter", enter);
+      g.addEventListener("pointerleave", leave);
+      g.addEventListener("click", click);
+      g.style.cursor = "pointer";
+      undo.push(() => {
+        g.removeEventListener("pointerenter", enter);
+        g.removeEventListener("pointerleave", leave);
+        g.removeEventListener("click", click);
+        g.style.cursor = ""; g.style.filter = "";
+      });
+    });
+  });
+}
+
+// Support preview: dotted trail along the +5 walk, plus the ladder/chute it would
+// trigger at the landing square, ending in a ring on the final tile.
+function supportPreview(q){
+  const path = walkPath(Math.max(0, q.pos), MOVE.SUPPORT);
+  const landed = path[path.length-1];
+  const link = linkAt(landed);
+  const g = el("g",{});
+  g.style.pointerEvents = "none";
+  const pts = [tokenXY(idxOf(q)), ...path.map(c=>cellCenter(c))];
+  g.appendChild(el("polyline",{points:pts.map(pt=>`${pt.x},${pt.y}`).join(" "),fill:"none",
+    stroke:"#ffd23e","stroke-width":"4","stroke-dasharray":"7 7","stroke-linecap":"round",opacity:".9"}));
+  const end = cellCenter(link ? link.to : landed);
+  if (link){
+    const mid = cellCenter(landed);
+    g.appendChild(el("line",{x1:mid.x,y1:mid.y,x2:end.x,y2:end.y,
+      stroke:link.kind==="ladder" ? "#39c46a" : "#e74c3c",
+      "stroke-width":"4","stroke-dasharray":"4 8",opacity:".9"}));
+  }
+  g.appendChild(el("circle",{cx:end.x,cy:end.y,r:14,fill:"none",stroke:"#ffd23e","stroke-width":"4",opacity:".95"}));
+  return g;
 }
 
 // Gun cutscene: the shooter draws a tiny revolver on their own square, spins the chamber
@@ -3518,9 +3672,9 @@ async function spinWheel(p){
 async function runSupport(p){
   const others = game.players.filter(q => q !== p && !q.finished);
   if (!others.length){ log(`${p.name} has no one to support.`); return; }
-  const target = game.autonomous
+  const target = (game.autonomous || p.bot)
     ? others[(Math.random()*others.length)|0]
-    : await pickPlayer(`${p.name}: who moves +5?`, others);
+    : await pickPlayerOnBoard(`${p.name}: click a player to support (+${MOVE.SUPPORT})`, others, supportPreview);
   if (!target) return;
   SFX.play("sparkle");
   log(`🤝 ${p.name} supports ${target.name} — forward 5!`);
@@ -3563,6 +3717,7 @@ function buyItem(p, item){
 // guards automatically — so only Coffee and the Clover do anything here.
 function useItem(p, idx){
   const id = p.items[idx];
+  if (["coffee","clover","shield"].includes(id)) itemFlourish(p, itemDef(id).ico);
   if (id === "coffee"){
     p.rollBonus = (p.rollBonus || 0) + ITEM.COFFEE_BONUS;
     p.items.splice(idx, 1);
@@ -3663,8 +3818,10 @@ async function runShop(p){
     document.getElementById("picker").classList.add("show");
   });
 }
-function renderShop(p, close, stock, bought){
-  document.getElementById("pickerTitle").textContent = `🏪 Shop — ${p.name} has 🪙${p.coins}`;
+function renderShop(p, close, stock, bought, market){
+  document.getElementById("pickerTitle").textContent = market
+    ? `🕯️ Black market — ${p.name} has 🪙${p.coins}`
+    : `🏪 Shop — ${p.name} has 🪙${p.coins}`;
   const list = document.getElementById("pickerList"); list.innerHTML = "";
   stock.forEach(item => {
     const sold = bought.has(item.id);
@@ -3674,13 +3831,47 @@ function renderShop(p, close, stock, bought){
     b.innerHTML = `${item.ico} <b>${item.name}</b> — ${item.desc} <span style="opacity:.85">(${sold ? "sold out" : `🪙${item.cost}${tag}`})</span>`;
     b.style.textAlign = "left"; b.style.boxShadow = "none";
     b.disabled = !can; b.style.opacity = can ? "1" : ".45";
-    b.onclick = () => { if (buyItem(p, item)){ bought.add(item.id); renderShop(p, close, stock, bought); } };
+    b.onclick = () => { if (buyItem(p, item)){ bought.add(item.id); renderShop(p, close, stock, bought, market); } };
     list.appendChild(b);
   });
   const leave = document.createElement("button");
-  leave.className = "btn ghost"; leave.textContent = "Leave shop"; leave.style.marginTop = "4px";
+  leave.className = "btn ghost"; leave.textContent = market ? "Slip away" : "Leave shop"; leave.style.marginTop = "4px";
   leave.onclick = close;
   list.appendChild(leave);
+}
+
+/* ---- the black market (lives on the secret square) ------------------ */
+async function visitSecret(pl){
+  await revealRuleOnce("secret");
+  if (FEATURES.blackMarket && FEATURES.shop) await runBlackMarket(pl);
+}
+// The dealer's price: catalog cost, discounted the further you trail the pack's
+// average position, marked up for every past visit (by anyone).
+function marketPrice(p, item){
+  const others = game.players.filter(q => q !== p && !q.finished);
+  const avg = others.length ? others.reduce((s,q)=>s+q.pos,0)/others.length : p.pos;
+  const discount = Math.min(MARKET.MAX_DISCOUNT, Math.floor(Math.max(0, avg - p.pos)/MARKET.BEHIND_PER));
+  return Math.max(1, item.cost - discount + game.marketVisits*MARKET.VISIT_MARKUP);
+}
+async function runBlackMarket(p){
+  log(`🕯️ ${p.name} finds a shady dealer under the board… (🪙${p.coins})`);
+  SFX.play("leviathan");
+  const stock = shopStock().slice(0, MARKET.STOCK).map(i => ({...i, cost: marketPrice(p, i)}));
+  game.marketVisits++;
+  const bought = new Set();
+  if (game.autonomous || p.bot){
+    const buyable = stock.filter(i => canBuy(p, i)).sort((a,b)=>a.cost-b.cost);
+    if (buyable.length) buyItem(p, buyable[0]);
+    else log(`🕯️ The dealer waves ${p.name} away.`);
+    await sleep(800);
+    return;
+  }
+  await new Promise(res => {
+    const close = () => { document.getElementById("picker").classList.remove("show"); pickResolve = null; res(); };
+    pickResolve = close;
+    renderShop(p, close, stock, bought, true);
+    document.getElementById("picker").classList.add("show");
+  });
 }
 
 async function runOrange(p){

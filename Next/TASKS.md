@@ -102,6 +102,39 @@ See `LOG.md` for the running session history.
 - [x] Verified: 13/13 targeted (freeze bystander safe, fallout paint/infect/curve/immunity,
       too-weak turn, re-exposure, v3 cutscenes clean) + suite 25/25.
 
+### 2026-07-03 — Isak's 11-point batch (autonomous session)
+- [x] **Coin fanfare**: every coin gain plays a Mario-style ping + a 🪙 pops over the pawn
+      (`SFX.coin`, `coinPopup`).
+- [x] **Support picked on the board**: veil + spotlight holes over candidates, hover =
+      highlight + landing preview (dotted +5 trail, ladder/chute extension, target ring),
+      click to choose (`pickPlayerOnBoard`, `supportPreview`).
+- [x] **NEW ITEM: 🧤 Thieves' Gloves** (passive, 8): steal 1 coin per kick/bounce victim
+      (`stealCoin`, hooks in `resolveEncounters`).
+- [x] **Sniper multi-kill announcer**: 2+ downed = big screen callout + pitched-down
+      browser voice ("double/triple/quad kill"; `KILLSTREAK`, `announceKill`).
+- [x] **Consumable flourish**: used item hovers over the pawn in a soft aura (`itemFlourish`).
+- [x] **Pile-up graze**: players in the chute's path now get clipped 1–3 back, 10% floored
+      (`GRAZE`); bottom-of-chute full hit unchanged.
+- [x] **All RULE_INFO cards rewritten vaguer** (why stays clear, details fuzzy — standing
+      style rule, see CLAUDE.md; full detail stays in RULES.md).
+- [x] **Black market v1**: secret square = shady dealer, 2 catalog items, dynamic prices
+      (behind-the-pack discount, per-visit markup; `MARKET`, `runBlackMarket`).
+- [x] Verified: Edge headless parse/run OK. Open clarifications in `Next/QUESTIONS.md`.
+
+### 2026-07-03 — queued from Isak's batch (not yet built)
+- [ ] **Smarter bots**: pick kick vs bounce by what's tactically smart (plus slight
+      randomness); weigh choices by progress relative to others; sometimes "support" a
+      rival when the +5 would land them on a bad tile (freeze, setback, into gunfire).
+- [ ] **Title screen: add a game-mode selection screen.**
+- [ ] **Design new game mode — King of the Hill**: earn a trophy every round you hold
+      1st place + trophies for special goals; most trophies after a set number of
+      rounds wins.
+- [ ] **Black market v2 — design the real stock + costs** (delayed-cost "very powerful"
+      items). Idea pool from Isak: passives you can never replace, going into debt,
+      powerful items with horrible side effects, cursed items, pity items.
+- [ ] **Polish pass**: more simple animations + SFX on everything; then QoL improvements
+      once all other tasks are done.
+
 ### 2026-07-02 — radiation walks you backwards + wheel gets twin dice (Isak)
 - [x] **Radioactive rework**: roll + debuff < 0 now hops you BACKWARDS that many tiles
       (`walkBackPath` in ENGINE, normal landing rules apply, floor at tile 1); exactly 0

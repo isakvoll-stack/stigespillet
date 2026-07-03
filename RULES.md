@@ -200,7 +200,10 @@ Land on an **orange square** and pick one of three:
   you)** (same pool of effects but all aimed at the spinner), or **🌀 Tile shuffle**
   (everyone on the board is sent to a fresh random tile, avoiding all snake and ladder
   squares).
-- **🤝 Support** — choose another player and move **them** forward 5.
+- **🤝 Support** — pick another player and move **them** forward 5. Picking happens
+  **on the board**: a light veil falls with spotlights on every candidate; hovering a
+  player highlights them and previews **where they'd land** (dotted trail, plus the
+  ladder/chute it would trigger); **click** to choose.
 - **🔫 Gun** — Russian roulette: **1-in-6** the three frontrunners go down,
   **2-in-6** you shoot yourself down, otherwise **nothing**.
 
@@ -208,11 +211,13 @@ Land on an **orange square** and pick one of three:
 shows a real wheel that spins for ~5 seconds (fast, then slowing) before landing.
 
 ### Pile-up (hidden rule)
-**Slide down a chute into other players** and you bowl them over: anyone in the
-chute's path is knocked **down** and back a space, and whoever sits at the **very
-bottom** of the chute is hit the hardest (knocked further back).
+**Slide down a chute into other players** and you bowl them over. Whoever waits at
+the **very bottom** takes the full hit: knocked **down** and **5 back**. Anyone merely
+standing **in the chute's path** on the way down is **clipped**: knocked **1–3 back**
+with only a **10% chance** of being floored.
 
-*Toggle: `FEATURES.snakeCollision`.*
+*Toggle: `FEATURES.snakeCollision`. Graze tunables in `GRAZE` (`BACK_MIN/MAX`,
+`DOWN_CHANCE`, `RADIUS` = distance from the chute's line that counts as "in the path").*
 
 ### The secret square (hidden rule)
 There is a **hidden square before tile 1**. **No one starts on it**, and it isn't even
@@ -221,7 +226,14 @@ is to be **thrown back past the start** (e.g. a low-tile **lightning** strike or
 **pile-up**): instead of stopping at tile 1, you land on the secret square, which then
 **reveals itself**. From there you roll back onto the board as if starting again.
 
-*Toggle: `FEATURES.secretSquare`.*
+**The black market** also trades here: landing on the secret square opens a **shady
+dealer** stocking 2 catalog items at **dynamic prices** — cheaper the further you
+trail the pack's average position, and **+1 coin** for every earlier visit (by anyone,
+all game). Exotic stock (cursed items, debt, pity items…) is designed later — see
+`Next/TASKS.md`.
+
+*Toggles: `FEATURES.secretSquare`, `FEATURES.blackMarket`. Pricing in `MARKET`
+(`STOCK`, `BEHIND_PER`, `MAX_DISCOUNT`, `VISIT_MARKUP`).*
 
 ### The Shop, inventory &amp; items (hidden rule)
 Four **gold squares** are cabin shops (tiles **6, 28, 52, 75**). Land on one and you
@@ -246,6 +258,8 @@ passive** at a time. *(Shelf size = `SHOP.STOCK`.)*
 - **👟 Running Shoes** — **10 coins.** +1 to *every* roll while worn. Buying or
   receiving any new passive **immediately replaces** the one you have, which is **lost
   forever**.
+- **🧤 Thieves' Gloves** — **8 coins.** Steal **1 coin** from the victim every time you
+  **kick** or **bounce off** a player.
 
 **Using items:** on your turn, before rolling, press the **🎒 Inventory** button next
 to the die. Use any consumable — Coffee, Clover or Shield — then roll. Bots spend
