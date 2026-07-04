@@ -3,6 +3,23 @@
 Newest first. One entry per working session; note what shipped and what's next.
 
 ---
+## 2026-07-04 — question answers folded in: coin fx tiers, genuine bot support, ×1.5/×3 sizes, settings screen
+
+Isak answered 4 of the open questions; all built this session. (1) **Coin tiers** — new
+`COIN_FX` DATA block: a rolled 6 pays 1 coin with NO sound/icon (scoreboard only), yellow
+pays 1 with the ping only, blue pays 3 with a fanfare (three big pops + three pings,
+200ms apart, ×1.5 scale — `awardCoin` gained an `fx` arg, `coinPopup` a scale arg).
+(2) **Bot support is genuine** — `botSupportTrap` + trap/trailing tunables deleted;
+`botSupportTarget` picks a random rival; orange odds pinned to wheel 4/7 · support 2/7 ·
+gun 1/7. (3) **Pawns ×1.5, over-head popups ×3** (`TOKEN`). (4) **Popups faster**
+(700/650ms) + a **Settings screen** off the title menu (button under Play) with a
+checkbox → `FEATURES.botThoughts`. RULES.md/README updated; questions checked off.
+Verified headless Edge ×3 — 23/23 checks each + full 4-bot games to a winner
+(45/20/26 rounds), 0 JS errors. Harness notes: `const` DATA isn't on `window` — use
+`eval` in the iframe realm; open `showScreen("game")` before `startTurn()` or bots
+won't roll (keydown/auto gates on `.screen.show`).
+
+---
 ## 2026-07-03 (later) — Isak's 4-point batch: blue-only coins, bigger pawns/icons, switchback arrows, bot brain
 
 All four built + pushed. (1) Plain yellow tiles pay nothing now — `COIN.PLAIN:0` and

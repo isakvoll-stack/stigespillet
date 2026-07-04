@@ -53,17 +53,24 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
-Recently shipped (2026-07-03): **Isak's 4-point batch** —
-- **Coins are blue-only**: plain yellow tiles no longer pay (no 🪙 pop); blue still pays 3
-  (`COIN.PLAIN` is now 0 — set it back to 1 to restore yellow).
-- **Bigger pawns + bigger over-head icons**: pawns ×1.18, the icons above them (coin pop,
-  item flourish, ❄️, SHAME, whose-turn arrow) ×1.5 (`TOKEN` in DATA).
+Recently shipped (2026-07-04): **Isak's answers to the question batch** —
+- **Coin tiers**: yellow pays 1 (ping only, no icon), blue pays 3 with a fanfare (three
+  big 🪙 pops + three pings in quick succession), a rolled 6 pays 1 silently (`COIN` +
+  `COIN_FX` in DATA).
+- **Bot orange odds fixed at wheel 4/7 · support 2/7 · gun 1/7**; support is genuine —
+  a random rival gets the boost, no more "support as a weapon" trap targeting.
+- **Bigger still**: pawns ×1.5, over-head popups ×3 (`TOKEN`).
+- **Settings screen**: a Settings button under Play on the title screen; checkbox toggles
+  the 🤖 bot decision popups. Popups are also ~30% faster (`BOT.THINK_MS`/`DECIDE_MS`).
+
+Earlier (2026-07-03): **Isak's 4-point batch** —
 - **Switchback up-arrows**: a white arrow on every 9→10 / 18→19 / … / 81→82 boundary
   shows where the path turns up a row (`SWITCHBACK` in DATA).
-- **Smarter bots + visible decisions**: a scoring "bot brain" (kick vs bounce, weaponised
-  support onto bad tiles, leader-seeking sniper aim, value-based shopping, timed item use,
-  threat-aware shields) and a 🤖 thought popup that shows each decision as it's made
-  (`FEATURES.botThoughts`, tunables in `BOT`). Details in `RULES.md` → *Players & bots*.
+- **Smarter bots + visible decisions**: a scoring "bot brain" (kick vs bounce,
+  leader-seeking sniper aim, value-based shopping, timed item use, threat-aware shields)
+  and a 🤖 thought popup that shows each decision as it's made (`FEATURES.botThoughts`,
+  tunables in `BOT`). Details in `RULES.md` → *Players & bots*.
+- First coin/size pass (blue-only coins, pawns ×1.18) — superseded by the 2026-07-04 values.
 
 Earlier (2026-07-02, later): **Shop freeze fixed — one self-contained file again** —
 the shop catalog is back inline (`SHOP_CATALOG` DATA block; `shop-items.js` deleted), so a

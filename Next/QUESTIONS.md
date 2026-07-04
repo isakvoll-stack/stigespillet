@@ -5,17 +5,24 @@ Answer whenever — each answer gets folded in and the question checked off.
 
 ## 2026-07-03 (later) — the 4-point batch
 
-- [ ] **Rolled-6 coin** — yellow tiles no longer pay, but **rolling a 6 still earns
+- [x] **Rolled-6 coin** — yellow tiles no longer pay, but **rolling a 6 still earns
   1 coin** (with the 🪙 pop). Keep that, or make coins 100% blue-tile-only?
-- [ ] **"Into gunfire" support traps** — bot support-as-a-weapon targets rivals whose
+  **✔ Answered 2026-07-04: both yellow and a rolled 6 pay 1 coin — but the 6 shows
+  NOTHING, yellow is sound-only, and blue gets the big 3-pop/3-ping fanfare. Built.**
+- [x] **"Into gunfire" support traps** — bot support-as-a-weapon targets rivals whose
   +5 lands on freeze / setback / fallout / a chute / the revealed trapdoor. Literal
   "into gunfire" (boosting someone into a sniper's line or into gun-target lead) isn't
   modelled — want that too?
-- [ ] **Sizes** — pawns ×1.18, over-head icons ×1.5 felt right headlessly; both are
+  **✔ Answered 2026-07-04: ignore "into gunfire"; trap targeting removed entirely —
+  support is a genuine random boost. Orange odds: wheel 4/7, support 2/7, gun 1/7. Built.**
+- [x] **Sizes** — pawns ×1.18, over-head icons ×1.5 felt right headlessly; both are
   one number each in `TOKEN` (DATA) if you want them bigger/smaller.
-- [ ] **Bot popup pacing** — ~1.0s thinking + ~0.9s verdict per decision
+  **✔ Answered 2026-07-04: pawns ×1.5, popups ×3. Built.**
+- [x] **Bot popup pacing** — ~1.0s thinking + ~0.9s verdict per decision
   (`BOT.THINK_MS`/`DECIDE_MS`), and `FEATURES.botThoughts:false` turns them off
   entirely. Faster? Slower? Off for all-bot games?
+  **✔ Answered 2026-07-04: a bit faster (0.7s/0.65s) + a Settings screen on the title
+  menu (under Play) with a checkbox to turn the popups on/off. Built.**
 
 ## 2026-07-03 — the 11-point batch
 

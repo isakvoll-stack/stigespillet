@@ -461,7 +461,18 @@
       </svg>
       <h2>Ladder game 2</h2>
       <p class="sub">summer at the cabin</p>
-      <button class="btn big" id="playBtn">Play</button>
+      <div style="display:flex;flex-direction:column;gap:10px;align-items:center">
+        <button class="btn big" id="playBtn">Play</button>
+        <button class="btn ghost" id="settingsBtn">Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="screen" id="screenSettings">
+    <div class="sheet">
+      <h2>Settings</h2>
+      <label class="toggle"><input type="checkbox" id="optBotThoughts" checked> Bot decision popups 🤖</label>
+      <button class="btn ghost" id="settingsBack">Back</button>
     </div>
   </div>
 
@@ -663,7 +674,7 @@ const SETBACK_COLOR = "#8b1a1a";                         // deep red — clearly
 const SWITCHBACK = { LEN:54, HEAD_W:30, HEAD_H:19, SHAFT_W:9,   // arrow size (px): total length, head, shaft
   FILL:"rgba(255,255,255,.8)", EDGE:"rgba(31,63,90,.55)" };
 /* ---- DATA: token + over-head icon sizing ---------------------------- */
-const TOKEN = { SCALE:1.18, ICON_SCALE:1.5 };            // pawn size ×; icons above the pawn (coin/item/❄️/arrow) ×
+const TOKEN = { SCALE:1.5, ICON_SCALE:3 };               // pawn size ×; icons above the pawn (coin/item/❄️/arrow) ×
 // TODO: introduce slight RNG to tile placements — rather than every special tile being
 // fully fixed, some (e.g. shop, setback, orange) should spawn at randomly chosen eligible
 // positions each new game (within safe ranges, avoiding snake/ladder tiles). Keeps the
@@ -876,7 +887,12 @@ const FREEZE = { GETUP_MIN: 4, ADJ: 1 };   // need 4+ to break free; LANDING wit
 const RAD_TILES = [];                      // fallout tiles — empty until a nuke converts plain tiles
 const RAD_COLOR = "#58c81b";               // radioactive green
 const RAD = { PER_NUKE:2, GROW_TURNS:5, IMMUNE_BONUS:1 };  // tiles per nuke; sickness worsens 5 turns (to -5) then recovers; survive = permanent +1
-const COIN = { PLAIN:0, BLUE:3 };          // coins per plain-tile landing — only BLUE pays (yellow = 0 = no coin pop)
+const COIN = { PLAIN:1, BLUE:3 };          // coins per plain-tile landing (yellow pays quietly, blue pays big)
+const COIN_FX = {                          // how each coin source announces itself
+  six:   { SOUND:false, POPS:0 },                          // rolled-6 bonus: silent — you only see it on the scoreboard
+  plain: { SOUND:true,  POPS:0 },                          // yellow tile: the ping only, no icon
+  blue:  { SOUND:true,  POPS:3, GAP_MS:200, SCALE:1.5 },   // blue tile: three big pops + three pings in quick succession
+};
 /* ---- DATA: the tile-89 trapdoor -------------------------------------
    One square from the finish, disguised as a plain tile: the FIRST player
    to land on it drops all the way back to the start — then the trapdoor is
@@ -908,10 +924,7 @@ const MARKET = { STOCK:2, BEHIND_PER:8, MAX_DISCOUNT:6, VISIT_MARKUP:1 };
    beatable and varied instead of perfectly cold. */
 const BOT = {
   TELEPORT_GOOD:0.85, TELEPORT_BAD:0.15,        // accept a teleporter swap when it improves your average position (else rarely)
-  ORANGE:["wheel","gun","support"], ORANGE_WEIGHTS:[5, 3, 2],   // base appeal of each orange-square pick
-  ORANGE_TRAIL_WHEEL:3, ORANGE_TRAIL_GUN:2,     // extra wheel/gun appeal when trailing the pack (gamble when behind)
-  ORANGE_TRAP_SUPPORT:9, ORANGE_SUPPORT_DAMP:0.2, // support appeal when a rival's +5 lands somewhere nasty / when it doesn't
-  SUPPORT_TRAP_MAX:-3,                          // a rival's +5 landing must score at most this to count as a trap
+  ORANGE:["wheel","gun","support"], ORANGE_WEIGHTS:[4, 1, 2],   // orange-square pick odds: wheel 4/7 · gun 1/7 · support 2/7
   JITTER:1.5,                                   // ± random noise on option scores
   KICK_BASE:1, KICK_LATE_PER_TILE:0.03,         // kick appeal: base + per-tile (denying a rival matters more up the board)
   KICK_DOWNED_GAIN:9, KICK_DOWNED_PENALTY:8,    // a downed victim drops a whole row — but the shame collapse costs the kicker too
@@ -923,7 +936,7 @@ const BOT = {
   DUPLICATE_SHIELD_DROP:3,                      // a second shield is worth much less
   COIN_VALUE:0.15,                              // how many "tiles" one coin is worth when deciding a purchase
   ITEM_VALUE:{ shoes:5, shield:4, clover:3, coffee:3, gloves:2 },  // base shopping appeal per item id
-  THINK_MS:1000, DECIDE_MS:900,                 // decision popup: thinking pause + verdict linger (FEATURES.botThoughts)
+  THINK_MS:700, DECIDE_MS:650,                  // decision popup: thinking pause + verdict linger (FEATURES.botThoughts)
   SCORE:{ WIN:60, FREEZE:-8, RADIOACTIVE:-6, FISHING:-1, ORANGE:2, SHOP:2,
           TELEPORT_BEHIND:3, TELEPORT_AHEAD:-2, BLUE:1 },   // landing-quality guesses per special tile
 };
@@ -1770,12 +1783,12 @@ async function moveCurrent(rollValue){
   // coin for landing on a plain tile (no special effect this stop)
   if (FEATURES.coins && isPlainTile(p.pos)){
     const blue = isBlueTile(p.pos);                        // the scattered blue tiles pay better
-    awardCoin(p, blue ? "Blue tile" : "Plain tile", blue ? COIN.BLUE : COIN.PLAIN);
+    awardCoin(p, blue ? "Blue tile" : "Plain tile", blue ? COIN.BLUE : COIN.PLAIN, blue ? "blue" : "plain");
   }
 
   // a 6 earns another roll for the same player; otherwise end the turn
   if (FEATURES.sixRollsAgain && rollValue === RULES.DICE_SIDES){
-    if (FEATURES.coins) awardCoin(p, "Rolled a 6");
+    if (FEATURES.coins) awardCoin(p, "Rolled a 6", 1, "six");
     log(TXT.rollAgain);
     game.busy = false; refreshHUD(); maybeAuto();
   } else {
@@ -2019,18 +2032,6 @@ function landingScore(from, steps, p){
   return (final - from) + tileScore(final, p);
 }
 
-// The rival whose +5 support boost would land them somewhere nasty (freeze,
-// setback, a snake, fallout …) — the "support as a weapon" play. Null if none.
-function botSupportTrap(p){
-  const rivals = game.players.filter(q => q !== p && !q.finished && q.pos > 0);
-  let best = null, worst = 0;
-  for (const q of rivals){
-    const s = landingScore(q.pos, MOVE.SUPPORT, q);
-    if (s <= BOT.SUPPORT_TRAP_MAX && s < worst){ worst = s; best = q; }
-  }
-  return best;
-}
-
 // Is it worth arming a held shield right now?
 function botShieldThreat(p){
   if (game.players.some(q => q !== p && !q.finished && q.sniper)) return true;   // a rifle is out there
@@ -2107,28 +2108,16 @@ async function botEncounterChoice(p, others){
 
 async function botPickOrange(p){
   await botThink(p, "weighs the wheel, the gun and a “helping hand”");
-  const trailing = botBehind(p) > 0;
-  const trap = botSupportTrap(p);
-  const weights = [
-    BOT.ORANGE_WEIGHTS[0] + (trailing ? BOT.ORANGE_TRAIL_WHEEL : 0),
-    BOT.ORANGE_WEIGHTS[1] + (trailing ? BOT.ORANGE_TRAIL_GUN : 0),
-    trap ? BOT.ORANGE_TRAP_SUPPORT : BOT.ORANGE_WEIGHTS[2] * BOT.ORANGE_SUPPORT_DAMP,
-  ];
-  const opt = weightedPick(BOT.ORANGE, weights);
+  const opt = weightedPick(BOT.ORANGE, BOT.ORANGE_WEIGHTS);
   await botDecide(p, opt === "wheel" ? "spins the wheel! 🎡"
                  : opt === "gun" ? "goes for the revolver… 🔫"
-                 : trap ? "offers a “friendly” boost… 😏" : "lends a helping hand 🤝");
+                 : "lends a helping hand 🤝");
   return opt;
 }
 
 async function botSupportTarget(p, others){
-  const trap = botSupportTrap(p);
-  if (trap && others.includes(trap)){
-    await botDecide(p, `boosts ${trap.name} — right into trouble 😏`);
-    return trap;
-  }
-  const t = others.reduce((a,q)=> q.pos < a.pos ? q : a, others[0]);   // waste the boost on the smallest threat
-  await botDecide(p, `boosts ${t.name} — the smallest threat around`);
+  const t = others[Math.floor(Math.random() * others.length)];   // genuine goodwill — anyone, wherever they land
+  await botDecide(p, `boosts ${t.name} — everyone needs a hand sometimes 🤝`);
   return t;
 }
 
@@ -2266,9 +2255,9 @@ function updateShield(i){
 function refreshBadges(){ if (game) game.players.forEach((_,i)=>{ updateShame(i); updateShield(i); }); }
 
 // Mario-style coin pop: a coin rises off the player's head and fades.
-function coinPopup(p, n){
+function coinPopup(p, n, scale){
   const g = tokenEls[idxOf(p)]; if (!g) return;
-  const t = el("text",{y:-60,"text-anchor":"middle","font-size":20*TOKEN.ICON_SCALE});
+  const t = el("text",{y:-60,"text-anchor":"middle","font-size":20*TOKEN.ICON_SCALE*(scale||1)});
   t.textContent = n > 1 ? `🪙×${n}` : "🪙";
   t.style.transition = "transform .8s ease-out, opacity .8s ease-out";
   g.appendChild(t);
@@ -3229,11 +3218,15 @@ async function fateSwapYou(p){
 }
 
 /* ---- orange square: Wheel / Support / Gun -------------------------- */
-function awardCoin(p, reason, n){
+function awardCoin(p, reason, n, fx){
   const k = n === undefined ? 1 : n;
-  if (k < 1) return;                        // a 0-coin tile (plain yellow) pays nothing — no pop, no log
+  if (k < 1) return;
   p.coins = (p.coins||0) + k;
-  SFX.play("coin"); coinPopup(p, k);
+  const f = COIN_FX[fx] || COIN_FX.plain;
+  if (f.POPS > 0){
+    for (let i = 0; i < f.POPS; i++)
+      setTimeout(()=>{ if (f.SOUND) SFX.play("coin"); coinPopup(p, 1, f.SCALE); }, i * f.GAP_MS);
+  } else if (f.SOUND) SFX.play("coin");
   log(`🪙 ${reason} — ${p.name} earns ${k === 1 ? "a coin" : k + " coins"}! (${p.coins} total)`);
   renderScoreboard();
 }
@@ -4151,6 +4144,7 @@ let setupBots = [];
 function showScreen(which){
   document.getElementById("screenTitle").classList.toggle("show", which==="title");
   document.getElementById("screenSetup").classList.toggle("show", which==="setup");
+  document.getElementById("screenSettings").classList.toggle("show", which==="settings");
   // "game" simply hides both overlays, revealing the board underneath
 }
 
@@ -4245,6 +4239,12 @@ document.getElementById("optGun").addEventListener("click", ()=>{ if (orangeReso
 document.getElementById("invBtn").addEventListener("click", openInventory);
 document.getElementById("invDone").addEventListener("click", closeInventory);
 document.getElementById("playBtn").addEventListener("click", openSetup);
+document.getElementById("settingsBtn").addEventListener("click", ()=>{
+  document.getElementById("optBotThoughts").checked = FEATURES.botThoughts;
+  showScreen("settings");
+});
+document.getElementById("settingsBack").addEventListener("click", ()=>showScreen("title"));
+document.getElementById("optBotThoughts").addEventListener("change", e=>{ FEATURES.botThoughts = e.target.checked; });
 document.getElementById("toSetup").addEventListener("click", openSetup);
 document.getElementById("backBtn").addEventListener("click", ()=>showScreen("title"));
 document.getElementById("seatMinus").addEventListener("click", ()=>{ chosenSeats=Math.max(2,chosenSeats-1); buildSetup(); });

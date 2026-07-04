@@ -265,9 +265,11 @@ passive** at a time. *(Shelf size = `SHOP.STOCK`.)*
 
 **Using items:** on your turn, before rolling, press the **🎒 Inventory** button next
 to the die. Use any consumable — Coffee, Clover or Shield — then roll. Bots spend
-their items automatically before they roll. **Only plain blue tiles pay coins** —
-**3 coins** with the 🪙 pop; plain yellow tiles pay **nothing** (`COIN` in DATA —
-yellow's payout is `COIN.PLAIN`, currently 0). Rolling a 6 still earns 1 bonus coin.
+their items automatically before they roll. **Plain yellow tiles pay 1 coin** — you
+hear the coin ping but see no icon. **Plain blue tiles pay 3 coins** with a fanfare:
+**three big 🪙 pops and three pings in quick succession** — that's the "EXTRA money"
+moment. **Rolling a 6 earns 1 bonus coin silently** — no sound, no icon; it just shows
+up on the scoreboard (`COIN` payouts + `COIN_FX` presentation, both in DATA).
 Your held items appear as icons in the scoreboard next to your name.
 
 *Toggle: `FEATURES.shop`. Shop tiles = `SHOP_TILES` (6, 28, 52, 75). Bag size =
@@ -300,10 +302,9 @@ tile you settle on is), with a dash of random jitter so they stay beatable:
 - **Bounce or kick** — a bot bounces when the next square looks better (a ladder foot!)
   and kicks to deny a rival and keep a good square; kicking grows more tempting later
   in the race, and kicking a downed player is weighed against the shame collapse.
-- **Orange square** — the wheel and gun get extra appeal when the bot is trailing
-  (gamble when behind); **support turns into a weapon**: if some rival's +5 boost would
-  dump them on a freeze, the setback, fallout or a big chute, the bot "helps" them.
-  Otherwise a rare genuine support goes to the smallest threat on the board.
+- **Orange square** — fixed odds: **wheel 4/7, support 2/7, gun 1/7**
+  (`BOT.ORANGE_WEIGHTS`). Support is **genuine goodwill**: the bot boosts a random
+  rival, whoever they are and wherever the +5 lands them.
 - **Sniper** — bots aim at the **front-runner** and won't waste the shot on an armed
   shield.
 - **Teleporter** — swap only when trailing the pack average (as before).

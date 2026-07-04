@@ -71,6 +71,23 @@ See `LOG.md` for the running session history.
 ---
 
 ## Done
+### 2026-07-04 — Isak's answers to the 4-point-batch questions
+- [x] **Coin tiers** (`COIN` + new `COIN_FX` DATA): yellow pays 1 — coin ping only, no
+      icon; blue pays 3 — THREE big 🪙 pops + three pings in quick succession
+      (`COIN_FX.blue`: POPS/GAP_MS/SCALE); rolled 6 pays 1 silently (no sound, no pop).
+      `awardCoin(p, reason, n, fx)` picks the presentation from `COIN_FX`.
+- [x] **Bot support is genuine** — trap targeting removed (`botSupportTrap` + its
+      tunables deleted); support boosts a RANDOM rival regardless of where they land.
+      Orange odds fixed: wheel 4/7 · support 2/7 · gun 1/7 (`ORANGE_WEIGHTS:[4,1,2]`,
+      trailing modifiers removed to keep the ratios exact).
+- [x] **Sizes**: pawns ×1.5, over-head popups ×3 (`TOKEN:{SCALE:1.5, ICON_SCALE:3}`).
+- [x] **Bot popups faster + toggleable in-game**: `THINK_MS:700`/`DECIDE_MS:650`; new
+      Settings screen (button under Play on the title screen) with a "Bot decision
+      popups 🤖" checkbox wired to `FEATURES.botThoughts`.
+- [x] Verified headless Edge ×3: 23/23 checks (coin fx tiers instrumented, random
+      support spread, settings wiring, sizes, odds) + full 4-bot games to a winner
+      (rounds 45/20/26), 0 JS errors.
+
 ### 2026-07-02 — sniper-shield fix + tile-89 trapdoor (Isak)
 - [x] Sniper hits now go through `downPlayer` — an ARMED shield blocks the shot
       (was setting `.downed` directly, bypassing the shield).
