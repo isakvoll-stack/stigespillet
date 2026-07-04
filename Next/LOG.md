@@ -3,6 +3,29 @@
 Newest first. One entry per working session; note what shipped and what's next.
 
 ---
+## 2026-07-04 (evening) — the 6-answer batch + 2 bonuses
+
+Blue passive banners in the shop (`.btn.passive`, `--passive-blue`). Embedded gruff
+kill voice: SAPI (Zira, pitch −10) → trimmed, tanh-distorted, 8-bit, header-rate
+0.62 → two ~30 KB base64 WAVs in `KILL_VOICE`; double kill retired
+(`KILLSTREAK.MIN:3`, `LABELS` keyed 3/4) and `fireSniper` counts only players
+knocked standing→down (frozen/lying in the beam don't add). Gloves 8→6. Item
+flourish is now awaited: hover ~1s (`ITEM.FLOURISH_MS`) THEN the effect applies
+(useItem/botMaybeUseItem async; inventory closes during it and reopens). Graze
+follows the drawn snake curve (`distToSlideCurve`; `SLIDE_CURVE.SEG_PX` shared with
+drawSlide). Rule cards: kickdown text is now just the SHAME line; new `shamefall` +
+`mutation` cards with name templating (`RULE_INFO.text` may be a function,
+`revealRuleOnce(key, arg)`). Bonuses: ↩ Back on the support pick (returns to the
+orange choice; `runOrange` loops), and `SETBACK_TILES` joins `shuffleTiles()`.
+
+Verified headless Edge: 18/19 checks (data, cards, staged 3-scenario sniper counting,
+setback shuffle legality/movement, on-curve graze proof) + full first bot turn,
+0 JS errors. The 19th (full bot game to a winner) stalls mid-roll under
+`--virtual-time-budget` on the PRE-batch baseline too — harness artifact
+(perf.now/rAF vs virtual time), not a regression. Patch `performance.now = () =>
+Date.now()` in the iframe realm to get the dice loop through virtual time.
+
+---
 ## 2026-07-04 (later) — Isak's tuning pass on the morning batch
 
 Pawns ×1.25, over-head popups ×2 with the ❄️ freeze badge kept at ×3 (new

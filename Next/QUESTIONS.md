@@ -3,6 +3,20 @@
 Standing file: autonomous sessions log clarifications here instead of stopping to ask.
 Answer whenever — each answer gets folded in and the question checked off.
 
+## 2026-07-04 — from the 6-answer batch build
+
+- [ ] **Voice-clip source** — the only TTS voice installed on this PC is Zira (female);
+  the gruff clips are Zira pitched way down + distortion, which lands more "demonic
+  announcer" than "COD soldier". If it's not gruff enough in-game, options: crank the
+  distortion, or you record/download a real clip once and I embed it the same way.
+  (There's also a Norwegian male voice, Jon — want a Norwegian-accented announcer?)
+- [ ] **Inventory during flourish** — using an item now closes the bag, plays the ~1s
+  hover over your pawn, applies the effect, then reopens the bag so you can use more.
+  Feels right, or should the bag stay closed after?
+- [ ] **Wandering setback edge case** — the shuffled dark-red square can land on tile 89
+  (the disguised trapdoor's square). Both rules on one tile is rare and resolves by
+  priority, but say the word if 89 should be off-limits to it.
+
 ## 2026-07-03 (later) — the 4-point batch
 
 - [x] **Rolled-6 coin** — yellow tiles no longer pay, but **rolling a 6 still earns
@@ -29,20 +43,29 @@ Answer whenever — each answer gets folded in and the question checked off.
 - [x] **Coin pop scope** — the ping + 🪙 pop now plays for EVERY coin gain (blue 3,
   yellow 1, rolled-6 bonus), not just 3-coin blue tiles. Want it blue-only?
   **✔ Answered 2026-07-03: blue-only — built (yellow pays 0 now, no pop).**
-- [ ] **Multi-kill voice** — uses the browser's built-in speech voice pitched way down
+- [x] **Multi-kill voice** — uses the browser's built-in speech voice pitched way down
   ("gruff-ish"). A properly gruff COD-style voice needs a recorded audio asset, which
   breaks the one-file/no-sidecar rule unless embedded as base64 (~50–200 KB). Good
   enough, or embed a real voice clip?
-- [ ] **Thieves' Gloves** — costs 8 (Shoes are 10); steals on both kick AND bounce, one
+  **✔ Answered 2026-07-04: embed a clip; double kill retired (triple+ only); only
+  players actually knocked standing→down count. Built (~60 KB embedded).**
+- [x] **Thieves' Gloves** — costs 8 (Shoes are 10); steals on both kick AND bounce, one
   coin from one victim. It also steals when you kick a man while he's down. Keep all that?
-- [ ] **Item flourish timing** — the aura plays WHILE the effect applies (~1s,
+  **✔ Answered 2026-07-04: cost 6 now, everything else kept. Built.**
+- [x] **Item flourish timing** — the aura plays WHILE the effect applies (~1s,
   non-blocking). A true "hover first, THEN apply" needs the item flow made async — say
   the word if you want the pause.
+  **✔ Answered 2026-07-04: do it — hover first, then apply. Built (async item flow).**
 - [ ] **Black market v1 scope** — dealer currently sells the NORMAL catalog (2 items) at
   dynamic prices; the powerful/delayed-cost exotics await the v2 design (TASKS.md).
   Also: bots can buy there too (cheapest affordable) — should they be locked out?
-- [ ] **Graze definition** — "in the chute's path" = standing within `GRAZE.RADIUS`
+  *(2026-07-04: Isak skipped this one for now — still open.)*
+- [x] **Graze definition** — "in the chute's path" = standing within `GRAZE.RADIUS`
   (40 px) of the straight line from chute head to tail. The drawn snake curves, so a
   token near a big bend might escape a hit the art implies. Strict-curve check instead?
-- [ ] **Vague cards** — all 18 rule cards rewritten vague (why clear, details fuzzy);
+  **✔ Answered 2026-07-04: "if very easy" — it was (the curve is a pure function).
+  Built: graze now measures distance to the drawn curve.**
+- [x] **Vague cards** — all 18 rule cards rewritten vague (why clear, details fuzzy);
   RULES.md keeps the full numbers. Confirm that split is what you meant.
+  **✔ Answered 2026-07-04: confirmed. Plus 3 new cards built: kickdown is now just
+  "SHAME on you, SHAME on you...", a shame-catches-up card, and a mutant-immunity card.**

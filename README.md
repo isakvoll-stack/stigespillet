@@ -53,7 +53,25 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
-Recently shipped (2026-07-04): **Isak's answers to the question batch** —
+Recently shipped (2026-07-04, later): **the 6-answer batch + 2 bonuses** —
+- **Blue passive banners**: passive items (Shoes, Gloves) show as blue cards in the
+  shop/black market instead of red (`--passive-blue`).
+- **Embedded kill voice**: TRIPLE/QUAD KILL now play a gruff embedded voice clip
+  (base64 WAV in `KILL_VOICE`, no sidecar files); the double-kill callout is retired
+  (`KILLSTREAK.MIN` = 3), and only players knocked **standing→down** by the shot count.
+- **Thieves' Gloves cost 6** (was 8).
+- **Item flourish first, effect after**: using a consumable hovers the aura ~1s
+  (`ITEM.FLOURISH_MS`), THEN applies; the inventory closes during it and reopens.
+- **Graze follows the drawn snake curve** (not the straight head→tail line) via
+  `distToSlideCurve`; the drawing and the check share `SLIDE_CURVE.SEG_PX`.
+- **3 new rule cards**: kick-while-down is now just "SHAME on you, SHAME on you...";
+  a card when someone's shame catches up (name templated); a card when a radiation
+  survivor mutates immune. `RULE_INFO.text` may now be a function of a name.
+- **Bonus — ↩ Back** on the support target pick returns to Wheel/Support/Gun.
+- **Bonus — the dark-red setback square joins the 🌀 tile shuffle** — it can end up
+  high on the board and become devastating.
+
+Earlier (2026-07-04): **Isak's answers to the question batch** —
 - **Coin tiers**: yellow pays 1 (ping only, no icon), blue pays 3 with a fanfare (three
   big 🪙 pops + three pings 100ms apart), a rolled 6 pays 1 silently (`COIN` +
   `COIN_FX` in DATA).

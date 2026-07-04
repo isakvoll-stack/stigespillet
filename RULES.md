@@ -83,6 +83,12 @@ Every **5th round** (round 5, 10, 15 …) the player in **last place** gets a
 the mouse — **click to fire**. Every player on the beam is **knocked down**
 (aim at empty space to skip the shot).
 
+**Multi-kill announcer:** fell **3 or more** players with one shot and a gruff
+voice calls it out — **TRIPLE KILL** / **QUAD KILL** (embedded voice clips; the
+double-kill callout is retired). Only players knocked from **standing to down** by
+the shot count — frozen or already-lying players in the beam don't add to the
+streak. *(Threshold + labels in `KILLSTREAK`, clips in `KILL_VOICE`.)*
+
 A knocked-down player, on their next turn, rolls to **get up** instead of moving:
 - **3 or more** → they stand up. Their turn then ends with no move — **unless they
   rolled a 6**, in which case they stand and roll again to move.
@@ -200,12 +206,14 @@ Land on an **orange square** and pick one of three:
   event based on the current board state — lightning hits the leader, star carries
   the trailer, fate swaps leader and last; may also do nothing), **🎲 Random (targets
   you)** (same pool of effects but all aimed at the spinner), or **🌀 Tile shuffle**
-  (everyone on the board is sent to a fresh random tile, avoiding all snake and ladder
-  squares).
+  (every special tile — teleporters, orange, freeze, shops, fishing **and the dark-red
+  setback square** — moves to a fresh random spot, avoiding snake and ladder squares.
+  A setback square reshuffled high up the board is devastating).
 - **🤝 Support** — pick another player and move **them** forward 5. Picking happens
   **on the board**: a light veil falls with spotlights on every candidate; hovering a
   player highlights them and previews **where they'd land** (dotted trail, plus the
-  ladder/chute it would trigger); **click** to choose.
+  ladder/chute it would trigger); **click** to choose — or hit the **↩ Back** button
+  by the prompt to return to the Wheel/Support/Gun choice.
 - **🔫 Gun** — Russian roulette: **1-in-6** the three frontrunners go down,
   **2-in-6** you shoot yourself down, otherwise **nothing**.
 
@@ -216,10 +224,11 @@ shows a real wheel that spins for ~5 seconds (fast, then slowing) before landing
 **Slide down a chute into other players** and you bowl them over. Whoever waits at
 the **very bottom** takes the full hit: knocked **down** and **5 back**. Anyone merely
 standing **in the chute's path** on the way down is **clipped**: knocked **1–3 back**
-with only a **10% chance** of being floored.
+with only a **10% chance** of being floored. "In the path" follows the **drawn snake
+curve** — a token tucked inside a big bend is safe, exactly as the art implies.
 
 *Toggle: `FEATURES.snakeCollision`. Graze tunables in `GRAZE` (`BACK_MIN/MAX`,
-`DOWN_CHANCE`, `RADIUS` = distance from the chute's line that counts as "in the path").*
+`DOWN_CHANCE`, `RADIUS` = distance from the drawn curve that counts as "in the path").*
 
 ### The secret square (hidden rule)
 There is a **hidden square before tile 1**. **No one starts on it**, and it isn't even
@@ -260,11 +269,13 @@ passive** at a time. *(Shelf size = `SHOP.STOCK`.)*
 - **👟 Running Shoes** — **10 coins.** +1 to *every* roll while worn. Buying or
   receiving any new passive **immediately replaces** the one you have, which is **lost
   forever**.
-- **🧤 Thieves' Gloves** — **8 coins.** Steal **1 coin** from the victim every time you
+- **🧤 Thieves' Gloves** — **6 coins.** Steal **1 coin** from the victim every time you
   **kick** or **bounce off** a player.
 
 **Using items:** on your turn, before rolling, press the **🎒 Inventory** button next
-to the die. Use any consumable — Coffee, Clover or Shield — then roll. Bots spend
+to the die. Use any consumable — Coffee, Clover or Shield — then roll. Using one
+plays a short **hover flourish over your pawn first**, and the effect applies when it
+ends (~1s, `ITEM.FLOURISH_MS`). Bots spend
 their items automatically before they roll. **Plain yellow tiles pay 1 coin** — you
 hear the coin ping but see no icon. **Plain blue tiles pay 3 coins** with a fanfare:
 **three big 🪙 pops and three pings in quick succession** — that's the "EXTRA money"
