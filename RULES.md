@@ -303,8 +303,10 @@ tile you settle on is), with a dash of random jitter so they stay beatable:
   and kicks to deny a rival and keep a good square; kicking grows more tempting later
   in the race, and kicking a downed player is weighed against the shame collapse.
 - **Orange square** — fixed odds: **wheel 4/7, support 2/7, gun 1/7**
-  (`BOT.ORANGE_WEIGHTS`). Support is **genuine goodwill**: the bot boosts a random
-  rival, whoever they are and wherever the +5 lands them.
+  (`BOT.ORANGE_WEIGHTS`). When a bot supports, it usually **springs a trap** if one
+  exists — a rival whose +5 would dump them on a freeze, the setback, fallout or a
+  big chute (`SUPPORT_TRAP_CHANCE`, 70%) — but sometimes (and always when no trap
+  exists) it's **genuine goodwill**: a random rival gets the boost.
 - **Sniper** — bots aim at the **front-runner** and won't waste the shot on an armed
   shield.
 - **Teleporter** — swap only when trailing the pack average (as before).

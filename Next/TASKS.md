@@ -81,6 +81,10 @@ See `LOG.md` for the running session history.
       Orange odds fixed: wheel 4/7 · support 2/7 · gun 1/7 (`ORANGE_WEIGHTS:[4,1,2]`,
       trailing modifiers removed to keep the ratios exact).
 - [x] **Sizes**: pawns ×1.5, over-head popups ×3 (`TOKEN:{SCALE:1.5, ICON_SCALE:3}`).
+      **Revised same day (Isak):** pawns ×1.25, popups ×2, ❄️ badge stays ×3
+      (`FREEZE_ICON_SCALE`); blue-coin pings 100ms apart (`COIN_FX.blue.GAP_MS`);
+      trap-support restored at 70% (`SUPPORT_TRAP_CHANCE`) with genuine random
+      support the rest of the time (and always when no trap exists).
 - [x] **Bot popups faster + toggleable in-game**: `THINK_MS:700`/`DECIDE_MS:650`; new
       Settings screen (button under Play on the title screen) with a "Bot decision
       popups 🤖" checkbox wired to `FEATURES.botThoughts`.

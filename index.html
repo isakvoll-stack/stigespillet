@@ -674,7 +674,7 @@ const SETBACK_COLOR = "#8b1a1a";                         // deep red — clearly
 const SWITCHBACK = { LEN:54, HEAD_W:30, HEAD_H:19, SHAFT_W:9,   // arrow size (px): total length, head, shaft
   FILL:"rgba(255,255,255,.8)", EDGE:"rgba(31,63,90,.55)" };
 /* ---- DATA: token + over-head icon sizing ---------------------------- */
-const TOKEN = { SCALE:1.5, ICON_SCALE:3 };               // pawn size ×; icons above the pawn (coin/item/❄️/arrow) ×
+const TOKEN = { SCALE:1.25, ICON_SCALE:2, FREEZE_ICON_SCALE:3 };  // pawn size ×; icons above the pawn (coin/item/arrow) ×; the ❄️ badge ×
 // TODO: introduce slight RNG to tile placements — rather than every special tile being
 // fully fixed, some (e.g. shop, setback, orange) should spawn at randomly chosen eligible
 // positions each new game (within safe ranges, avoiding snake/ladder tiles). Keeps the
@@ -891,7 +891,7 @@ const COIN = { PLAIN:1, BLUE:3 };          // coins per plain-tile landing (yell
 const COIN_FX = {                          // how each coin source announces itself
   six:   { SOUND:false, POPS:0 },                          // rolled-6 bonus: silent — you only see it on the scoreboard
   plain: { SOUND:true,  POPS:0 },                          // yellow tile: the ping only, no icon
-  blue:  { SOUND:true,  POPS:3, GAP_MS:200, SCALE:1.5 },   // blue tile: three big pops + three pings in quick succession
+  blue:  { SOUND:true,  POPS:3, GAP_MS:100, SCALE:1.5 },   // blue tile: three big pops + three pings in quick succession
 };
 /* ---- DATA: the tile-89 trapdoor -------------------------------------
    One square from the finish, disguised as a plain tile: the FIRST player
@@ -925,6 +925,8 @@ const MARKET = { STOCK:2, BEHIND_PER:8, MAX_DISCOUNT:6, VISIT_MARKUP:1 };
 const BOT = {
   TELEPORT_GOOD:0.85, TELEPORT_BAD:0.15,        // accept a teleporter swap when it improves your average position (else rarely)
   ORANGE:["wheel","gun","support"], ORANGE_WEIGHTS:[4, 1, 2],   // orange-square pick odds: wheel 4/7 · gun 1/7 · support 2/7
+  SUPPORT_TRAP_MAX:-3,                          // a rival's +5 landing must score at most this to count as a trap
+  SUPPORT_TRAP_CHANCE:0.7,                      // odds a supporting bot springs an available trap (else genuine random)
   JITTER:1.5,                                   // ± random noise on option scores
   KICK_BASE:1, KICK_LATE_PER_TILE:0.03,         // kick appeal: base + per-tile (denying a rival matters more up the board)
   KICK_DOWNED_GAIN:9, KICK_DOWNED_PENALTY:8,    // a downed victim drops a whole row — but the shame collapse costs the kicker too
@@ -2032,6 +2034,18 @@ function landingScore(from, steps, p){
   return (final - from) + tileScore(final, p);
 }
 
+// The rival whose +5 support boost would land them somewhere nasty (freeze,
+// setback, a snake, fallout …) — the "support as a weapon" play. Null if none.
+function botSupportTrap(p){
+  const rivals = game.players.filter(q => q !== p && !q.finished && q.pos > 0);
+  let best = null, worst = 0;
+  for (const q of rivals){
+    const s = landingScore(q.pos, MOVE.SUPPORT, q);
+    if (s <= BOT.SUPPORT_TRAP_MAX && s < worst){ worst = s; best = q; }
+  }
+  return best;
+}
+
 // Is it worth arming a held shield right now?
 function botShieldThreat(p){
   if (game.players.some(q => q !== p && !q.finished && q.sniper)) return true;   // a rifle is out there
@@ -2116,6 +2130,11 @@ async function botPickOrange(p){
 }
 
 async function botSupportTarget(p, others){
+  const trap = botSupportTrap(p);
+  if (trap && others.includes(trap) && Math.random() < BOT.SUPPORT_TRAP_CHANCE){
+    await botDecide(p, `boosts ${trap.name} — right into trouble 😏`);
+    return trap;
+  }
   const t = others[Math.floor(Math.random() * others.length)];   // genuine goodwill — anyone, wherever they land
   await botDecide(p, `boosts ${t.name} — everyone needs a hand sometimes 🤝`);
   return t;
@@ -2216,7 +2235,7 @@ function updateFrozen(i){
   let ice = g.querySelector(".icebadge");
   if (frozen){
     if (!ice){
-      ice = el("text",{"class":"icebadge",x:0,y:-54,"text-anchor":"middle","font-size":16*TOKEN.ICON_SCALE});
+      ice = el("text",{"class":"icebadge",x:0,y:-54,"text-anchor":"middle","font-size":16*TOKEN.FREEZE_ICON_SCALE});
       ice.textContent = "❄️"; g.appendChild(ice);
     }
   } else if (ice){ ice.remove(); }

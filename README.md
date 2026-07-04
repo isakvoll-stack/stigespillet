@@ -55,11 +55,12 @@ what's next.
 
 Recently shipped (2026-07-04): **Isak's answers to the question batch** —
 - **Coin tiers**: yellow pays 1 (ping only, no icon), blue pays 3 with a fanfare (three
-  big 🪙 pops + three pings in quick succession), a rolled 6 pays 1 silently (`COIN` +
+  big 🪙 pops + three pings 100ms apart), a rolled 6 pays 1 silently (`COIN` +
   `COIN_FX` in DATA).
-- **Bot orange odds fixed at wheel 4/7 · support 2/7 · gun 1/7**; support is genuine —
-  a random rival gets the boost, no more "support as a weapon" trap targeting.
-- **Bigger still**: pawns ×1.5, over-head popups ×3 (`TOKEN`).
+- **Bot orange odds fixed at wheel 4/7 · support 2/7 · gun 1/7**; support usually springs
+  a trap when one exists (70%, `SUPPORT_TRAP_CHANCE`) but sometimes boosts a random rival
+  for real.
+- **Bigger**: pawns ×1.25, over-head popups ×2 — except the ❄️ freeze badge at ×3 (`TOKEN`).
 - **Settings screen**: a Settings button under Play on the title screen; checkbox toggles
   the 🤖 bot decision popups. Popups are also ~30% faster (`BOT.THINK_MS`/`DECIDE_MS`).
 

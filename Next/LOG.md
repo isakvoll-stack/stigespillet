@@ -3,6 +3,17 @@
 Newest first. One entry per working session; note what shipped and what's next.
 
 ---
+## 2026-07-04 (later) — Isak's tuning pass on the morning batch
+
+Pawns ×1.25, over-head popups ×2 with the ❄️ freeze badge kept at ×3 (new
+`TOKEN.FREEZE_ICON_SCALE`); blue-coin fanfare pings 100ms apart (was 200);
+`botSupportTrap` restored — a supporting bot springs an available trap 70% of the
+time (`BOT.SUPPORT_TRAP_CHANCE`), otherwise (and always when no trap exists) boosts
+a random rival. Orange pick odds stay fixed at 4/7·2/7·1/7. Verified headless Edge
+×3 — 25/25 checks (trap vs random split measured 98/22 over 120 supports, safe-board
+pure-random confirmed) + full games, 0 JS errors.
+
+---
 ## 2026-07-04 — question answers folded in: coin fx tiers, genuine bot support, ×1.5/×3 sizes, settings screen
 
 Isak answered 4 of the open questions; all built this session. (1) **Coin tiers** — new
