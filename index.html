@@ -11,6 +11,7 @@
   :root{
     --wood-dark:#3a281b; --wood:#5a3f2b; --wood-light:#6e4f37;
     --cream:#f6ecd9; --barn-red:#a8362f; --brass:#d4a656;
+    --passive-blue:#2e6da8; --passive-blue-dark:#1d4c77;
     --ink:#2a2018; --shadow:rgba(0,0,0,.35);
     --p1:#d64541; --p2:#2e86c1; --p3:#27ae60; --p4:#f1c40f;
   }
@@ -89,6 +90,8 @@
     box-shadow:0 3px 0 #79231e;transition:transform .08s;
   }
   button.btn:active{transform:translateY(2px);box-shadow:0 1px 0 #79231e}
+  button.btn.passive{background:var(--passive-blue);box-shadow:0 3px 0 var(--passive-blue-dark)}
+  button.btn.passive:active{box-shadow:0 1px 0 var(--passive-blue-dark)}
   button.btn.ghost{background:transparent;border:1px solid var(--brass);box-shadow:none;color:var(--brass)}
   .seats{display:flex;gap:10px;align-items:center;margin:8px 0}
   .seat-opt{width:38px;height:38px;font-size:20px;font-weight:700;display:grid;place-items:center;
@@ -4071,7 +4074,7 @@ function renderShop(p, close, stock, bought, market){
     const sold = bought.has(item.id);
     const can = !sold && canBuy(p, item);
     const tag = item.kind === "passive" ? " · passive" : "";
-    const b = document.createElement("button"); b.className = "btn";
+    const b = document.createElement("button"); b.className = "btn" + (item.kind === "passive" ? " passive" : "");
     b.innerHTML = `${item.ico} <b>${item.name}</b> — ${item.desc} <span style="opacity:.85">(${sold ? "sold out" : `🪙${item.cost}${tag}`})</span>`;
     b.style.textAlign = "left"; b.style.boxShadow = "none";
     b.disabled = !can; b.style.opacity = can ? "1" : ".45";
