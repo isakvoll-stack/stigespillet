@@ -53,6 +53,11 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
+Recently (2026-07-05, night): **`Next/SUGGESTIONS.md`** — a curated idea pool written on
+Isak's request: 14 work suggestions (prioritised, with a top-5) + 15 normal shop-item
+ideas + a 7-item black-market exotic pool for the queued v2 design. Docs only, nothing
+built yet.
+
 Recently shipped (2026-07-05, evening): **🌀 Scrambled board option + item-text pass** —
 new **🗺️ Board** group in Advanced settings (`BOARD_OPTIONS` DATA) with a *Scrambled
 board* toggle: every special tile spawns at a random eligible spot each new game

@@ -391,6 +391,9 @@ See `LOG.md` for the running session history.
 > but correctness is now machine-verified.
 
 ## Ideas / later
+- **`Next/SUGGESTIONS.md` (2026-07-05)** — curated pool of work suggestions (14) +
+  shop-item ideas (15 normal + 7 black-market exotics), written on Isak's request.
+  Pull picks from there into Active.
 - Optional PNG board skin to match the classic photo.
 - Bots / smarter autonomous opponents. *(Started 2026-06-25: bots now take teleporter
   swaps only when beneficial and favour gun/wheel over altruistic support — `BOT` DATA
