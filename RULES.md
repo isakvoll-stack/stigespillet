@@ -263,6 +263,11 @@ passive** at a time. *(Shelf size = `SHOP.STOCK`.)*
   timing it is the strategy.
 - **🍀 Four-leaf Clover** — **10 coins.** Guarantees a **6** on your next roll (and a 6
   rolls again, so it chains nicely).
+- **📯 War Horn** — **7 coins.** Blow it and a blast wave sweeps **your row**: every
+  rival **standing on the same row** as you is **knocked flat** (an armed Shield blocks
+  it). Rivals already down or frozen, on the start lane or on the secret square are
+  untouched. Flattening 3+ rivals with one blast triggers the multi-kill announcer.
+  *(Tunables in `HORN`.)*
 
 **Passive** (1 slot, always on while equipped):
 
@@ -273,7 +278,7 @@ passive** at a time. *(Shelf size = `SHOP.STOCK`.)*
   **kick** or **bounce off** a player.
 
 **Using items:** on your turn, before rolling, press the **🎒 Inventory** button next
-to the die. Use any consumable — Coffee, Clover or Shield — then roll. Using one
+to the die. Use any consumable — Coffee, Clover, Shield or War Horn — then roll. Using one
 plays a short **hover flourish over your pawn first**, and the effect applies when it
 ends (~1s, `ITEM.FLOURISH_MS`). Bots spend
 their items automatically before they roll. **Plain yellow tiles pay 1 coin** — you

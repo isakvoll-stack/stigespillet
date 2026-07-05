@@ -3,6 +3,28 @@
 Newest first. One entry per working session; note what shipped and what's next.
 
 ---
+## 2026-07-05 — 📯 War Horn (guest idea, live session with Isak + a friend)
+
+New consumable designed by a visiting friend: **War Horn** (7 coins) — blow it and a
+blast wave sweeps the blower's row, knocking flat every rival *standing* on it.
+Implementation: `HORN` DATA block (ring look/timing), catalog entry, `hornTargets`
+(row via `cellRC`, excludes self/finished/off-board), `hornBlast` (flourish first like
+other consumables, then `SFX.horn` — a 3-oscillator brassy swell — plus expanding
+shockwave rings with a CSS `r` transition, then `downPlayer` per standing target so
+armed Shields block, screen shake, `announceKill` at 3+ felled). Already-down/frozen
+players are untouched (their `getupMin` is never reset — deliberate difference from
+the sniper, which re-hits everyone in the beam). Bots: `ITEM_VALUE.warhorn:3`, blow
+only when a standing unshielded rival shares the row, bag-full forces it. RULES.md +
+README updated.
+
+Verified headless Edge (rAF + animationend stubbed, virtual time): 15/15 — catalog,
+row targeting (incl. start-lane blower hits nobody, finished immune), shield
+block+spend, down-rival getupMin preserved, horn consumed, triple blast → announcer
+called with 3, bot hold/blow decisions, full 4-bot game to a winner (19 rounds),
+0 JS errors. Harness note: a full popups-on 4-bot game needs a virtual-time budget
+well past 400s (~18 virtual s/round) — 2 500 000 worked.
+
+---
 ## 2026-07-04 (evening) — the 6-answer batch + 2 bonuses
 
 Blue passive banners in the shop (`.btn.passive`, `--passive-blue`). Embedded gruff

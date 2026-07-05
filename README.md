@@ -53,7 +53,13 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
-Recently shipped (2026-07-04, later): **the 6-answer batch + 2 bonuses** —
+Recently shipped (2026-07-05): **📯 War Horn** — a new 7-coin consumable, designed by
+a guest co-designer: blow it and a brassy blast + shockwave rings sweep your row,
+knocking flat every rival standing on it (armed Shields block it; 3+ felled triggers
+the multi-kill announcer). Bots buy it and save it until a rival shares their row.
+Tunables in `HORN`. Verified headless Edge: 15/15 checks + a full 4-bot game, 0 JS errors.
+
+Before that (2026-07-04, later): **the 6-answer batch + 2 bonuses** —
 - **Blue passive banners**: passive items (Shoes, Gloves) show as blue cards in the
   shop/black market instead of red (`--passive-blue`).
 - **Embedded kill voice**: TRIPLE/QUAD KILL now play a gruff embedded voice clip

@@ -686,6 +686,9 @@ const ITEM = { COFFEE_BONUS: 4, SHOES_BONUS: 1,            // coffee = +4 one-sh
                FLOURISH_MS: 1000 };                        // the used item hovers this long BEFORE its effect applies
 const INV  = { CONSUMABLES: 3, PASSIVES: 1 };             // bag size: 3 consumables + 1 passive at a time
 const SHOP = { STOCK: 3 };                                // items on the shelf per visit, drawn at random from the catalog
+const HORN = { RINGS: 3, RING_GAP_MS: 130, RING_MS: 650,  // war-horn blast: shockwave rings sweeping out from the blower
+               RING_R0: 16, RING_WIDTH: 5, RING_COLOR: "rgba(255,190,80,.85)",
+               BLAST_DELAY_MS: 320, SETTLE_MS: 600 };     // rings fly first, THEN the row topples; short beat after
 /* ---- DATA: shop item catalog ----------------------------------------
    The full item list. What each id actually DOES lives in the item logic
    (itemDef / giveItem / useItem), keyed by id. kind = "consumable" (held
@@ -700,6 +703,8 @@ const SHOP_CATALOG = [
     desc:"Use it to raise a guard that blocks the next knockdown or freeze." },
   { id:"clover", ico:"🍀", name:"Four-leaf Clover", kind:"consumable", cost:10, enabled:true,
     desc:"Guarantees a 6 on your next roll." },
+  { id:"warhorn", ico:"📯", name:"War Horn",         kind:"consumable", cost:7,  enabled:true,
+    desc:"Blow it: a blast wave floors every rival standing on your row." },
   { id:"shoes",  ico:"👟", name:"Running Shoes",    kind:"passive",    cost:10, enabled:true,
     desc:"Passive: +1 to every roll while worn." },
   { id:"gloves", ico:"🧤", name:"Thieves' Gloves",  kind:"passive",    cost:6,  enabled:true,
@@ -957,7 +962,7 @@ const BOT = {
   CLOVER_ENDGAME:12, CLOVER_ENDGAME_BONUS:3,    // within this many tiles of the win, a sure 6 is worth extra when shopping
   DUPLICATE_SHIELD_DROP:3,                      // a second shield is worth much less
   COIN_VALUE:0.15,                              // how many "tiles" one coin is worth when deciding a purchase
-  ITEM_VALUE:{ shoes:5, shield:4, clover:3, coffee:3, gloves:2 },  // base shopping appeal per item id
+  ITEM_VALUE:{ shoes:5, shield:4, clover:3, coffee:3, warhorn:3, gloves:2 },  // base shopping appeal per item id
   THINK_MS:700, DECIDE_MS:650,                  // decision popup: thinking pause + verdict linger (FEATURES.botThoughts)
   SCORE:{ WIN:60, FREEZE:-8, RADIOACTIVE:-6, FISHING:-1, ORANGE:2, SHOP:2,
           TELEPORT_BEHIND:3, TELEPORT_AHEAD:-2, BLUE:1 },   // landing-quality guesses per special tile
@@ -1610,6 +1615,13 @@ const SFX = (() => {
     click: ()=> tone(520, 0.04, "square", 0.1),
     coin:  ()=> seq([988,1319], "square", 0.14, 0.055),
     announce: ()=> { tone(120, 0.3, "sawtooth", 0.3); tone(80, 0.4, "square", 0.2, 0.05); },
+    horn: ()=> { const c=ac(); if(!c) return; const t=c.currentTime, g=c.createGain();   // deep brassy war-horn: swell up a fourth, hold, fade
+      g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.26,t+0.18);
+      g.gain.setValueAtTime(0.26,t+0.8); g.gain.exponentialRampToValueAtTime(0.0001,t+1.4);
+      [147,149.5,73.5].forEach(f=>{ const o=c.createOscillator(); o.type="sawtooth";
+        o.frequency.setValueAtTime(f,t); o.frequency.linearRampToValueAtTime(f*1.335,t+0.25);
+        o.connect(g); o.start(t); o.stop(t+1.45); });
+      g.connect(c.destination); },
   };
   return { play: (n) => { if (!FEATURES.sound) return; try { (table[n]||(()=>{}))(); } catch(e){} } };
 })();
@@ -3999,11 +4011,48 @@ function buyItem(p, item){
   refreshBadges(); renderScoreboard();
   return true;
 }
+// The War Horn: a blast wave sweeps the blower's row and floors every rival
+// standing on it. Rivals off the board (start lane / secret square) are out of reach.
+function hornTargets(p){
+  if (!game || p.pos < 1) return [];
+  const row = cellRC(p.pos).row;
+  return game.players.filter(q => q !== p && !q.finished && q.pos >= 1
+    && cellRC(q.pos).row === row);
+}
+function hornRings(cell){
+  const c = cellCenter(cell), reach = BOARD.COLS * BOARD.CELL;
+  for (let i = 0; i < HORN.RINGS; i++){
+    setTimeout(()=>{
+      const ring = el("circle",{cx:c.x, cy:c.y, r:HORN.RING_R0, fill:"none",
+        stroke:HORN.RING_COLOR, "stroke-width":HORN.RING_WIDTH});
+      ring.style.transition = `r ${HORN.RING_MS}ms ease-out, opacity ${HORN.RING_MS}ms ease-out`;
+      svg.appendChild(ring);
+      requestAnimationFrame(()=>{ ring.style.r = reach + "px"; ring.style.opacity = "0"; });
+      setTimeout(()=> ring.remove(), HORN.RING_MS + 100);
+    }, i * HORN.RING_GAP_MS);
+  }
+}
+async function hornBlast(p){
+  SFX.play("horn");
+  hornRings(Math.max(1, p.pos));
+  await sleep(HORN.BLAST_DELAY_MS);
+  const standing = hornTargets(p).filter(q => !q.downed);
+  standing.forEach(q => downPlayer(q));                  // shield-aware: an armed Shield absorbs the blast
+  const felled = standing.filter(q => q.downed);
+  if (standing.length){ SFX.play("kick"); flashScreen(); }
+  if (felled.length >= KILLSTREAK.MIN) announceKill(felled.length);
+  renderScoreboard();
+  log(felled.length
+    ? `📯 ${p.name} sounds the War Horn — knocked flat: ${felled.map(q=>q.name).join(", ")}!`
+    : `📯 ${p.name} sounds the War Horn — the blast rolls across the row, but no one falls.`);
+  await sleep(HORN.SETTLE_MS);
+}
+
 // Use one consumable from the bag before rolling. Shield isn't used by hand — it
 // guards automatically — so only Coffee and the Clover do anything here.
 async function useItem(p, idx){
   const id = p.items[idx];
-  if (["coffee","clover","shield"].includes(id)) await itemFlourish(p, itemDef(id).ico);
+  if (["coffee","clover","shield","warhorn"].includes(id)) await itemFlourish(p, itemDef(id).ico);
   if (id === "coffee"){
     p.rollBonus = (p.rollBonus || 0) + ITEM.COFFEE_BONUS;
     p.items.splice(idx, 1);
@@ -4020,6 +4069,9 @@ async function useItem(p, idx){
     updateShield(idxOf(p));
     log(`🛡️ ${p.name} raises the Shield — the next hit is blocked!`);
     SFX.play("sparkle");
+  } else if (id === "warhorn"){
+    p.items.splice(idx, 1);
+    await hornBlast(p);
   }
   refreshBadges(); renderScoreboard();
 }
@@ -4037,6 +4089,8 @@ async function botMaybeUseItem(p){
       if (bagFull || landingScore(p.pos, steps, p) >= BOT.CLOVER_MIN_SCORE) await useItem(p, k);
     } else if (id === "shield"){
       if (!p.shieldOn && (bagFull || botShieldThreat(p))) await useItem(p, k);
+    } else if (id === "warhorn"){
+      if (hornTargets(p).some(q => !q.downed && !q.shieldOn) || bagFull) await useItem(p, k);
     }
   }
 }

@@ -71,6 +71,17 @@ See `LOG.md` for the running session history.
 ---
 
 ## Done
+### 2026-07-05 — 📯 War Horn (guest idea, built live with Isak + friend)
+- [x] **NEW ITEM: 📯 War Horn** (consumable, 7 coins): blast wave floors every rival
+      *standing* on the blower's row — shield-aware via `downPlayer`, already-down/
+      frozen/off-board rivals untouched, 3+ felled fires the multi-kill announcer.
+      Brassy horn SFX (`SFX.horn`) + expanding shockwave rings (`hornRings`); tunables
+      in `HORN`. Bots value it (`ITEM_VALUE.warhorn:3`) and blow it only when a
+      standing, unshielded rival shares their row (bag-full forces it, like the rest).
+- [x] Verified headless Edge: 15/15 checks (catalog, row targeting, start-lane/finished
+      immunity, shield block+spend, getupMin preserved, killstreak, bot hold/blow) +
+      full 4-bot game to a winner (19 rounds), 0 JS errors.
+
 ### 2026-07-04 — Isak's answers to the 4-point-batch questions
 - [x] **Coin tiers** (`COIN` + new `COIN_FX` DATA): yellow pays 1 — coin ping only, no
       icon; blue pays 3 — THREE big 🪙 pops + three pings in quick succession
