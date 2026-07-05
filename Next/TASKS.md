@@ -71,6 +71,21 @@ See `LOG.md` for the running session history.
 ---
 
 ## Done
+### 2026-07-05 (later) — advanced settings + item toggles + inventory QoL (Isak)
+- [x] **⚙️ Advanced settings** on the *Choose players* screen: collapsible `<details>`
+      section under the player list; pull-down groups come from the `ADV_SECTIONS`
+      registry (add an entry = a new group, matching the game's registry style).
+- [x] **🛒 Items group**: one enable/disable checkbox per `SHOP_CATALOG` entry —
+      iterates the catalog, so every future item appears automatically. The checkbox
+      writes the item's `enabled` flag, which `shopStock()` already filters on
+      (shop + black market both). Items already in a bag keep working.
+- [x] **Coffee card reworded**: "When used: +4 to your next roll." — makes it clear
+      it's an item you must *use*.
+- [x] **Inventory stays closed after use**: using an item no longer auto-reopens the
+      inventory panel.
+- [x] Verified headless Edge: script runs to completion, 6/6 item rows + the Items
+      group present in the rendered DOM, new coffee text in catalog + DOM.
+
 ### 2026-07-05 — 📯 War Horn (guest idea, built live with Isak + friend)
 - [x] **NEW ITEM: 📯 War Horn** (consumable, 7 coins): blast wave floors every rival
       *standing* on the blower's row — shield-aware via `downPlayer`, already-down/

@@ -3,6 +3,17 @@
 Standing file: autonomous sessions log clarifications here instead of stopping to ask.
 Answer whenever — each answer gets folded in and the question checked off.
 
+## 2026-07-05 — from the advanced-settings build (defaults picked, say if wrong)
+
+- [ ] **Toggle scope** — disabling an item stops it appearing on the shop/black-market
+  shelf from then on; items already sitting in a player's bag still work. If you
+  reopen setup MID-game and untick something, that also takes effect immediately for
+  the running game's future shop visits. Right call, or should toggles only apply to
+  the next new game?
+- [ ] **No saving** — the toggles reset to "all enabled" every page reload (the game
+  keeps zero saved state today). Want them remembered between sessions (localStorage —
+  still one self-contained file, no sidecar)?
+
 ## 2026-07-04 — from the 6-answer batch build
 
 - [ ] **Voice-clip source** — the only TTS voice installed on this PC is Zira (female);
@@ -10,9 +21,11 @@ Answer whenever — each answer gets folded in and the question checked off.
   announcer" than "COD soldier". If it's not gruff enough in-game, options: crank the
   distortion, or you record/download a real clip once and I embed it the same way.
   (There's also a Norwegian male voice, Jon — want a Norwegian-accented announcer?)
-- [ ] **Inventory during flourish** — using an item now closes the bag, plays the ~1s
+- [x] **Inventory during flourish** — using an item now closes the bag, plays the ~1s
   hover over your pawn, applies the effect, then reopens the bag so you can use more.
   Feels right, or should the bag stay closed after?
+  **✔ Answered 2026-07-05: stay closed — using an item no longer auto-reopens the
+  inventory. Built.**
 - [ ] **Wandering setback edge case** — the shuffled dark-red square can land on tile 89
   (the disguised trapdoor's square). Both rules on one tile is rare and resolves by
   priority, but say the word if 89 should be off-limits to it.

@@ -127,6 +127,16 @@
   .toggle{display:flex;align-items:center;gap:9px;justify-content:center;margin:2px 0 14px;
     color:var(--cream);font-size:14px;cursor:pointer}
   .toggle input{width:18px;height:18px;accent-color:var(--barn-red);cursor:pointer}
+  .adv{margin:0 0 16px;text-align:left;border:1px solid var(--brass);border-radius:10px;
+    padding:0 12px;background:rgba(0,0,0,.16)}
+  .adv>summary{cursor:pointer;color:var(--brass);font-weight:700;font-size:14px;padding:10px 2px}
+  .adv-group{border-top:1px solid rgba(212,166,86,.25)}
+  .adv-group>summary{cursor:pointer;color:var(--cream);font-weight:700;font-size:14px;padding:9px 2px}
+  .adv-group .adv-list{padding:2px 4px 10px;display:flex;flex-direction:column;gap:2px}
+  .adv-item{display:flex;align-items:center;gap:9px;color:var(--cream);font-size:14px;
+    padding:3px 2px;cursor:pointer}
+  .adv-item input{width:17px;height:17px;flex:none;accent-color:var(--barn-red);cursor:pointer}
+  .adv-item .adv-desc{opacity:.65;font-size:12.5px}
 
   /* hidden-rule reveal + bounce/kick choice modals */
   .modal{position:fixed;inset:0;display:none;place-items:center;background:rgba(20,30,15,.55);z-index:6;padding:20px}
@@ -490,6 +500,10 @@
       </div>
       <div class="namelist" id="nameList"></div>
       <label class="toggle"><input type="checkbox" id="autoMode"> Autonomous mode (make every player a bot)</label>
+      <details class="adv" id="advSettings">
+        <summary>⚙️ Advanced settings</summary>
+        <div id="advBody"></div>
+      </details>
       <div style="display:flex;gap:10px;justify-content:center">
         <button class="btn ghost" id="backBtn">Back</button>
         <button class="btn big" id="startBtn">Start game</button>
@@ -698,7 +712,7 @@ const HORN = { RINGS: 3, RING_GAP_MS: 130, RING_MS: 650,  // war-horn blast: sho
    index.html must never depend on a sidecar file. */
 const SHOP_CATALOG = [
   { id:"coffee", ico:"☕",  name:"Coffee",           kind:"consumable", cost:4,  enabled:true,
-    desc:"+4 to your next roll." },
+    desc:"When used: +4 to your next roll." },
   { id:"shield", ico:"🛡️", name:"Shield",           kind:"consumable", cost:6,  enabled:true,
     desc:"Use it to raise a guard that blocks the next knockdown or freeze." },
   { id:"clover", ico:"🍀", name:"Four-leaf Clover", kind:"consumable", cost:10, enabled:true,
@@ -4134,7 +4148,7 @@ function renderInventory(){
     label.innerHTML = `${def.ico} <b>${def.name}</b> — ${def.desc}`;
     row.appendChild(label);
     const b = document.createElement("button"); b.className = "btn"; b.style.padding = "8px 14px"; b.textContent = "Use";
-    b.onclick = async () => { closeInventory(); await useItem(p, idx); openInventory(); };
+    b.onclick = async () => { closeInventory(); await useItem(p, idx); };
     row.appendChild(b);
     list.appendChild(row);
   });
@@ -4269,6 +4283,36 @@ let chosenSeats = 2;
 let setupNames = [];
 let setupBots = [];
 
+/* ---- advanced settings (setup screen) -------------------------------
+   Each entry is one pull-down group inside "Advanced settings". The Items
+   group reads SHOP_CATALOG, so every future catalog item shows up here
+   automatically; its checkbox writes the item's `enabled` flag, which is
+   what shopStock() filters on (shop + black market alike). */
+const ADV_SECTIONS = [
+  { id:"items", title:"🛒 Items", build: buildItemToggles },
+];
+function buildItemToggles(list){
+  SHOP_CATALOG.forEach(item => {
+    const row = document.createElement("label"); row.className = "adv-item";
+    const box = document.createElement("input"); box.type = "checkbox";
+    box.checked = item.enabled;
+    box.onchange = ()=>{ item.enabled = box.checked; };
+    const label = document.createElement("span");
+    label.innerHTML = `${item.ico} <b>${item.name}</b> <span class="adv-desc">— ${item.desc}</span>`;
+    row.append(box, label); list.appendChild(row);
+  });
+}
+function buildAdvanced(){
+  const body = document.getElementById("advBody");
+  ADV_SECTIONS.forEach(sec => {
+    const group = document.createElement("details"); group.className = "adv-group";
+    const head = document.createElement("summary"); head.textContent = sec.title;
+    const list = document.createElement("div"); list.className = "adv-list";
+    sec.build(list);
+    group.append(head, list); body.appendChild(group);
+  });
+}
+
 /* ---- screen flow: title -> setup -> game --------------------------- */
 function showScreen(which){
   document.getElementById("screenTitle").classList.toggle("show", which==="title");
@@ -4387,6 +4431,7 @@ document.getElementById("bannerNew").addEventListener("click", ()=>{
 makeSnow(38);
 makeClouds(5);
 buildWheel();
+buildAdvanced();
 showScreen("title");
 
 /* ---- dev preview: watch a cutscene without playing a game -----------

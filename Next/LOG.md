@@ -3,6 +3,28 @@
 Newest first. One entry per working session; note what shipped and what's next.
 
 ---
+## 2026-07-05 (later) — advanced settings + item toggles + inventory QoL
+
+Three-task batch from Isak. (1) **⚙️ Advanced settings** on the setup screen: a
+styled `<details>` block under the Autonomous-mode toggle; groups are pull-down
+`<details>` built from a new `ADV_SECTIONS` registry (`buildAdvanced()`, run once at
+init so checkbox + open/closed state persist across visits to the screen). First
+group **🛒 Items** (`buildItemToggles`) renders one checkbox row per `SHOP_CATALOG`
+entry — icon, name, dimmed desc — writing `item.enabled` directly; `shopStock()`
+already filters on `enabled`, and the black market draws through `shopStock()` too,
+so disabling covers both shelves with zero new game logic. Future catalog items
+appear in the list automatically. All items disabled = empty shelf; `renderShop`
+just offers "Leave shop" and `botShopSpree` breaks immediately — safe. (2) Coffee
+desc → "When used: +4 to your next roll." (3) `renderInventory`'s Use button no
+longer calls `openInventory()` after the item resolves — the panel stays closed.
+
+Verified headless Edge (`--dump-dom`, virtual time): script runs to the end
+(`buildAdvanced` is last before `showScreen`), exactly 6 `class="adv-item"` rows +
+1 `adv-group` in the DOM, new coffee text present. Docs: RULES.md (item-toggles
+paragraph + stays-closed note), README Next, TASKS.md. Open defaults logged in
+QUESTIONS.md (mid-game toggling scope, no localStorage persistence).
+
+---
 ## 2026-07-05 — 📯 War Horn (guest idea, live session with Isak + a friend)
 
 New consumable designed by a visiting friend: **War Horn** (7 coins) — blow it and a

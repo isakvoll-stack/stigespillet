@@ -53,7 +53,14 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
-Recently shipped (2026-07-05): **📯 War Horn** — a new 7-coin consumable, designed by
+Recently shipped (2026-07-05, later): **⚙️ Advanced settings on the setup screen** —
+a collapsible section under the player list with pull-down groups (`ADV_SECTIONS`
+registry); the first group, **🛒 Items**, lists every `SHOP_CATALOG` entry with an
+enable/disable checkbox (future items appear automatically; disabled items never hit
+the shop or black-market shelf). Also: the Coffee card now reads "When used: +4 to
+your next roll." and using an item no longer auto-reopens the inventory.
+
+Before that (2026-07-05): **📯 War Horn** — a new 7-coin consumable, designed by
 a guest co-designer: blow it and a brassy blast + shockwave rings sweep your row,
 knocking flat every rival standing on it (armed Shields block it; 3+ felled triggers
 the multi-kill announcer). Bots buy it and save it until a rival shares their row.

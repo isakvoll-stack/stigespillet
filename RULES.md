@@ -253,6 +253,11 @@ full catalog each visit, and each item can be **bought only once per visit** (it
 as *sold out* after). You carry a small inventory: **up to 3 consumables plus 1
 passive** at a time. *(Shelf size = `SHOP.STOCK`.)*
 
+**Item toggles:** on the *Choose players* screen, open **⚙️ Advanced settings → 🛒
+Items** to enable or disable any item. Disabled items never appear on the shop or
+black-market shelf (items already in someone's bag keep working). Every item in the
+catalog — current and future — shows up in this list automatically.
+
 **Consumables** (held in your bag; *used* from the inventory **before** you roll):
 
 - **☕ Coffee** — **4 coins.** +4 to your next roll.
@@ -280,7 +285,8 @@ passive** at a time. *(Shelf size = `SHOP.STOCK`.)*
 **Using items:** on your turn, before rolling, press the **🎒 Inventory** button next
 to the die. Use any consumable — Coffee, Clover, Shield or War Horn — then roll. Using one
 plays a short **hover flourish over your pawn first**, and the effect applies when it
-ends (~1s, `ITEM.FLOURISH_MS`). Bots spend
+ends (~1s, `ITEM.FLOURISH_MS`); the inventory closes and **stays closed** (reopen it
+yourself to use another item). Bots spend
 their items automatically before they roll. **Plain yellow tiles pay 1 coin** — you
 hear the coin ping but see no icon. **Plain blue tiles pay 3 coins** with a fanfare:
 **three big 🪙 pops and three pings in quick succession** — that's the "EXTRA money"
