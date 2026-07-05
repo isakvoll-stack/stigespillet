@@ -71,6 +71,52 @@ See `LOG.md` for the running session history.
 ---
 
 ## Done
+### 2026-07-06 — 9-item batch + QoL from SUGGESTIONS.md (Isak's picks)
+- [x] **📦 Mystery Box (3)** — pops into a random enabled consumable (never another
+      box); coins fallback if the pool is empty (`MYSTERY`).
+- [x] **❄️ Snowball (6)** — throw at a rival within 8 tiles (`SNOWBALL.RANGE`),
+      freezes them on the spot via `freezePlayer` (Shield/Mirror get their say);
+      human targeting via `pickPlayerOnBoard`, bots aim at the furthest-ahead rival.
+- [x] **🍌 Banana Peel (5) + trap system** — `game.traps` + generic spring check in
+      BOTH landing paths (own roll before tile rules; off-turn in `resolveLanding`);
+      plant on a plain tile ≤6 ahead (new `pickTileOnBoard` click-a-tile UI); first
+      rival landing slips 5 back (secret-square routing via `setBackPos`); owner
+      immune; 🍌 marker drawn on the board (`BANANA`).
+- [x] **🪞 Mirror (7)** — THE "redirect an effect" item: arm it and the next
+      knockdown/freeze aimed at you deflects to the NEAREST standing rival
+      (`deflectHit` at the top of `downPlayer`/`freezePlayer`, so it covers sniper,
+      gun, horn, snowball, lightning, everything); target's Shield still blocks,
+      chained Mirrors bounce on (finite — each bounce burns one); 🪞 scoreboard mark.
+- [x] **🪖 Helmet (8, passive)** — get up / break ice on any roll (`HELMET_GETUP`
+      in `getupNeed`, HUD hint follows automatically).
+- [x] **👑 Crown (10, passive)** — +1 coin at the start of every turn begun in sole
+      1st (`CROWN_COINS`, startTurn hook).
+- [x] **Black market v2-lite + EXOTICS table** — dealer now shelves 2 exotics
+      (purple `.btn.exotic`, "· exotic" tag, fixed prices) + 1 normal item at the
+      old dynamic price (`MARKET.EXOTIC_STOCK/NORMAL_STOCK`); exotics get their own
+      🕯️ toggle group in Advanced settings.
+- [x] **🐒 Monkey's Paw (8, exotic)** — teleport to ANY tile except the finish
+      (click it), then the whole board scrambles (reuses `scrambledLayout` via
+      `shuffleTiles(msg)`) and only THEN does the landing resolve.
+- [x] **🎲 Loaded Dice (12, exotic)** — 3 charges of pick-your-exact-roll
+      (`p.forceRoll`, charge count shown in the bag); last charge → next 3 rolls
+      are cursed 1s (`p.curseRolls`, applies to get-up rolls too; `LOADED`).
+- [x] **🕯️ Soul Candle (9, exotic passive)** — permanent +2 (`MOVE_BONUSES` entry),
+      passive slot locked forever (`canBuy`), lightning retargets to a candle
+      holder (`strikeLightning`).
+- [x] **QoL batch**: settings persist in `localStorage`
+      (`saveSettings`/`loadSettings`, key `stigespillet.settings.v1` — answers the
+      open QUESTIONS item with YES); 🔊 master-volume slider (SFX gain node + kill
+      voice, `SOUND.VOLUME`); ⏩ fast-forward toggle (bot turns ÷3 via `ffms` in
+      sleep/tweens/auto-roll, humans untouched, `SPEED`).
+- [x] **Bots** know every new item: values in `BOT.ITEM_VALUE`, timing in
+      `botMaybeUseItem` (box always pops, mirror on threat, snowball at a standing
+      unshielded leader in range, banana ahead of chasers, dice like the clover;
+      paw valued 0 — bots don't wish).
+- [x] **Verified headless Edge**: 29/29 targeted checks + a full 4-bot game to a
+      winner (87 rounds, ff on, popups on), 0 JS errors. New defaults logged in
+      QUESTIONS.md.
+
 ### 2026-07-05 (evening) — scrambled-board option + item-text clarity pass (Isak)
 - [x] **🌀 Scrambled board** toggle in a new **🗺️ Board** advanced-settings group
       (`BOARD_OPTIONS` DATA table + `boardOpt(key)` accessor): when on, `newGame`

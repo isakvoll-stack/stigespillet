@@ -3,6 +3,54 @@
 Newest first. One entry per working session; note what shipped and what's next.
 
 ---
+## 2026-07-06 — 9 new items + black market v2-lite + QoL batch (Isak's picks)
+
+Isak picked from `Next/SUGGESTIONS.md`: Monkey's Paw, Loaded Dice, Helmet, Crown,
+Mystery Box, Snowball, Banana Peel, Soul Candle, "the QoL idea", plus a NEW item
+that redirects an effect onto another player (became the **🪞 Mirror**).
+
+**Normal catalog** (now 12 entries): 📦 Mystery Box (3, random consumable, never a
+box), ❄️ Snowball (6, freeze-at-range via `freezePlayer` so Shield/Mirror apply),
+🍌 Banana Peel (5, first placeable trap — `game.traps` + `springBanana` wired into
+BOTH landing paths before the tile rules; new generic `pickTileOnBoard` click-a-tile
+picker), 🪞 Mirror (7, `deflectHit` at the top of `downPlayer`/`freezePlayer` —
+covers sniper/gun/horn/snowball/lightning; deflects to the NEAREST standing rival,
+target's Shield still blocks, mirror chains bounce until someone takes it),
+🪖 Helmet (8, passive, `getupNeed` → 1), 👑 Crown (10, passive, +1 coin per
+turn started in sole 1st, `startTurn` hook).
+
+**Black market v2-lite**: new dealer-only `EXOTICS` DATA table + purple `.btn.exotic`
+styling; the shelf is now 2 exotics (fixed prices) + 1 normal item (old dynamic
+price); exotics get their own 🕯️ toggle group in Advanced settings. The three
+exotics: 🐒 Monkey's Paw (teleport anywhere except 90, THEN the board scrambles via
+`shuffleTiles(msg)`, THEN the landing resolves), 🎲 Loaded Dice (3 pick-your-roll
+charges tracked on `p.diceCharges`, shown in the bag; last charge → `p.curseRolls=3`
+forced 1s, get-up rolls included), 🕯️ Soul Candle (permanent +2 `MOVE_BONUSES`
+entry; `canBuy` locks the passive slot forever; `strikeLightning` retargets to a
+candle holder over the leader).
+
+**QoL** ("the QoL idea" — built the 3 concrete ones, logged the ambiguity):
+settings persist in localStorage (`saveSettings`/`loadSettings`, saved on every
+change, loaded before `buildAdvanced()`); 🔊 master volume slider (all SFX now route
+through a master `GainNode`, kill-voice `Audio.volume` follows, 0 = mute); ⏩
+fast-forward bot turns (`ffms()` divides `sleep`/`tweenToken`/dice-spin/auto-roll
+waits by `SPEED.FF_DIV` ONLY while the current player is a bot).
+
+Bots got values + timing for every new item (`BOT.ITEM_VALUE`, `botMaybeUseItem`);
+`canBuy` also refuses a second Loaded Dice while one is held.
+
+Verified headless Edge (`--virtual-time-budget`, rAF + animationend stubs): 29/29
+targeted checks (toggle rows ×16, exotic lookups, candle slot-lock, dice dup-block,
+helmet/fish getup, settings roundtrip, ffms bot-only, crown lead-only, mirror
+deflect/chain/vs-shield, snowball in/out-of-range/vs-shield, 8× box pops all valid,
+banana place/spring/owner-immunity, loaded-dice crumble→curse, candle +2 +
+lightning retarget, scoreboard 🪞, dealer exotic styling, forced-face + cursed-1
+roll flow, paw scramble, rich bot buys an exotic) + a full 4-bot game to a winner
+(87 rounds, popups AND fast-forward on), **0 JS errors**. Harness gotcha for next
+time: `roll()` refuses while any `.screen.show` is up — call `showScreen("game")`
+after a scripted `newGame` or nothing moves.
+
+---
 ## 2026-07-05 (evening) — scrambled-board option + item-text clarity pass
 
 Isak: (1) an advanced-settings option to start with a scrambled board, (2) check the

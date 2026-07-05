@@ -238,13 +238,30 @@ is to be **thrown back past the start** (e.g. a low-tile **lightning** strike or
 **reveals itself**. From there you roll back onto the board as if starting again.
 
 **The black market** also trades here: landing on the secret square opens a **shady
-dealer** stocking 2 catalog items at **dynamic prices** — cheaper the further you
-trail the pack's average position, and **+1 coin** for every earlier visit (by anyone,
-all game). Exotic stock (cursed items, debt, pity items…) is designed later — see
-`Next/TASKS.md`.
+dealer**. His shelf holds **2 exotics** (drawn from the dealer-only `EXOTICS` stock,
+purple in the UI, tagged *· exotic*) plus **1 normal catalog item**. Only the normal
+item's price flexes — cheaper the further you trail the pack's average position, and
+**+1 coin** for every earlier visit (by anyone, all game). Exotic deals are exactly
+what they say.
 
-*Toggles: `FEATURES.secretSquare`, `FEATURES.blackMarket`. Pricing in `MARKET`
-(`STOCK`, `BEHIND_PER`, `MAX_DISCOUNT`, `VISIT_MARKUP`).*
+**The exotics** — every one is powerful, and every one has a hook:
+
+- **🐒 Monkey's Paw** — **8 coins**, consumable. When used: **teleport to ANY tile
+  you point at** (except the finish). The moment you land, **the whole board
+  scrambles** — every special tile jumps to a new random spot, and only THEN does
+  your landing tile resolve. Wish carefully.
+- **🎲 Loaded Dice** — **12 coins**, consumable with **3 charges**. Each use lets you
+  **choose your exact next roll** (1–6; a chosen 6 still rolls again). When the last
+  charge is spent the dice crumble — and the real dice remember: your **next 3 rolls
+  are all 1s** (yes, including get-up rolls). One set at a time.
+- **🕯️ Soul Candle** — **9 coins**, passive. **+2 to every roll, forever** — and it
+  can **never be removed or replaced** (the passive slot is locked for the rest of
+  the game). The hook: **lightning only ever strikes a candle holder** while one is
+  in play, no matter who leads.
+
+*Toggles: `FEATURES.secretSquare`, `FEATURES.blackMarket`. Shelf + pricing in `MARKET`
+(`EXOTIC_STOCK`, `NORMAL_STOCK`, `BEHIND_PER`, `MAX_DISCOUNT`, `VISIT_MARKUP`); the
+exotics live in the `EXOTICS` DATA block (own toggle group in Advanced settings).*
 
 ### The Shop, inventory &amp; items (hidden rule)
 Four **gold squares** are cabin shops (tiles **6, 28, 52, 75**). Land on one and you
@@ -283,6 +300,25 @@ next game.
   it). Rivals already down or frozen, on the start lane or on the secret square are
   untouched. Flattening 3+ rivals with one blast triggers the multi-kill announcer.
   *(Tunables in `HORN`.)*
+- **📦 Mystery Box** — **3 coins.** Pops open into a **random enabled consumable**
+  from the catalog (never another box). A cheap gamble — most of what's inside costs
+  more than the box. *(Fallback payout `MYSTERY.FALLBACK_COINS` if nothing can pop.)*
+- **❄️ Snowball** — **6 coins.** Throw it at a rival within **8 tiles** (either
+  direction): they **freeze solid on the spot** — normal thaw rules (roll
+  `FREEZE.GETUP_MIN`+ to break free), an armed Shield blocks it. Humans pick the
+  target by clicking their pawn; there must be someone in range or the ball is kept.
+  *(Range = `SNOWBALL.RANGE`.)*
+- **🍌 Banana Peel** — **5 coins.** Drop it on a **plain tile up to 6 ahead** of you
+  (click the tile). The **first RIVAL to land there slips 5 tiles back** — the peel
+  shows on the board, but people land where they land. You never slip on your own
+  peel. A slip below tile 1 uncovers the secret square, like any knock-back.
+  *(Tunables in `BANANA`; one peel per tile.)*
+- **🪞 Mirror** — **7 coins.** *Use it* to raise a mirror (🪞 shows in the
+  scoreboard): the **next hit or freeze aimed at you deflects onto the nearest
+  standing rival** instead — sniper shots, the gun, a War Horn blast, a snowball,
+  lightning's knockdown, anything that goes through a knockdown/freeze. The new
+  victim's own Shield can still block it, and *their* Mirror can bounce it onward
+  (every bounce burns a mirror, so it always lands somewhere).
 
 **Passive** (1 slot, always on while equipped):
 
@@ -291,9 +327,14 @@ next game.
   forever**.
 - **🧤 Thieves' Gloves** — **6 coins.** Steal **1 coin** from the victim every time you
   **kick** or **bounce off** a player.
+- **🪖 Helmet** — **8 coins.** Knockdowns barely faze you: you get back up (and break
+  out of ice) on **any roll** (`HELMET_GETUP`). The sniper, the gun, shame collapses —
+  none of it keeps you on the floor for more than a turn.
+- **👑 Crown** — **10 coins.** **+1 coin at the start of every turn you begin in sole
+  1st place** on the board (`CROWN_COINS`). Wealth flows to the front-runner.
 
 **Using items:** on your turn, before rolling, press the **🎒 Inventory** button next
-to the die. Use any consumable — Coffee, Clover, Shield or War Horn — then roll. Using one
+to the die. Use any consumable, then roll. Using one
 plays a short **hover flourish over your pawn first**, and the effect applies when it
 ends (~1s, `ITEM.FLOURISH_MS`); the inventory closes and **stays closed** (reopen it
 yourself to use another item). Bots spend
@@ -317,6 +358,14 @@ bounce/kick, sniper, fishing, teleporter, wins …) — no audio files, so it st
 self-contained page. Toggle with `FEATURES.sound`. On the big dramatic moments
 (nukes, the gun, lightning, the leviathan, sniper hits, pile-ups) you also get
 **explosions, screen flashes and shakes**, and **confetti** rains down on the win.
+
+**The Settings screen** (button under *Play* on the title menu) holds: the **🤖 bot
+decision popups** toggle, **⏩ Fast-forward bot turns** (bot turns run at 3× —
+`SPEED.FF_DIV` — human turns are untouched), and a **🔊 master volume slider**
+(0 = mute; covers all effects and the kill-announcer voice, `SOUND.VOLUME`). All
+settings — including the Advanced item/exotic/board toggles on the setup screen —
+are now **remembered between sessions** (browser `localStorage`; still one
+self-contained file, clearing browser data resets them).
 
 ---
 

@@ -1,8 +1,14 @@
 # Suggestions & shop-item idea pool — 2026-07-05
 
 Written on Isak's request: what to work on next + a pool of item ideas for the shop.
-Nothing here is built. Pick what you like, strike what you don't; picked items get
-curated into `TASKS.md` → Active. Costs are suggestions on today's 4–10 coin scale.
+Pick what you like, strike what you don't; picked items get curated into `TASKS.md`.
+Costs are suggestions on today's 4–10 coin scale.
+
+> **2026-07-06 — Isak's first picks, all BUILT:** Mystery Box, Snowball, Banana Peel
+> (+ the trap system, #6), Helmet, Crown, Monkey's Paw, Loaded Dice, Soul Candle,
+> the QoL trio (#10 localStorage, #11 volume, #12 fast-forward) and a new 🪞 Mirror
+> ("redirect an effect" — Isak's addition, not from this list). Still unpicked:
+> everything else below.
 
 ---
 

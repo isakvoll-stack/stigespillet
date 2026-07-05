@@ -53,10 +53,28 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
-Recently (2026-07-05, night): **`Next/SUGGESTIONS.md`** — a curated idea pool written on
+Recently shipped (2026-07-06): **9 new items + black market v2-lite + QoL batch** —
+Isak's picks from the suggestions doc, all built and machine-verified (29/29 checks +
+a full 4-bot game, 0 errors):
+- **Shop**: 📦 Mystery Box (3 — pops into a random consumable), ❄️ Snowball (6 —
+  freeze a rival within 8 tiles), 🍌 Banana Peel (5 — plant a trap tile; first rival
+  landing slips 5 back; new click-a-tile picker + `game.traps` system), 🪞 Mirror
+  (7 — arm it and the next hit/freeze aimed at you deflects onto the nearest standing
+  rival; this is the new "redirect an effect" item), 🪖 Helmet (8, passive — get up
+  on any roll), 👑 Crown (10, passive — +1 coin per turn started in the lead).
+- **Black market v2-lite**: the dealer now shelves **2 exotics + 1 normal item** from
+  a new dealer-only `EXOTICS` table (purple buttons): 🐒 Monkey's Paw (teleport to
+  ANY tile… then the whole board scrambles), 🎲 Loaded Dice (3 pick-your-exact-roll
+  charges, then 3 cursed 1s), 🕯️ Soul Candle (permanent +2, can never be removed,
+  lightning hunts its holder). Exotics have their own toggle group in Advanced
+  settings.
+- **QoL**: all settings + item toggles now **remembered between sessions**
+  (localStorage), a **🔊 master volume slider**, and **⏩ fast-forward bot turns**
+  (3×) — both on the Settings screen.
+
+Before that (2026-07-05, night): **`Next/SUGGESTIONS.md`** — a curated idea pool written on
 Isak's request: 14 work suggestions (prioritised, with a top-5) + 15 normal shop-item
-ideas + a 7-item black-market exotic pool for the queued v2 design. Docs only, nothing
-built yet.
+ideas + a 7-item black-market exotic pool for the queued v2 design.
 
 Recently shipped (2026-07-05, evening): **🌀 Scrambled board option + item-text pass** —
 new **🗺️ Board** group in Advanced settings (`BOARD_OPTIONS` DATA) with a *Scrambled

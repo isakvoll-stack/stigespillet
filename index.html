@@ -92,6 +92,8 @@
   button.btn:active{transform:translateY(2px);box-shadow:0 1px 0 #79231e}
   button.btn.passive{background:var(--passive-blue);box-shadow:0 3px 0 var(--passive-blue-dark)}
   button.btn.passive:active{box-shadow:0 1px 0 var(--passive-blue-dark)}
+  button.btn.exotic{background:#5b2a86;box-shadow:0 3px 0 #3d1a5e}
+  button.btn.exotic:active{box-shadow:0 1px 0 #3d1a5e}
   button.btn.ghost{background:transparent;border:1px solid var(--brass);box-shadow:none;color:var(--brass)}
   .seats{display:flex;gap:10px;align-items:center;margin:8px 0}
   .seat-opt{width:38px;height:38px;font-size:20px;font-weight:700;display:grid;place-items:center;
@@ -485,6 +487,8 @@
     <div class="sheet">
       <h2>Settings</h2>
       <label class="toggle"><input type="checkbox" id="optBotThoughts" checked> Bot decision popups 🤖</label>
+      <label class="toggle"><input type="checkbox" id="optFastForward"> Fast-forward bot turns ⏩</label>
+      <label class="toggle">🔊 Volume <input type="range" id="optVolume" min="0" max="100" value="100" style="width:150px;vertical-align:middle;margin-left:8px"></label>
       <button class="btn ghost" id="settingsBack">Back</button>
     </div>
   </div>
@@ -723,7 +727,38 @@ const SHOP_CATALOG = [
     desc:"Passive: +1 to every roll while worn." },
   { id:"gloves", ico:"🧤", name:"Thieves' Gloves",  kind:"passive",    cost:6,  enabled:true,
     desc:"Passive: steal a coin whenever you kick or bounce off a player." },
+  { id:"mysterybox", ico:"📦", name:"Mystery Box",  kind:"consumable", cost:3,  enabled:true,
+    desc:"When used: pops open into a random item — could be anything." },
+  { id:"snowball", ico:"❄️", name:"Snowball",       kind:"consumable", cost:6,  enabled:true,
+    desc:"When used: throw it at a rival within 8 tiles — they freeze solid." },
+  { id:"banana", ico:"🍌", name:"Banana Peel",      kind:"consumable", cost:5,  enabled:true,
+    desc:"When used: drop it on a tile ahead — the first rival to land there slips back." },
+  { id:"mirror", ico:"🪞", name:"Mirror",           kind:"consumable", cost:7,  enabled:true,
+    desc:"When used: raises a mirror that deflects the next hit aimed at you onto someone else." },
+  { id:"helmet", ico:"🪖", name:"Helmet",           kind:"passive",    cost:8,  enabled:true,
+    desc:"Passive: knockdowns barely faze you — any roll gets you back on your feet." },
+  { id:"crown",  ico:"👑", name:"Crown",            kind:"passive",    cost:10, enabled:true,
+    desc:"Passive: +1 coin every round you start in the lead." },
 ];
+/* ---- DATA: black-market exotics --------------------------------------
+   Dealer-only stock — never on the gold-shop shelf. Every exotic is
+   strong with a hook: a curse, a permanence, a price paid later. */
+const EXOTICS = [
+  { id:"monkeypaw", ico:"🐒", name:"Monkey's Paw", kind:"consumable", cost:8,  enabled:true, exotic:true,
+    desc:"When used: wish yourself to any tile you point at… the board itself recoils." },
+  { id:"loadeddice", ico:"🎲", name:"Loaded Dice", kind:"consumable", cost:12, enabled:true, exotic:true,
+    desc:"When used: choose exactly what you roll — 3 charges. The dice remember being cheated." },
+  { id:"soulcandle", ico:"🕯️", name:"Soul Candle", kind:"passive",    cost:9,  enabled:true, exotic:true,
+    desc:"Passive: +2 to every roll, forever. It can never be snuffed out — and the sky takes notice." },
+];
+/* ---- DATA: new-item tunables ---------------------------------------- */
+const SNOWBALL = { RANGE:8 };                    // hits a rival within this many tiles (either direction)
+const BANANA   = { RANGE:6, SLIP:5 };            // peel goes on a plain tile up to RANGE ahead; victims slip SLIP back
+const MYSTERY  = { FALLBACK_COINS:3 };           // if no item can pop out, the box pays coins instead
+const HELMET_GETUP = 1;                          // Helmet wearers rise on any roll
+const CROWN_COINS  = 1;                          // paid at the start of each round spent in the lead
+const LOADED   = { CHARGES:3, CURSE_ROLLS:3 };   // picked faces per purchase; forced 1s once the charges run dry
+const CANDLE   = { BONUS:2 };                    // the Soul Candle's permanent stride
 /* ---- DATA: board options (Advanced settings → Board) -----------------
    Setup-screen board toggles; the checkboxes write `enabled`, newGame
    reads it via boardOpt(key). */
@@ -864,6 +899,9 @@ const RULE_INFO = {
 /* ---- ANIMATION timing (ms) ----------------------------------------- */
 const ANIM = { STEP:210, SLIDE:600, DICE:560, HANDOFF:350, AUTO:650,
                HOP:26 };   // walking-hop arc height (px); each step is a little jump + landing squash
+/* ---- DATA: sound + pacing (Settings screen) ------------------------- */
+const SOUND = { VOLUME:1 };                      // master volume 0..1 (0 = mute)
+const SPEED = { FF_DIV:3, fastForward:false };   // ⏩ bot-turn pacing divided by FF_DIV when on
 /* ---- DATA: cutscene versions -----------------------------------------
    Higher = newer look; flip any single one back if a redo feels worse.
    leviathan: 1 = the original (Isak's pick, LIVE); 2 splash / 3 fins / 4 redo = rejected.
@@ -961,10 +999,11 @@ const KILL_VOICE = {
 // find it by being thrown back past the start. Placed just left of tile 1.
 const SECRET = { POS:0, X:-90, Y:928, CELL:84, COLOR:"#7b3fa0" };
 /* ---- DATA: the black market (the secret square IS the market) -------
-   A shady dealer on the hidden square: normal catalog for now (exotic
-   stock TBD — see Next/TASKS.md). Prices flex: cheaper the further the
-   buyer trails the pack's average, pricier for every past visit. */
-const MARKET = { STOCK:2, BEHIND_PER:8, MAX_DISCOUNT:6, VISIT_MARKUP:1 };
+   A shady dealer on the hidden square: EXOTICS on the shelf plus one
+   normal catalog item. Only the normal item's price flexes (cheaper the
+   further you trail the pack, pricier per past visit) — exotic deals
+   are exactly what they say. */
+const MARKET = { EXOTIC_STOCK:2, NORMAL_STOCK:1, BEHIND_PER:8, MAX_DISCOUNT:6, VISIT_MARKUP:1 };
 /* ---- DATA: autonomous (self-play) opponent behaviour ----------------
    The bot brain's tunables. Scores are measured in tiles: +1 ≈ one square
    of progress, so a slide of 8 is -8. JITTER adds noise so bots stay
@@ -984,7 +1023,9 @@ const BOT = {
   CLOVER_ENDGAME:12, CLOVER_ENDGAME_BONUS:3,    // within this many tiles of the win, a sure 6 is worth extra when shopping
   DUPLICATE_SHIELD_DROP:3,                      // a second shield is worth much less
   COIN_VALUE:0.15,                              // how many "tiles" one coin is worth when deciding a purchase
-  ITEM_VALUE:{ shoes:5, shield:4, clover:3, coffee:3, warhorn:3, gloves:2 },  // base shopping appeal per item id
+  ITEM_VALUE:{ shoes:5, shield:4, clover:3, coffee:3, warhorn:3, gloves:2,
+               mysterybox:2, snowball:3, banana:2, mirror:3, helmet:3, crown:3,
+               loadeddice:4, soulcandle:4, monkeypaw:0 },  // base shopping appeal per item id (paw 0: bots can't wish well)
   THINK_MS:700, DECIDE_MS:650,                  // decision popup: thinking pause + verdict linger (FEATURES.botThoughts)
   SCORE:{ WIN:60, FREEZE:-8, RADIOACTIVE:-6, FISHING:-1, ORANGE:2, SHOP:2,
           TELEPORT_BEHIND:3, TELEPORT_AHEAD:-2, BLUE:1 },   // landing-quality guesses per special tile
@@ -1236,6 +1277,7 @@ function moveTokenTo(i, cell, off){
 
 // Drive token i along path(t) -> {x, y, sx?, sy?} for ms (CSS transition off while tweening).
 function tweenToken(i, ms, path){
+  ms = ffms(ms);
   const el = tokenEls[i], prevT = el.style.transition, t0 = performance.now();
   el.style.transition = "none";
   return new Promise(res => {
@@ -1372,7 +1414,11 @@ function reportCrash(what){
 window.addEventListener("error", e => reportCrash(e.message));
 window.addEventListener("unhandledrejection", e => reportCrash((e.reason && e.reason.message) || e.reason));
 
-const sleep = ms => new Promise(r=>setTimeout(r,ms));
+// ⏩ fast-forward: while a BOT is playing (and the toggle is on), every wait shrinks.
+const ffOn = () => SPEED.fastForward && game && !game.over
+  && game.players[game.current] && game.players[game.current].bot;
+const ffms = ms => ffOn() ? ms / SPEED.FF_DIV : ms;
+const sleep = ms => new Promise(r=>setTimeout(r, ffms(ms)));
 const raf = () => new Promise(r=>requestAnimationFrame(()=>r()));
 
 /* =====================================================================
@@ -1537,6 +1583,8 @@ const MOVE_BONUSES = [
     amount: p => { const n = p.rollBonus||0; p.rollBonus = 0; return n; } },
   { id:"shoes",  feature:"shop",                          // Running Shoes: +1 on every roll while worn
     amount: p => p.passive === "shoes" ? ITEM.SHOES_BONUS : 0 },
+  { id:"soulcandle", feature:"shop",                      // the Soul Candle burns +2 into every roll, forever
+    amount: p => p.passive === "soulcandle" ? CANDLE.BONUS : 0 },
   { id:"radSick", feature:"radioactive",                  // radiation sickness saps the roll
     amount: p => p.radLevel || 0,
     note: (p,n) => n < 0 ? `☢️ Radiation saps ${p.name}'s stride (${n}).` : null },
@@ -1577,10 +1625,16 @@ function jaggedBolt(x1,y1,x2,y2,segs){
 
 /* ---- SFX: tiny synthesised sound engine (no asset files) ----------- */
 const SFX = (() => {
-  let ctx = null;
+  let ctx = null, master = null;                  // every sound routes through the master gain (Settings volume)
   function ac(){
-    if (!ctx) { try { ctx = new (window.AudioContext||window.webkitAudioContext)(); } catch(e){ return null; } }
+    if (!ctx) {
+      try {
+        ctx = new (window.AudioContext||window.webkitAudioContext)();
+        master = ctx.createGain(); master.connect(ctx.destination);
+      } catch(e){ return null; }
+    }
     if (ctx.state === "suspended") ctx.resume();
+    master.gain.value = SOUND.VOLUME;
     return ctx;
   }
   function tone(freq, dur, type, gain, when){
@@ -1591,7 +1645,7 @@ const SFX = (() => {
     g.gain.setValueAtTime(0.0001, t);
     g.gain.exponentialRampToValueAtTime(gain || 0.2, t + 0.012);
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + dur + 0.03);
+    o.connect(g); g.connect(master); o.start(t); o.stop(t + dur + 0.03);
   }
   const seq = (notes, type, gain, step) => notes.forEach((f,i)=> tone(f, (step||0.1)*1.4, type, gain, i*(step||0.1)));
   const table = {
@@ -1610,9 +1664,9 @@ const SFX = (() => {
     thunder: ()=> { tone(70,0.5,"sawtooth",0.3); tone(95,0.4,"triangle",0.22,0.04); for (let i=0;i<4;i++) tone(180+Math.random()*320,0.06,"square",0.13,0.1+i*0.04); },
     sparkle: ()=> seq([784,988,1175,1568], "triangle", 0.16, 0.05),
     boom: ()=> { tone(58,0.55,"sawtooth",0.34); tone(82,0.45,"square",0.22,0.03); for (let i=0;i<6;i++) tone(120+Math.random()*520,0.07,"square",0.15,0.05+i*0.03); },
-    rumble:()=> { const c=ac(); if(!c) return; const t=c.currentTime, o=c.createOscillator(), g=c.createGain(); o.type="sawtooth"; o.frequency.setValueAtTime(46,t); o.frequency.linearRampToValueAtTime(60,t+1.4); g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.22,t+0.3); g.gain.exponentialRampToValueAtTime(0.0001,t+1.5); o.connect(g); g.connect(c.destination); o.start(t); o.stop(t+1.6); },
+    rumble:()=> { const c=ac(); if(!c) return; const t=c.currentTime, o=c.createOscillator(), g=c.createGain(); o.type="sawtooth"; o.frequency.setValueAtTime(46,t); o.frequency.linearRampToValueAtTime(60,t+1.4); g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.22,t+0.3); g.gain.exponentialRampToValueAtTime(0.0001,t+1.5); o.connect(g); g.connect(master); o.start(t); o.stop(t+1.6); },
     crack: ()=> { tone(2000,0.04,"square",0.26); tone(150,0.5,"sawtooth",0.32,0.02); for (let i=0;i<8;i++) tone(220+Math.random()*1100,0.05,"square",0.13,0.04+i*0.025); },
-    siren: ()=> { const c=ac(); if(!c) return; const t=c.currentTime, o=c.createOscillator(), g=c.createGain(); o.type="sawtooth"; for (let i=0;i<5;i++){ o.frequency.setValueAtTime(440,t+i); o.frequency.linearRampToValueAtTime(900,t+i+0.5); o.frequency.linearRampToValueAtTime(440,t+i+1); } g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.16,t+0.15); g.gain.setValueAtTime(0.16,t+4.5); g.gain.exponentialRampToValueAtTime(0.0001,t+5); o.connect(g); g.connect(c.destination); o.start(t); o.stop(t+5.1); },
+    siren: ()=> { const c=ac(); if(!c) return; const t=c.currentTime, o=c.createOscillator(), g=c.createGain(); o.type="sawtooth"; for (let i=0;i<5;i++){ o.frequency.setValueAtTime(440,t+i); o.frequency.linearRampToValueAtTime(900,t+i+0.5); o.frequency.linearRampToValueAtTime(440,t+i+1); } g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.16,t+0.15); g.gain.setValueAtTime(0.16,t+4.5); g.gain.exponentialRampToValueAtTime(0.0001,t+5); o.connect(g); g.connect(master); o.start(t); o.stop(t+5.1); },
     airraid: ()=> { const c=ac(); if(!c) return; const t=c.currentTime, g=c.createGain();   // the classic slow rise-and-fall nuclear alarm wail
       g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.17,t+0.4);
       g.gain.setValueAtTime(0.17,t+4.2); g.gain.exponentialRampToValueAtTime(0.0001,t+4.9);
@@ -1623,13 +1677,13 @@ const SFX = (() => {
         o.frequency.linearRampToValueAtTime(680+det,t+4.3);
         o.frequency.linearRampToValueAtTime(420+det,t+4.9);
         o.connect(g); o.start(t); o.stop(t+5); });
-      g.connect(c.destination); },
+      g.connect(master); },
     earring: ()=> { const c=ac(); if(!c) return; const t=c.currentTime, o=c.createOscillator(), g=c.createGain();   // flashbang tinnitus ring (soft)
       o.type="sine"; o.frequency.setValueAtTime(2300,t);
       g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.05,t+0.25);
       g.gain.setValueAtTime(0.05,t+0.8); g.gain.exponentialRampToValueAtTime(0.0001,t+3.6);
-      o.connect(g); g.connect(c.destination); o.start(t); o.stop(t+3.7); },
-    nukefall:()=> { const c=ac(); if(!c) return; const t=c.currentTime, o=c.createOscillator(), g=c.createGain(); o.type="sine"; o.frequency.setValueAtTime(1500,t); o.frequency.exponentialRampToValueAtTime(170,t+3); g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.12,t+0.15); g.gain.setValueAtTime(0.12,t+2.6); g.gain.exponentialRampToValueAtTime(0.0001,t+3); o.connect(g); g.connect(c.destination); o.start(t); o.stop(t+3.1); },
+      o.connect(g); g.connect(master); o.start(t); o.stop(t+3.7); },
+    nukefall:()=> { const c=ac(); if(!c) return; const t=c.currentTime, o=c.createOscillator(), g=c.createGain(); o.type="sine"; o.frequency.setValueAtTime(1500,t); o.frequency.exponentialRampToValueAtTime(170,t+3); g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.12,t+0.15); g.gain.setValueAtTime(0.12,t+2.6); g.gain.exponentialRampToValueAtTime(0.0001,t+3); o.connect(g); g.connect(master); o.start(t); o.stop(t+3.1); },
     megaboom:()=> { tone(38,1.3,"sawtooth",0.4); tone(64,1.1,"square",0.3,0.05); for (let i=0;i<14;i++) tone(70+Math.random()*620,0.12,"square",0.18,0.05+i*0.045); },
     spin: ()=> { for (let i=0;i<22;i++) tone(300+i*28,0.04,"square",0.07,i*0.05); },
     rule:  ()=> seq([660,990], "triangle", 0.16, 0.09),
@@ -1643,9 +1697,9 @@ const SFX = (() => {
       [147,149.5,73.5].forEach(f=>{ const o=c.createOscillator(); o.type="sawtooth";
         o.frequency.setValueAtTime(f,t); o.frequency.linearRampToValueAtTime(f*1.335,t+0.25);
         o.connect(g); o.start(t); o.stop(t+1.45); });
-      g.connect(c.destination); },
+      g.connect(master); },
   };
-  return { play: (n) => { if (!FEATURES.sound) return; try { (table[n]||(()=>{}))(); } catch(e){} } };
+  return { play: (n) => { if (!FEATURES.sound || SOUND.VOLUME <= 0) return; try { (table[n]||(()=>{}))(); } catch(e){} } };
 })();
 
 function newGame(roster){
@@ -1656,9 +1710,10 @@ function newGame(roster){
       downed:false, frozen:false, sniper:false, finished:false, shame:0, getupMin: SNIPER.GETUP_MIN, fish:0, onSecret:false,
       items:[], passive:null, rollBonus:0, forceSix:false, coins:0,
       radSick:false, radTurns:0, radLevel:0, radImmune:false, shieldOn:false,
+      mirrorOn:false, forceRoll:0, diceCharges:0, curseRolls:0,
     })),
     current:0, winner:null, over:false, busy:false, round:1, autonomous: !!(roster[0] && roster[0].bot),
-    standings: null, fishStreak: 0, fishCaught: 0, marketVisits: 0,
+    standings: null, fishStreak: 0, fishCaught: 0, marketVisits: 0, traps: [],
   };
   hideSecret();
   TRAP89_TILES.splice(0, Infinity, TRAP89.TILE);   // re-arm the tile-89 trapdoor for the new game
@@ -1717,7 +1772,7 @@ function renderScoreboard(){
     const shopMark = (bagMark || passMark) ? " " + bagMark + passMark : "";
     const mark = (p.finished ? " "+medal : "") + (p.downed ? (p.frozen ? " 🧊" : " 🤕") : "")
                + (p.sniper ? " 🎯" : "") + (p.shame>0 ? " 😳" : "")
-               + (p.fish>0 ? " 🐟"+(p.fish>1?p.fish:"") : "") + shopMark
+               + (p.fish>0 ? " 🐟"+(p.fish>1?p.fish:"") : "") + shopMark + (p.mirrorOn ? " 🪞" : "")
                + (p.coins>0 ? " 🪙"+p.coins : "")
                + (p.radSick ? " ☢️"+(p.radLevel||"") : (p.radImmune ? " ☢️+"+RAD.IMMUNE_BONUS : ""));
     const cellTxt = p.finished ? "done" : (p.onSecret ? "secret 🚪" : (p.pos === 0 ? "—" : "tile " + p.pos));
@@ -1781,12 +1836,18 @@ async function roll(){
   game.busy = true; refreshHUD();
   die.classList.add("rolling");
   SFX.play("dice");
-  const end = performance.now() + ANIM.DICE;
+  const end = performance.now() + ffms(ANIM.DICE);
   while (performance.now() < end){ setDie(1+Math.floor(Math.random()*RULES.DICE_SIDES)); await sleep(70); }
   die.classList.remove("rolling");
   const forced = cur.forceSix && !cur.downed;               // a Four-leaf Clover guarantees a 6
   cur.forceSix = false;
-  const value = forced ? RULES.DICE_SIDES : (1 + Math.floor(Math.random()*RULES.DICE_SIDES));
+  const picked = cur.forceRoll || 0;                        // Loaded Dice: the chosen face
+  cur.forceRoll = 0;
+  let value = picked || (forced ? RULES.DICE_SIDES : (1 + Math.floor(Math.random()*RULES.DICE_SIDES)));
+  if ((cur.curseRolls||0) > 0){                             // spent Loaded Dice: the dice remember
+    cur.curseRolls--; value = 1;
+    log(`🎲 The dice remember ${cur.name}'s cheating — a cursed 1! (${cur.curseRolls} more)`);
+  }
   setDie(value);
   if (value === RULES.DICE_SIDES && FEATURES.sixRollsAgain) sixEffect();
   await sleep(160);
@@ -1846,15 +1907,22 @@ async function moveCurrent(rollValue){
     if (game.over) return;
   }
 
+  // a planted banana peel fires before the tile itself gets a say
+  let slipped = false;
+  if (FEATURES.shop){
+    slipped = await springBanana(p, 0);
+    if (game.over) return;
+  }
+
   // hand the landing to the tile-rule registry; a rule that fires ends the turn
-  if (!rolledSix){
+  if (!rolledSix && !slipped){
     const fired = await runTileRules(p, {offTurn:false, depth:0});
     if (game.over) return;
     if (fired){ await endTurn(); return; }
   }
 
   // coin for landing on a plain tile (no special effect this stop)
-  if (FEATURES.coins && isPlainTile(p.pos)){
+  if (!slipped && FEATURES.coins && isPlainTile(p.pos)){
     const blue = isBlueTile(p.pos);                        // the scattered blue tiles pay better
     awardCoin(p, blue ? "Blue tile" : "Plain tile", blue ? COIN.BLUE : COIN.PLAIN, blue ? "blue" : "plain");
   }
@@ -2383,8 +2451,8 @@ function announceKill(n){
   setTimeout(()=> d.classList.remove("show"), 1400);
   setTimeout(()=> d.remove(), 1800);
   SFX.play("announce");
-  if (FEATURES.sound && KILL_VOICE[tier]){
-    try { new Audio(KILL_VOICE[tier]).play(); } catch(e){}
+  if (FEATURES.sound && SOUND.VOLUME > 0 && KILL_VOICE[tier]){
+    try { const a = new Audio(KILL_VOICE[tier]); a.volume = SOUND.VOLUME; a.play(); } catch(e){}
   }
 }
 
@@ -2394,6 +2462,10 @@ async function startTurn(){
   const cur = game.players[game.current];
   // radiation sickness ticks at the start of each of the sick player's turns
   if (FEATURES.radioactive && cur.radSick) await progressRadiation(cur);
+  // the Crown pays its holder for starting a turn out in front
+  if (FEATURES.shop && cur.passive === "crown" && cur.pos > 0 && !cur.finished
+      && game.players.every(q => q === cur || q.finished || q.pos < cur.pos))
+    awardCoin(cur, "👑 Leading the pack", CROWN_COINS, "plain");
   // shame countdown -> the kicker eventually collapses (and needs a harder roll to rise)
   if (cur.shame > 0){
     cur.shame--;
@@ -2440,6 +2512,7 @@ async function endTurn(){
 function getupNeed(p){
   let need = p.getupMin || SNIPER.GETUP_MIN;
   if (FEATURES.fishPowers && p.frozen && (p.fish||0) >= FISH.ICE_FISH) need = Math.min(need, FISH.ICE_GETUP);
+  if (FEATURES.shop && p.passive === "helmet") need = Math.min(need, HELMET_GETUP);   // the Helmet shrugs it off
   return need;
 }
 
@@ -2467,7 +2540,7 @@ function maybeAuto(){
     setTimeout(() => {
       if (game && game.autonomous && !game.winner && !game.busy
           && !document.querySelector(".modal.show")) roll();
-    }, ANIM.AUTO);
+    }, ffms(ANIM.AUTO));
   }
 }
 
@@ -3208,10 +3281,17 @@ async function lightningStrike(victim){
   await sleep(500);
   await resolveLanding(victim);                            // the new tile fires too
 }
-async function strikeLightning(){                          // the rare event: hits the leader
+async function strikeLightning(){                          // the rare event: hits the leader — unless a Soul Candle calls it
   await revealRuleOnce("lightning");
   const active = game.players.filter(p => !p.finished && p.pos > 0);
   if (!active.length) return;
+  const marked = FEATURES.shop ? active.filter(p => p.passive === "soulcandle") : [];
+  if (marked.length){
+    const m = marked[(Math.random()*marked.length)|0];
+    log(`🕯️ The storm smells ${m.name}'s candle burning…`);
+    await lightningStrike(m);
+    return;
+  }
   const top = Math.max(...active.map(p => p.pos));
   await lightningStrike(active.find(p => p.pos === top));
 }
@@ -3341,11 +3421,29 @@ function consumeShield(pl){
   updateShield(idxOf(pl)); renderScoreboard();
   return true;
 }
+// Mirror: an armed mirror bounces a hit/freeze onto the nearest standing rival.
+// The new target's own Shield can still block it — and their Mirror can bounce it on
+// (each bounce burns a mirror, so it always ends).
+function deflectHit(pl, what){
+  if (!FEATURES.shop || !pl.mirrorOn) return null;
+  const others = game.players.filter(q => q !== pl && !q.finished && !q.downed && q.pos > 0);
+  if (!others.length) return null;                 // no one to catch it — the mirror stays armed
+  pl.mirrorOn = false;
+  const to = others.reduce((a,q)=> Math.abs(q.pos - pl.pos) < Math.abs(a.pos - pl.pos) ? q : a);
+  SFX.play("sparkle");
+  log(`🪞 ${pl.name}'s Mirror deflects the ${what} onto ${to.name}!`);
+  renderScoreboard();
+  return to;
+}
 function downPlayer(pl){
+  const m = deflectHit(pl, "hit");
+  if (m){ downPlayer(m); return; }
   if (consumeShield(pl)){ log(`🛡️ ${pl.name}'s Shield blocked the hit!`); return; }
   pl.downed = true; pl.getupMin = SNIPER.GETUP_MIN; updateDowned(idxOf(pl));
 }
 function freezePlayer(pl){
+  const m = deflectHit(pl, "freeze");
+  if (m){ freezePlayer(m); return; }
   if (consumeShield(pl)){ log(`🛡️ ${pl.name}'s Shield blocked the freeze!`); return; }
   pl.downed = true; pl.frozen = true; pl.getupMin = FREEZE.GETUP_MIN;
   const i = idxOf(pl); updateDowned(i); updateFrozen(i);
@@ -3424,6 +3522,8 @@ async function resolveLanding(pl, depth, skipTeleport){
     if (pl.pos === BOARD.WIN){ finishPlayer(pl); return; }
     return resolveLanding(pl, depth+1);
   }
+  // a planted banana peel fires before the tile rules get a say
+  if (FEATURES.shop && await springBanana(pl, depth)) return;
   // hand the landing to the tile-rule registry (offTurn path); a rule that
   // fires ends the cascade — a frozen player is stuck, a setback is final
   if (await runTileRules(pl, {offTurn:true, depth, skipTeleport})) return;
@@ -3528,6 +3628,50 @@ function pickPlayerOnBoard(promptText, candidates, previewFn, allowBack){
         g.style.cursor = ""; g.style.filter = "";
       });
     });
+  });
+}
+
+/* Pick a board TILE by clicking it: the veil falls with a spotlight hole over every
+   eligible tile; clicking one resolves with its number (or "back"). */
+function pickTileOnBoard(promptText, tiles, allowBack){
+  return new Promise(res => {
+    showPrompt(promptText);
+    let backBtn = null;
+    const mask = document.getElementById("spotmask");
+    spotDark.setAttribute("fill","rgba(0,0,0,.32)");
+    spotDark.style.opacity = "1";
+    const holes = tiles.map(t => {
+      const c = cellCenter(t);
+      const h = el("circle",{cx:c.x, cy:c.y, r:46, fill:"#000"});
+      mask.appendChild(h);
+      return h;
+    });
+    const finish = () => {
+      holes.forEach(h => h.remove());
+      spotDark.style.opacity = "0"; spotDark.setAttribute("fill","rgba(0,0,0,.5)");
+      if (backBtn) backBtn.remove();
+      svg.removeEventListener("click", click);
+      hidePrompt();
+    };
+    function click(e){
+      const pt = svgPoint(e);
+      let best = null, bd = Infinity;
+      tiles.forEach(t => {
+        const c = cellCenter(t), d = Math.hypot(c.x - pt.x, c.y - pt.y);
+        if (d < bd){ bd = d; best = t; }
+      });
+      if (bd > BOARD.CELL * 0.55) return;          // clicked between the holes — keep waiting
+      e.stopPropagation(); finish(); res(best);
+    }
+    if (allowBack){
+      backBtn = document.createElement("button");
+      backBtn.className = "btn ghost";
+      backBtn.textContent = "↩ Back";
+      backBtn.style.cssText = "margin-left:10px;padding:4px 10px;font-size:13px";
+      backBtn.onclick = () => { finish(); res("back"); };
+      document.getElementById("prompt").appendChild(backBtn);
+    }
+    svg.addEventListener("click", click);
   });
 }
 
@@ -3941,7 +4085,7 @@ function setSpecialTiles(lay){
   SETBACK_TILES.splice(0, Infinity, ...lay.sb);
 }
 // Tile shuffle (🌀 slot): every special tile moves to a new random spot mid-game.
-async function shuffleTiles(){
+async function shuffleTiles(msg){
   const oldPositions = [...TELEPORTERS, ...ORANGE_TILES, ...FREEZE_TILES, ...SHOP_TILES, ...FISH.TILES, ...SETBACK_TILES];
   const lay = scrambledLayout();
   setSpecialTiles(lay);
@@ -3949,7 +4093,7 @@ async function shuffleTiles(){
   new Set([...oldPositions, ...lay.tp, ...lay.or, ...lay.fz, ...lay.sh, ...lay.fi, ...lay.sb]).forEach(n => repaintCell(n));
   SFX.play("teleport"); flashScreen();
   renderScoreboard();
-  log(`🌀 The wheel reshuffled the board — all special tiles moved to new positions!`);
+  log(msg || `🌀 The wheel reshuffled the board — all special tiles moved to new positions!`);
   await sleep(750);
 }
 
@@ -4002,12 +4146,17 @@ async function runSupport(p, allowBack){
 
 /* ---- items: bag (3 consumables) + 1 passive ------------------------- */
 function itemDef(id){
-  return SHOP_CATALOG.find(i => i.id === id) || {ico:"", name:id, desc:"", kind:"consumable", cost:0};
+  return SHOP_CATALOG.find(i => i.id === id) || EXOTICS.find(i => i.id === id)
+      || {ico:"", name:id, desc:"", kind:"consumable", cost:0};
 }
 // Can this player buy this item right now? (enough coins, and room/sense for its kind)
 function canBuy(p, item){
   if (p.coins < item.cost) return false;
-  if (item.kind === "passive") return p.passive !== item.id;     // a new passive replaces the old one
+  if (item.id === "loadeddice" && p.items.includes("loadeddice")) return false;  // one set of dice at a time
+  if (item.kind === "passive"){
+    if (p.passive === "soulcandle") return false;                // the candle never lets go
+    return p.passive !== item.id;                                // a new passive replaces the old one
+  }
   return p.items.length < INV.CONSUMABLES;
 }
 // Put an item in the player's bag. A new passive replaces (and discards) the old.
@@ -4021,6 +4170,7 @@ function giveItem(p, id){
   }
   if (p.items.length >= INV.CONSUMABLES) return false;
   p.items.push(id);
+  if (id === "loadeddice") p.diceCharges = LOADED.CHARGES;
   return true;
 }
 function buyItem(p, item){
@@ -4069,6 +4219,185 @@ async function hornBlast(p){
   await sleep(HORN.SETTLE_MS);
 }
 
+// Mystery Box: pops open into a random enabled consumable (never another box).
+function openMysteryBox(p){
+  const pool = SHOP_CATALOG.filter(i => i.enabled && i.kind === "consumable" && i.id !== "mysterybox");
+  if (!pool.length){
+    awardCoin(p, "📦 The box held nothing but loose change", MYSTERY.FALLBACK_COINS, "blue");
+    return;
+  }
+  const prize = pool[(Math.random()*pool.length)|0];
+  giveItem(p, prize.id);
+  SFX.play("sparkle");
+  log(`📦 ${p.name}'s Mystery Box pops open — ${prize.ico} ${prize.name}!`);
+}
+
+// Snowball: freeze a standing rival within SNOWBALL.RANGE tiles, right where they are.
+function snowballTargets(p){
+  if (p.pos < 1) return [];
+  return game.players.filter(q => q !== p && !q.finished && !q.frozen && q.pos > 0
+    && Math.abs(q.pos - p.pos) <= SNOWBALL.RANGE);
+}
+function snowballFx(p, target){
+  return new Promise(res => {
+    const A = tokenXY(idxOf(p)), B = tokenXY(idxOf(target));
+    const ball = el("circle",{cx:A.x, cy:A.y - 40, r:9, fill:"#eaf6ff", stroke:"#9fd0ee","stroke-width":"2"});
+    svg.appendChild(ball);
+    const t0 = performance.now(), ms = ffms(500);
+    (function frame(){
+      const t = Math.min(1, (performance.now() - t0) / ms);
+      ball.setAttribute("cx", A.x + (B.x - A.x)*t);
+      ball.setAttribute("cy", A.y - 40 + (B.y - A.y + 40)*t - Math.sin(Math.PI*t)*120);
+      if (t < 1) requestAnimationFrame(frame);
+      else { ball.remove(); SFX.play("bounce"); res(); }
+    })();
+  });
+}
+async function throwSnowball(p, idx){
+  const targets = snowballTargets(p);
+  if (!targets.length){ log(`❄️ No one is within ${SNOWBALL.RANGE} tiles to hit.`); return; }
+  const target = p.bot
+    ? targets.reduce((a,q)=> q.pos > a.pos ? q : a)          // bots aim at whoever is furthest ahead
+    : await pickPlayerOnBoard(`${p.name}: click a player to hit with the snowball`, targets, null, true);
+  if (!target || target === "back") return;
+  p.items.splice(idx, 1);
+  await itemFlourish(p, "❄️");
+  await snowballFx(p, target);
+  freezePlayer(target);                                      // Shield / Mirror get their say in here
+  layoutTokens(); renderScoreboard();
+  if (target.frozen)
+    log(`❄️ ${p.name}'s snowball hits ${target.name} — frozen solid! (needs ${FREEZE.GETUP_MIN}+ to break free)`);
+  await sleep(500);
+}
+
+// Banana Peel: plant a trap on a plain tile ahead; the first RIVAL to land there slips.
+function bananaSpots(p){
+  const from = Math.max(1, p.pos), spots = [];
+  for (let t = from + 1; t <= Math.min(BOARD.WIN - 1, from + BANANA.RANGE); t++){
+    if (!isPlainTile(t)) continue;
+    if (game.traps.some(tr => tr.tile === t)) continue;
+    if (game.players.some(q => q.pos === t && !q.finished)) continue;
+    spots.push(t);
+  }
+  return spots;
+}
+function drawTrap(tr){
+  const c = cellCenter(tr.tile);
+  const t = el("text",{x:c.x + 24, y:c.y + 30, "text-anchor":"middle", "font-size":"22"});
+  t.textContent = "🍌";
+  if (tokenEls.length) svg.insertBefore(t, tokenEls[0]); else svg.appendChild(t);
+  tr.el = t;
+}
+async function placeBanana(p, idx){
+  const spots = bananaSpots(p);
+  if (!spots.length){ log(`🍌 Nowhere ahead to drop a peel.`); return; }
+  let tile;
+  if (p.bot){
+    // most catchable spot: the tile the most rivals could reach on their next roll
+    const catchScore = t => game.players.filter(q => q !== p && !q.finished && !q.downed
+      && q.pos < t && t - q.pos <= RULES.DICE_SIDES).length;
+    tile = spots.reduce((a,t)=> catchScore(t) > catchScore(a) ? t : a);
+  } else {
+    tile = await pickTileOnBoard(`${p.name}: click a tile to drop the banana peel on`, spots, true);
+    if (!tile || tile === "back") return;
+  }
+  p.items.splice(idx, 1);
+  await itemFlourish(p, "🍌");
+  const tr = { tile, owner: p };
+  game.traps.push(tr); drawTrap(tr);
+  SFX.play("sparkle");
+  log(`🍌 ${p.name} drops a banana peel on tile ${tile}. Watch your step…`);
+}
+// Fires when p stands on someone ELSE's peel: the peel is spent, p slips BANANA.SLIP
+// back (a slide below tile 1 uncovers the secret square, like any knock-back).
+async function springBanana(p, depth){
+  const tr = game.traps && game.traps.find(t => t.tile === p.pos && t.owner !== p);
+  if (!tr) return false;
+  game.traps.splice(game.traps.indexOf(tr), 1);
+  if (tr.el) tr.el.remove();
+  SFX.play("bounce");
+  log(`🍌 ${p.name} steps on ${tr.owner.name}'s banana peel — ${BANANA.SLIP} tiles back!`);
+  const idx = idxOf(p), raw = p.pos - BANANA.SLIP;
+  let at = p.pos;
+  for (const c of walkBackPath(p.pos, BANANA.SLIP)){
+    p.pos = c;
+    await hopToken(idx, at, c, ANIM.STEP * 0.6);
+    at = c;
+  }
+  setBackPos(p, raw);
+  layoutTokens(); renderScoreboard();
+  if (p.onSecret){ await visitSecret(p); return true; }
+  await resolveLanding(p, (depth||0) + 1);
+  return true;
+}
+
+// Monkey's Paw: wish yourself to any tile (except the finish) — then the board recoils.
+async function wishMonkeyPaw(p, idx){
+  let tile;
+  if (p.bot){
+    const top = Math.max(1, ...game.players.filter(q => !q.finished).map(q => q.pos));
+    tile = Math.min(BOARD.WIN - 2, top + 1);                 // bots wish just past the leader
+  } else {
+    const tiles = [];
+    for (let t = 1; t < BOARD.WIN; t++) if (t !== p.pos) tiles.push(t);
+    tile = await pickTileOnBoard(`${p.name}: point the paw at ANY tile — wish carefully…`, tiles, true);
+    if (!tile || tile === "back") return;
+  }
+  p.items.splice(idx, 1);
+  await itemFlourish(p, "🐒");
+  SFX.play("teleport"); flashScreen();
+  p.pos = tile; p.onSecret = false;
+  layoutTokens(); renderScoreboard();
+  log(`🐒 The paw curls a finger — ${p.name} appears on tile ${tile}!`);
+  await sleep(600);
+  await shuffleTiles(`🌀 The wish has a price — the whole board twists into a new shape!`);
+  await resolveLanding(p);
+}
+
+// Loaded Dice: choose the next roll's exact face; spending the last charge curses the dice.
+async function useLoadedDice(p, idx){
+  let face;
+  if (p.bot){
+    face = 1; let best = -Infinity;
+    for (let n = 1; n <= RULES.DICE_SIDES; n++){
+      const s = landingScore(p.pos, n + (p.passive === "shoes" ? ITEM.SHOES_BONUS : 0), p);
+      if (s > best){ best = s; face = n; }
+    }
+  } else {
+    face = await pickDiceFace(p);
+    if (!face) return;
+  }
+  await itemFlourish(p, "🎲");
+  p.forceRoll = face;
+  p.diceCharges--;
+  SFX.play("sparkle");
+  log(`🎲 ${p.name} palms the Loaded Dice — the next roll is a ${face}. (${p.diceCharges} charge${p.diceCharges === 1 ? "" : "s"} left)`);
+  if (p.diceCharges <= 0){
+    p.items.splice(idx, 1);
+    p.curseRolls = LOADED.CURSE_ROLLS;
+    log(`🎲 The Loaded Dice crumble to dust… and the real dice remember. (${LOADED.CURSE_ROLLS} rolls of doom ahead)`);
+  }
+}
+function pickDiceFace(p){
+  return new Promise(res => {
+    document.getElementById("pickerTitle").textContent = `🎲 Loaded Dice — pick ${p.name}'s next roll`;
+    const list = document.getElementById("pickerList"); list.innerHTML = "";
+    const done = v => { document.getElementById("picker").classList.remove("show"); pickResolve = null; res(v); };
+    for (let n = 1; n <= RULES.DICE_SIDES; n++){
+      const b = document.createElement("button");
+      b.className = "btn"; b.textContent = String(n); b.style.boxShadow = "none";
+      b.onclick = () => done(n);
+      list.appendChild(b);
+    }
+    const cancel = document.createElement("button");
+    cancel.className = "btn ghost"; cancel.textContent = "↩ Keep them hidden"; cancel.style.marginTop = "4px";
+    cancel.onclick = () => done(null);
+    pickResolve = () => res(null);
+    document.getElementById("picker").classList.add("show");
+    list.appendChild(cancel);
+  });
+}
+
 // Use one consumable from the bag before rolling. Shield isn't used by hand — it
 // guards automatically — so only Coffee and the Clover do anything here.
 async function useItem(p, idx){
@@ -4093,6 +4422,24 @@ async function useItem(p, idx){
   } else if (id === "warhorn"){
     p.items.splice(idx, 1);
     await hornBlast(p);
+  } else if (id === "mirror"){
+    await itemFlourish(p, "🪞");
+    p.mirrorOn = true;
+    p.items.splice(idx, 1);
+    log(`🪞 ${p.name} raises the Mirror — the next hit bounces onto someone else!`);
+    SFX.play("sparkle");
+  } else if (id === "mysterybox"){
+    await itemFlourish(p, "📦");
+    p.items.splice(idx, 1);
+    openMysteryBox(p);
+  } else if (id === "snowball"){
+    await throwSnowball(p, idx);
+  } else if (id === "banana"){
+    await placeBanana(p, idx);
+  } else if (id === "monkeypaw"){
+    await wishMonkeyPaw(p, idx);
+  } else if (id === "loadeddice"){
+    await useLoadedDice(p, idx);
   }
   refreshBadges(); renderScoreboard();
 }
@@ -4112,6 +4459,22 @@ async function botMaybeUseItem(p){
       if (!p.shieldOn && (bagFull || botShieldThreat(p))) await useItem(p, k);
     } else if (id === "warhorn"){
       if (hornTargets(p).some(q => !q.downed && !q.shieldOn) || bagFull) await useItem(p, k);
+    } else if (id === "mysterybox"){
+      await useItem(p, k);                                   // free value — always pop it
+    } else if (id === "mirror"){
+      if (!p.mirrorOn && (bagFull || botShieldThreat(p))) await useItem(p, k);
+    } else if (id === "snowball"){
+      if (bagFull || snowballTargets(p).some(q => q.pos > p.pos && !q.downed && !q.shieldOn)) await useItem(p, k);
+    } else if (id === "banana"){
+      const chaser = game.players.some(q => q !== p && !q.finished && q.pos < p.pos
+        && p.pos - q.pos <= BANANA.RANGE + RULES.DICE_SIDES);
+      if (bananaSpots(p).length && (bagFull || chaser)) await useItem(p, k);
+    } else if (id === "monkeypaw"){
+      if (bagFull) await useItem(p, k);                      // bots don't really know how to wish
+    } else if (id === "loadeddice"){
+      let best = -Infinity;
+      for (let n = 1; n <= RULES.DICE_SIDES; n++) best = Math.max(best, landingScore(p.pos, n, p));
+      if (bagFull || best >= BOT.CLOVER_MIN_SCORE) await useItem(p, k);
     }
   }
 }
@@ -4152,7 +4515,8 @@ function renderInventory(){
     row.style.cssText = "display:flex;align-items:center;gap:8px";
     const label = document.createElement("div");
     label.style.cssText = "flex:1;text-align:left;color:var(--cream);font-size:14px";
-    label.innerHTML = `${def.ico} <b>${def.name}</b> — ${def.desc}`;
+    const charges = id === "loadeddice" ? ` (${p.diceCharges} charge${p.diceCharges === 1 ? "" : "s"})` : "";
+    label.innerHTML = `${def.ico} <b>${def.name}${charges}</b> — ${def.desc}`;
     row.appendChild(label);
     const b = document.createElement("button"); b.className = "btn"; b.style.padding = "8px 14px"; b.textContent = "Use";
     b.onclick = async () => { closeInventory(); await useItem(p, idx); };
@@ -4195,8 +4559,9 @@ function renderShop(p, close, stock, bought, market){
   stock.forEach(item => {
     const sold = bought.has(item.id);
     const can = !sold && canBuy(p, item);
-    const tag = item.kind === "passive" ? " · passive" : "";
-    const b = document.createElement("button"); b.className = "btn" + (item.kind === "passive" ? " passive" : "");
+    const tag = (item.kind === "passive" ? " · passive" : "") + (item.exotic ? " · exotic" : "");
+    const b = document.createElement("button");
+    b.className = "btn" + (item.exotic ? " exotic" : item.kind === "passive" ? " passive" : "");
     b.innerHTML = `${item.ico} <b>${item.name}</b> — ${item.desc} <span style="opacity:.85">(${sold ? "sold out" : `🪙${item.cost}${tag}`})</span>`;
     b.style.textAlign = "left"; b.style.boxShadow = "none";
     b.disabled = !can; b.style.opacity = can ? "1" : ".45";
@@ -4225,7 +4590,12 @@ function marketPrice(p, item){
 async function runBlackMarket(p){
   log(`🕯️ ${p.name} finds a shady dealer under the board… (🪙${p.coins})`);
   SFX.play("leviathan");
-  const stock = shopStock().slice(0, MARKET.STOCK).map(i => ({...i, cost: marketPrice(p, i)}));
+  // shelf = EXOTIC_STOCK exotics (at their listed price — a deal is a deal) + NORMAL_STOCK
+  // normal items at the dealer's flexing price
+  const pool = EXOTICS.filter(i => i.enabled);
+  for (let i = pool.length - 1; i > 0; i--){ const j = (Math.random()*(i+1))|0; [pool[i],pool[j]] = [pool[j],pool[i]]; }
+  const stock = [...pool.slice(0, MARKET.EXOTIC_STOCK),
+                 ...shopStock().slice(0, MARKET.NORMAL_STOCK).map(i => ({...i, cost: marketPrice(p, i)}))];
   game.marketVisits++;
   const bought = new Set();
   if (game.autonomous || p.bot){
@@ -4298,6 +4668,7 @@ let setupBots = [];
    Board = BOARD_OPTIONS (read by newGame via boardOpt). */
 const ADV_SECTIONS = [
   { id:"items", title:"🛒 Items", entries: SHOP_CATALOG },
+  { id:"exotics", title:"🕯️ Black market", entries: EXOTICS },
   { id:"board", title:"🗺️ Board", entries: BOARD_OPTIONS },
 ];
 function buildToggleRows(list, entries){
@@ -4305,7 +4676,7 @@ function buildToggleRows(list, entries){
     const row = document.createElement("label"); row.className = "adv-item";
     const box = document.createElement("input"); box.type = "checkbox";
     box.checked = item.enabled;
-    box.onchange = ()=>{ item.enabled = box.checked; };
+    box.onchange = ()=>{ item.enabled = box.checked; saveSettings(); };
     const label = document.createElement("span");
     label.innerHTML = `${item.ico} <b>${item.name}</b> <span class="adv-desc">— ${item.desc}</span>`;
     row.append(box, label); list.appendChild(row);
@@ -4372,6 +4743,33 @@ function startFromSetup(){
   startTurn();                     // begin (handles a first-turn sniper, then auto if enabled)
 }
 
+/* ---- remembered settings (localStorage; still one self-contained file) ----
+   Saved on every change, loaded once at boot: volume, fast-forward, bot
+   popups, item/exotic/board toggles. Clearing browser data resets them. */
+const SETTINGS_KEY = "stigespillet.settings.v1";
+function saveSettings(){
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify({
+      botThoughts: FEATURES.botThoughts,
+      volume: SOUND.VOLUME,
+      fastForward: SPEED.fastForward,
+      items: Object.fromEntries([...SHOP_CATALOG, ...EXOTICS].map(i => [i.id, i.enabled])),
+      board: Object.fromEntries(BOARD_OPTIONS.map(b => [b.key, b.enabled])),
+    }));
+  } catch(e){}
+}
+function loadSettings(){
+  try {
+    const s = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "null");
+    if (!s) return;
+    if (typeof s.botThoughts === "boolean") FEATURES.botThoughts = s.botThoughts;
+    if (typeof s.volume === "number") SOUND.VOLUME = Math.min(1, Math.max(0, s.volume));
+    if (typeof s.fastForward === "boolean") SPEED.fastForward = s.fastForward;
+    [...SHOP_CATALOG, ...EXOTICS].forEach(i => { if (s.items && typeof s.items[i.id] === "boolean") i.enabled = s.items[i.id]; });
+    BOARD_OPTIONS.forEach(b => { if (s.board && typeof s.board[b.key] === "boolean") b.enabled = s.board[b.key]; });
+  } catch(e){}
+}
+
 /* ---- wire up ------------------------------------------------------- */
 die.addEventListener("click", roll);
 document.addEventListener("keydown", e=>{
@@ -4423,10 +4821,17 @@ document.getElementById("invDone").addEventListener("click", closeInventory);
 document.getElementById("playBtn").addEventListener("click", openSetup);
 document.getElementById("settingsBtn").addEventListener("click", ()=>{
   document.getElementById("optBotThoughts").checked = FEATURES.botThoughts;
+  document.getElementById("optFastForward").checked = SPEED.fastForward;
+  document.getElementById("optVolume").value = Math.round(SOUND.VOLUME * 100);
   showScreen("settings");
 });
 document.getElementById("settingsBack").addEventListener("click", ()=>showScreen("title"));
-document.getElementById("optBotThoughts").addEventListener("change", e=>{ FEATURES.botThoughts = e.target.checked; });
+document.getElementById("optBotThoughts").addEventListener("change", e=>{ FEATURES.botThoughts = e.target.checked; saveSettings(); });
+document.getElementById("optFastForward").addEventListener("change", e=>{ SPEED.fastForward = e.target.checked; saveSettings(); });
+document.getElementById("optVolume").addEventListener("change", e=>{
+  SOUND.VOLUME = Math.min(1, Math.max(0, (+e.target.value)/100));
+  saveSettings(); SFX.play("coin");                      // a taste of the new level
+});
 document.getElementById("toSetup").addEventListener("click", openSetup);
 document.getElementById("backBtn").addEventListener("click", ()=>showScreen("title"));
 document.getElementById("seatMinus").addEventListener("click", ()=>{ chosenSeats=Math.max(2,chosenSeats-1); buildSetup(); });
@@ -4437,6 +4842,7 @@ document.getElementById("bannerNew").addEventListener("click", ()=>{
   startTurn();
 });
 
+loadSettings();                  // restore remembered toggles BEFORE the checkboxes are built
 makeSnow(38);
 makeClouds(5);
 buildWheel();

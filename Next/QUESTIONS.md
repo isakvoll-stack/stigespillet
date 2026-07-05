@@ -3,6 +3,35 @@
 Standing file: autonomous sessions log clarifications here instead of stopping to ask.
 Answer whenever — each answer gets folded in and the question checked off.
 
+## 2026-07-06 — from the 9-item + QoL batch (defaults picked, say if wrong)
+
+- [ ] **"The QoL idea"** — you said to add *"the QoL idea"* (singular); the
+  suggestions doc had five. I built the three concrete in-game ones: remembered
+  settings (localStorage), the volume slider, and ⏩ fast-forward for bot turns.
+  The **discovered-rules codex** and the **phone/touch pass** are still un-built —
+  say the word if either of those was the one you meant.
+- [ ] **Mystery Box contents** — consumables only today (a surprise passive would
+  silently replace the one you're wearing, which felt too nasty for 3 coins).
+  Want passives in the pool anyway?
+- [ ] **Banana peel is visible** — the 🍌 sits on the tile for everyone to see
+  (people land where they land, so it still catches plenty). Want it invisible to
+  the other players instead (only the owner sees it)?
+- [ ] **Mirror target** — a deflected hit goes to the **nearest standing rival**,
+  not back at the attacker. Felt more chaotic/fun and always has a valid target.
+  Prefer "reflect back at whoever fired"?
+- [ ] **Loaded Dice curse bites get-up rolls too** — three 1s can keep you on the
+  floor for three turns if you're downed while cursed. Intended cruelty, or should
+  get-up rolls be exempt?
+- [ ] **Monkey's Paw can't wish you onto tile 90** — a direct wish-to-win felt
+  cheap (and the board-scramble hook would never matter). It CAN wish you onto 89…
+  where the trapdoor may be waiting. OK?
+- [ ] **Exotic prices are fixed** — the dealer's trailing-discount/visit-markup
+  only flexes the 1 normal item on his shelf now; the 3 exotics cost what they
+  say. Should exotics flex too?
+- [ ] **Bots and the Paw** — bots never buy the Monkey's Paw (`ITEM_VALUE 0`) and
+  only use a gifted one when their bag is full (they wish themselves just past the
+  leader). Teach them to buy + wish properly?
+
 ## 2026-07-05 (evening) — from the scrambled-board build (defaults picked, say if wrong)
 
 - [ ] **Scramble scope** — the scrambled start moves every special tile the wheel's 🌀
@@ -20,9 +49,11 @@ Answer whenever — each answer gets folded in and the question checked off.
   reopen setup MID-game and untick something, that also takes effect immediately for
   the running game's future shop visits. Right call, or should toggles only apply to
   the next new game?
-- [ ] **No saving** — the toggles reset to "all enabled" every page reload (the game
+- [x] **No saving** — the toggles reset to "all enabled" every page reload (the game
   keeps zero saved state today). Want them remembered between sessions (localStorage —
   still one self-contained file, no sidecar)?
+  **✔ Answered 2026-07-06 by Isak picking "the QoL idea": built — all toggles +
+  volume + fast-forward persist via localStorage (`stigespillet.settings.v1`).**
 
 ## 2026-07-04 — from the 6-answer batch build
 
