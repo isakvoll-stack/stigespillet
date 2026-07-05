@@ -71,6 +71,29 @@ See `LOG.md` for the running session history.
 ---
 
 ## Done
+### 2026-07-05 (evening) — scrambled-board option + item-text clarity pass (Isak)
+- [x] **🌀 Scrambled board** toggle in a new **🗺️ Board** advanced-settings group
+      (`BOARD_OPTIONS` DATA table + `boardOpt(key)` accessor): when on, `newGame`
+      places every special tile (teleporters/orange/freeze/shops/fishing/setback) at
+      a random eligible spot — never on a ladder/snake tile, tile 1 or 90; ladders
+      and snakes stay fixed (standing rule).
+- [x] **Wheel-shuffle refactor**: the 🌀 slot's scramble logic split into
+      `scrambledLayout()` + `setSpecialTiles(lay)` + `DEFAULT_SPECIALS` (canonical
+      layout captured at load); `shuffleTiles()` is now a thin fx wrapper. `newGame`
+      restores the canonical layout when the option is off — fixes a quiet leak where
+      a mid-game wheel shuffle carried into "Play again".
+- [x] **Advanced settings generalised**: `ADV_SECTIONS` entries now declare an
+      `entries` data table; one generic `buildToggleRows` renders every group
+      (Items + Board share it).
+- [x] **Item desc convention** (Isak: "check the other items are clear if they are
+      on use or not"): every consumable now reads **"When used: …"** (Shield, Clover,
+      War Horn rewritten), passives keep **"Passive: …"** — kind is scannable at a
+      glance in shop, bag and toggles list.
+- [x] Verified headless Edge: 13/13 targeted checks (2 groups render, scramble
+      validity ×10 games — counts/uniqueness/eligibility, canonical restore, shuffle
+      leak fixed, desc convention) + a full 4-bot game on a scrambled board to a
+      winner (24 rounds), 0 real JS errors (1 headless autoplay artifact).
+
 ### 2026-07-05 (later) — advanced settings + item toggles + inventory QoL (Isak)
 - [x] **⚙️ Advanced settings** on the *Choose players* screen: collapsible `<details>`
       section under the player list; pull-down groups come from the `ADV_SECTIONS`

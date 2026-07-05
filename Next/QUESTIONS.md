@@ -3,6 +3,16 @@
 Standing file: autonomous sessions log clarifications here instead of stopping to ask.
 Answer whenever — each answer gets folded in and the question checked off.
 
+## 2026-07-05 (evening) — from the scrambled-board build (defaults picked, say if wrong)
+
+- [ ] **Scramble scope** — the scrambled start moves every special tile the wheel's 🌀
+  shuffle moves (teleporters, orange, freeze, shops, fishing, setback). Ladders and
+  snakes stay fixed (your standing rule), and the tile-89 trapdoor stays at 89. Want
+  any of that different (e.g. ladders scrambled too as a separate toggle)?
+- [ ] **Behaviour change to know about** — with the option OFF, every new game now
+  resets the classic tile layout. Before, a mid-game 🌀 wheel shuffle silently carried
+  over into "Play again". I treated that as a bug; shout if you liked it.
+
 ## 2026-07-05 — from the advanced-settings build (defaults picked, say if wrong)
 
 - [ ] **Toggle scope** — disabling an item stops it appearing on the shop/black-market

@@ -53,7 +53,16 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
-Recently shipped (2026-07-05, later): **⚙️ Advanced settings on the setup screen** —
+Recently shipped (2026-07-05, evening): **🌀 Scrambled board option + item-text pass** —
+new **🗺️ Board** group in Advanced settings (`BOARD_OPTIONS` DATA) with a *Scrambled
+board* toggle: every special tile spawns at a random eligible spot each new game
+(reuses the wheel-shuffle logic, now factored into `scrambledLayout`/`setSpecialTiles`;
+ladders/snakes never move). Off = classic layout every game, which also stops a
+mid-game 🌀 shuffle leaking into "Play again". All consumable cards now read
+"When used: …" and passives "Passive: …". Verified: 13/13 headless checks + a full
+4-bot game on a scrambled board to a winner.
+
+Before that (2026-07-05, later): **⚙️ Advanced settings on the setup screen** —
 a collapsible section under the player list with pull-down groups (`ADV_SECTIONS`
 registry); the first group, **🛒 Items**, lists every `SHOP_CATALOG` entry with an
 enable/disable checkbox (future items appear automatically; disabled items never hit

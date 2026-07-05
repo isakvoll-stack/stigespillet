@@ -714,16 +714,24 @@ const SHOP_CATALOG = [
   { id:"coffee", ico:"☕",  name:"Coffee",           kind:"consumable", cost:4,  enabled:true,
     desc:"When used: +4 to your next roll." },
   { id:"shield", ico:"🛡️", name:"Shield",           kind:"consumable", cost:6,  enabled:true,
-    desc:"Use it to raise a guard that blocks the next knockdown or freeze." },
+    desc:"When used: raises a guard that blocks the next knockdown or freeze." },
   { id:"clover", ico:"🍀", name:"Four-leaf Clover", kind:"consumable", cost:10, enabled:true,
-    desc:"Guarantees a 6 on your next roll." },
+    desc:"When used: guarantees a 6 on your next roll." },
   { id:"warhorn", ico:"📯", name:"War Horn",         kind:"consumable", cost:7,  enabled:true,
-    desc:"Blow it: a blast wave floors every rival standing on your row." },
+    desc:"When used: a blast wave floors every rival standing on your row." },
   { id:"shoes",  ico:"👟", name:"Running Shoes",    kind:"passive",    cost:10, enabled:true,
     desc:"Passive: +1 to every roll while worn." },
   { id:"gloves", ico:"🧤", name:"Thieves' Gloves",  kind:"passive",    cost:6,  enabled:true,
     desc:"Passive: steal a coin whenever you kick or bounce off a player." },
 ];
+/* ---- DATA: board options (Advanced settings → Board) -----------------
+   Setup-screen board toggles; the checkboxes write `enabled`, newGame
+   reads it via boardOpt(key). */
+const BOARD_OPTIONS = [
+  { key:"scrambledStart", ico:"🌀", name:"Scrambled board", enabled:false,
+    desc:"Every special tile starts at a random spot each new game." },
+];
+const boardOpt = key => { const o = BOARD_OPTIONS.find(b => b.key === key); return !!(o && o.enabled); };
 const BLUE_COLORS   = new Set(["#6fa8dc", FISH_COLOR]);   // light + dark blue squares (safe from the Nuke)
 function isBlueTile(cell){ return BLUE_COLORS.has(cellColor(cell)); }
 function isPlainTile(cell){
@@ -1655,6 +1663,7 @@ function newGame(roster){
   hideSecret();
   TRAP89_TILES.splice(0, Infinity, TRAP89.TILE);   // re-arm the tile-89 trapdoor for the new game
   RAD_TILES.splice(0, Infinity);                   // clear last game's fallout
+  setSpecialTiles(boardOpt("scrambledStart") ? scrambledLayout() : DEFAULT_SPECIALS);
   rulesSeen = {};
   buildBoard();
   buildTokens(count);
@@ -3902,44 +3911,42 @@ async function randomBoardEvent(p){
   await effects[(Math.random()*effects.length)|0]();
 }
 
-// Tile shuffle (🌀 slot): place every on-board player onto a random neutral tile
-// (not a snake head/tail or ladder top/bottom), skipping landing effects.
-async function shuffleTiles(){
-  // Collect every current special-tile position (these will be vacated then re-filled).
-  const oldPositions = [...TELEPORTERS, ...ORANGE_TILES, ...FREEZE_TILES, ...SHOP_TILES, ...FISH.TILES, ...SETBACK_TILES];
-
-  // Build a pool of eligible positions: not a snake/ladder tile, not start (1) or finish (90).
+// Special-tile placement. The canonical layout is captured at load; a scrambled
+// layout draws random eligible spots (not a snake/ladder tile, not start or finish).
+// Used by the wheel's 🌀 slot mid-game and by the Scrambled-board setup option.
+const DEFAULT_SPECIALS = { tp:[...TELEPORTERS], or:[...ORANGE_TILES], fz:[...FREEZE_TILES],
+                           sh:[...SHOP_TILES],  fi:[...FISH.TILES],   sb:[...SETBACK_TILES] };
+function scrambledLayout(){
   const pool = [];
   for (let i = 2; i < BOARD.WIN; i++){
     if (!(i in LADDERS) && !LADDER_TOPS.has(i) && !(i in SLIDES) && !SNAKE_TAILS.has(i)) pool.push(i);
   }
-
-  // Fisher-Yates shuffle the pool, then take the first N positions (N = total special tiles).
-  const total = TELEPORTERS.length + ORANGE_TILES.length + FREEZE_TILES.length + SHOP_TILES.length + FISH.TILES.length + SETBACK_TILES.length;
   for (let i = pool.length - 1; i > 0; i--){ const j = (Math.random()*(i+1))|0; [pool[i],pool[j]]=[pool[j],pool[i]]; }
-  const picks = pool.slice(0, total);
-
-  // Slice picks into per-type groups (same counts as before).
   let off = 0;
-  const newTp = picks.slice(off, off += TELEPORTERS.length);
-  const newOr = picks.slice(off, off += ORANGE_TILES.length);
-  const newFz = picks.slice(off, off += FREEZE_TILES.length);
-  const newSh = picks.slice(off, off += SHOP_TILES.length);
-  const newFi = picks.slice(off, off += FISH.TILES.length);
-  const newSb = picks.slice(off, off += SETBACK_TILES.length);   // the dark-red tile wanders too — high up, it's devastating
-
-  // Update the role arrays in-place: TILE_RULES holds live references to these same
-  // arrays, so logic checks AND tile colours (cellColor -> specialTileColor) follow along.
-  TELEPORTERS.splice(0, Infinity, ...newTp);
-  ORANGE_TILES.splice(0, Infinity, ...newOr);
-  FREEZE_TILES.splice(0, Infinity, ...newFz);
-  SHOP_TILES.splice(0, Infinity, ...newSh);
-  FISH.TILES.splice(0, Infinity, ...newFi);
-  SETBACK_TILES.splice(0, Infinity, ...newSb);
-
+  return { tp: pool.slice(off, off += TELEPORTERS.length),
+           or: pool.slice(off, off += ORANGE_TILES.length),
+           fz: pool.slice(off, off += FREEZE_TILES.length),
+           sh: pool.slice(off, off += SHOP_TILES.length),
+           fi: pool.slice(off, off += FISH.TILES.length),
+           sb: pool.slice(off, off += SETBACK_TILES.length) };   // the dark-red tile wanders too — high up, it's devastating
+}
+// Update the role arrays in-place: TILE_RULES holds live references to these same
+// arrays, so logic checks AND tile colours (cellColor -> specialTileColor) follow along.
+function setSpecialTiles(lay){
+  TELEPORTERS.splice(0, Infinity, ...lay.tp);
+  ORANGE_TILES.splice(0, Infinity, ...lay.or);
+  FREEZE_TILES.splice(0, Infinity, ...lay.fz);
+  SHOP_TILES.splice(0, Infinity, ...lay.sh);
+  FISH.TILES.splice(0, Infinity, ...lay.fi);
+  SETBACK_TILES.splice(0, Infinity, ...lay.sb);
+}
+// Tile shuffle (🌀 slot): every special tile moves to a new random spot mid-game.
+async function shuffleTiles(){
+  const oldPositions = [...TELEPORTERS, ...ORANGE_TILES, ...FREEZE_TILES, ...SHOP_TILES, ...FISH.TILES, ...SETBACK_TILES];
+  const lay = scrambledLayout();
+  setSpecialTiles(lay);
   // Repaint every affected cell (old positions cleared + new positions lit).
-  new Set([...oldPositions, ...picks]).forEach(n => repaintCell(n));
-
+  new Set([...oldPositions, ...lay.tp, ...lay.or, ...lay.fz, ...lay.sh, ...lay.fi, ...lay.sb]).forEach(n => repaintCell(n));
   SFX.play("teleport"); flashScreen();
   renderScoreboard();
   log(`🌀 The wheel reshuffled the board — all special tiles moved to new positions!`);
@@ -4284,15 +4291,17 @@ let setupNames = [];
 let setupBots = [];
 
 /* ---- advanced settings (setup screen) -------------------------------
-   Each entry is one pull-down group inside "Advanced settings". The Items
-   group reads SHOP_CATALOG, so every future catalog item shows up here
-   automatically; its checkbox writes the item's `enabled` flag, which is
-   what shopStock() filters on (shop + black market alike). */
+   Each entry is one pull-down group inside "Advanced settings", built as
+   checkbox rows over a DATA table (ico/name/desc/enabled per entry), so
+   new table entries show up here automatically. Items = SHOP_CATALOG
+   (enabled is what shopStock() filters on — shop + black market alike);
+   Board = BOARD_OPTIONS (read by newGame via boardOpt). */
 const ADV_SECTIONS = [
-  { id:"items", title:"🛒 Items", build: buildItemToggles },
+  { id:"items", title:"🛒 Items", entries: SHOP_CATALOG },
+  { id:"board", title:"🗺️ Board", entries: BOARD_OPTIONS },
 ];
-function buildItemToggles(list){
-  SHOP_CATALOG.forEach(item => {
+function buildToggleRows(list, entries){
+  entries.forEach(item => {
     const row = document.createElement("label"); row.className = "adv-item";
     const box = document.createElement("input"); box.type = "checkbox";
     box.checked = item.enabled;
@@ -4308,7 +4317,7 @@ function buildAdvanced(){
     const group = document.createElement("details"); group.className = "adv-group";
     const head = document.createElement("summary"); head.textContent = sec.title;
     const list = document.createElement("div"); list.className = "adv-list";
-    sec.build(list);
+    buildToggleRows(list, sec.entries);
     group.append(head, list); body.appendChild(group);
   });
 }

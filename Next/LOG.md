@@ -3,6 +3,34 @@
 Newest first. One entry per working session; note what shipped and what's next.
 
 ---
+## 2026-07-05 (evening) — scrambled-board option + item-text clarity pass
+
+Isak: (1) an advanced-settings option to start with a scrambled board, (2) check the
+other items are clear about on-use vs not. Built: new **🗺️ Board** group via a
+`BOARD_OPTIONS` DATA table (key/ico/name/desc/enabled + `boardOpt(key)`); the
+`ADV_SECTIONS` registry generalised — each group now declares an `entries` table and
+one generic `buildToggleRows` renders all groups. The wheel's 🌀 shuffle was factored
+into `scrambledLayout()` (pool → Fisher-Yates → per-type slices) + `setSpecialTiles()`
+(in-place splices, TILE_RULES follows) + `DEFAULT_SPECIALS` (canonical layout captured
+at load); `shuffleTiles()` keeps only the repaint + fx. `newGame` now calls
+`setSpecialTiles(boardOpt("scrambledStart") ? scrambledLayout() : DEFAULT_SPECIALS)`
+BEFORE `buildBoard()` (no repaint needed — buildBoard paints from the arrays).
+Side-effect fix: with the option off, every new game resets the canonical layout, so
+a mid-game 🌀 wheel shuffle no longer leaks into "Play again". Item descs: all
+consumables standardised to "When used: …" (Shield/Clover/War Horn rewritten — Clover
+was the genuinely unclear one), passives already read "Passive: …".
+
+Verified headless Edge: 13/13 targeted (2 groups, board toggle off by default,
+checkbox→flag, 10 scrambled newGames all valid — counts kept, tiles distinct, never
+on ladders/snakes/1/90 — and actually moved, scrambled shop paints gold, toggle-off
+restores canonical, wheel-shuffle leak fixed, desc convention) + a full 4-bot game on
+a scrambled board to a winner (24 rounds). Harness notes: stub rAF AND auto-fire
+`animationend`/`transitionend` via an EventTarget.addEventListener patch, or bot
+games crawl (~60 virtual s/turn) and never finish inside the budget; the embedded
+kill-voice `audio.play()` throws NotAllowedError headlessly (no user gesture) —
+ignore it. Screenshot eyeballed: both groups render correctly.
+
+---
 ## 2026-07-05 (later) — advanced settings + item toggles + inventory QoL
 
 Three-task batch from Isak. (1) **⚙️ Advanced settings** on the setup screen: a

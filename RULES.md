@@ -256,7 +256,17 @@ passive** at a time. *(Shelf size = `SHOP.STOCK`.)*
 **Item toggles:** on the *Choose players* screen, open **⚙️ Advanced settings → 🛒
 Items** to enable or disable any item. Disabled items never appear on the shop or
 black-market shelf (items already in someone's bag keep working). Every item in the
-catalog — current and future — shows up in this list automatically.
+catalog — current and future — shows up in this list automatically. Item cards
+follow one convention: consumables read **"When used: …"**, passives read
+**"Passive: …"**.
+
+**Board options:** **⚙️ Advanced settings → 🗺️ Board** holds board toggles
+(`BOARD_OPTIONS` DATA). **🌀 Scrambled board**: every special tile — teleporters,
+orange, freeze, shops, fishing and the dark-red setback — starts at a random
+eligible spot each new game (never on a ladder/snake tile, tile 1 or 90; ladders
+and snakes themselves never move). With it off, every new game uses the classic
+fixed layout — so a mid-game 🌀 wheel shuffle no longer carries over into the
+next game.
 
 **Consumables** (held in your bag; *used* from the inventory **before** you roll):
 
