@@ -655,6 +655,7 @@ const FEATURES = {
   secretSquare:  true,   // a hidden square before tile 1, only revealed when a backtrack lands someone on it
   blackMarket:   true,   // the secret square hosts a shady dealer: dynamic prices, shadier stock later
   shop:          true,   // gold squares open a shop to buy items with coins; use them from your inventory
+  shopPassby:    true,   // walking PAST a gold square pauses the move to browse the shop, then the move carries on
   coins:         true,   // players earn coins: rolling a 6, or landing on a plain BLUE tile
   setback:       true,   // one dark-red tile near the start sends you back to tile 1
   botThoughts:   true,   // bots pause to show the decision they're weighing (slower, watchable bot turns)
@@ -971,6 +972,7 @@ const COIN_FX = {                          // how each coin source announces its
   six:   { SOUND:false, POPS:0 },                          // rolled-6 bonus: silent — you only see it on the scoreboard
   plain: { SOUND:true,  POPS:0 },                          // yellow tile: the ping only, no icon
   blue:  { SOUND:true,  POPS:3, GAP_MS:100, SCALE:1.5 },   // blue tile: three big pops + three pings in quick succession
+  gold:  { SOUND:true,  POPS:8, GAP_MS:70,  SCALE:1.6 },   // wheel gold rain: a proper shower of pops
 };
 /* ---- DATA: the tile-89 trapdoor -------------------------------------
    One square from the finish, disguised as a plain tile: the FIRST player
@@ -985,6 +987,7 @@ const LUCKY     = { CHANCE:0.004, FORWARD:8 };  // ~0.4% per turn: sweep the las
 const FATE      = { CHANCE:0.0033 };            // ~0.33% per turn: leader and last place swap places (3x rarer)
 /* ---- DATA: fixed move/knock amounts (tiles) ------------------------ */
 const MOVE = { SUPPORT:5, WHEEL_NEXT:1, WHEEL_BIG:15, PILEUP_BACK:5 };  // support +5; wheel "next"/+15; chute pile-up knock-back
+const GOLD_RAIN = { COINS:50, DROP_ROWS:2, POP_WAIT_MS:700, FALL_MS:600 };   // wheel 💰: payout, rows hammered straight down, coin-shower pause, fall animation
 const GRAZE = { BACK_MIN:1, BACK_MAX:3, DOWN_CHANCE:0.10, RADIUS:40 }; // clipped by a passing slider: 1-3 back, rarely floored; RADIUS = px from the drawn snake curve
 const SLIDE_CURVE = { SEG_PX:26 };         // px per segment when sampling the wavy snake (drawing + graze checks share it)
 const KILLSTREAK = { MIN:3, LABELS:{ 3:"TRIPLE KILL", 4:"QUAD KILL" } }; // sniper multi-knockdown announcer (double kill retired)
@@ -1876,13 +1879,15 @@ async function moveCurrent(rollValue){
   // step the active token cell by cell (centred while in transit) — each
   // board step is a hop; the first move out of the START lane glides in
   let at = p.pos;
-  for (const c of path){
+  for (let k = 0; k < path.length; k++){
+    const c = path[k];
     p.pos = c;
     SFX.play("step");
     renderScoreboard();
     if (at >= 1) await hopToken(i, at, c, ANIM.STEP);
     else { moveTokenTo(i, c); await sleep(ANIM.STEP); }
     at = c;
+    if (k < path.length - 1) await shopPassby(p, c);
   }
   if (overshot) log(TXT.overshoot(BOARD.WIN));
 
@@ -3535,11 +3540,13 @@ async function advancePlayer(pl, n){
   const idx = idxOf(pl);
   const path = walkPath(pl.pos === 0 ? 0 : pl.pos, n);
   let at = pl.pos;
-  for (const c of path){
+  for (let k = 0; k < path.length; k++){
+    const c = path[k];
     pl.pos = c; SFX.play("step");
     if (at >= 1) await hopToken(idx, at, c, ANIM.STEP*0.7);
     else { moveTokenTo(idx, c); await sleep(ANIM.STEP*0.7); }
     at = c;
+    if (k < path.length - 1) await shopPassby(pl, c);
   }
   await resolveLanding(pl);             // ladder/chute/ice/teleporter all fire on arrival
   layoutTokens(); renderScoreboard();
@@ -3897,9 +3904,9 @@ async function revolverRoulette(p){
   await sleep(320); gun.remove(); dim.remove();
 }
 
-const WHEEL_LABELS = ["☢️","🔙","➡️","🚀","🎲","🎲","🌀"];   // nuke / start / next / +15 / random / random-target / tile-shuffle
-const WHEEL_COLORS = ["#d64541","#8e44ad","#2e86c1","#27ae60","#e67e22","#e84393","#17b5a3"];
-const WHEEL_PICKS  = ["nuke","start","next","move15","random","random_target","tile_shuffle"];
+const WHEEL_LABELS = ["☢️","🔙","➡️","🚀","🎲","🎲","🌀","💰"];   // nuke / start / next / +15 / random / random-target / tile-shuffle / gold-rain
+const WHEEL_COLORS = ["#d64541","#8e44ad","#2e86c1","#27ae60","#e67e22","#e84393","#17b5a3","#f1c40f"];
+const WHEEL_PICKS  = ["nuke","start","next","move15","random","random_target","tile_shuffle","gold_rain"];
 function wpol(cx,cy,r,deg){ const a = (deg-90)*Math.PI/180; return [cx+r*Math.cos(a), cy+r*Math.sin(a)]; }
 function buildWheel(){
   const g = document.getElementById("wheelSpin"); if (!g) return;
@@ -4033,6 +4040,30 @@ async function downYou(p){
   log(`🎲 Random: ${p.name} gets picked off and goes down!`);
   await sleep(400);
 }
+// The 💰 slice: a rain of gold pays out big, but its sheer weight hammers you
+// straight DOWN the board — same column, GOLD_RAIN.DROP_ROWS rows lower (fewer if
+// the floor is closer). On the bottom row there's nowhere to fall: you're flattened.
+async function goldRain(p){
+  awardCoin(p, "💰 Gold rain", GOLD_RAIN.COINS, "gold");
+  await sleep(GOLD_RAIN.POP_WAIT_MS);
+  const { row, col } = cellRC(p.pos);
+  let dest = null;
+  for (let d = GOLD_RAIN.DROP_ROWS; d >= 1 && dest === null; d--) dest = rcToCell(row + d, col);
+  if (dest === null){
+    SFX.play("kick");
+    downPlayer(p); layoutTokens(); renderScoreboard();
+    log(`💰 Nowhere to fall — the gold rain flattens ${p.name} where they stand!`);
+    await sleep(400);
+    return;
+  }
+  const from = p.pos;
+  p.pos = dest; SFX.play("chute");
+  log(`💰 The weight of the gold hammers ${p.name} straight down — ${from} → ${dest}!`);
+  await hopToken(idxOf(p), from, dest, GOLD_RAIN.FALL_MS);
+  layoutTokens(); renderScoreboard();
+  await resolveLanding(p);
+  layoutTokens(); renderScoreboard();
+}
 // Plain random event (🎲 slot): effects fire based on game state — lightning hits the
 // leader, the star carries the trailer, fate swaps leader and last. The spinner is not
 // necessarily involved. Matches the behaviour before the player-targeted slot was added.
@@ -4119,7 +4150,7 @@ async function randomWheelEffect(p){
 }
 
 async function spinWheel(p){
-  const idx = Math.floor(Math.random()*WHEEL_LABELS.length);   // uniform: 1/7 each
+  const idx = Math.floor(Math.random()*WHEEL_LABELS.length);   // uniform: one chance per slice
   const pick = WHEEL_PICKS[idx];
   await showWheel(idx);
   if (pick === "nuke"){ await nukeEveryone(""); }
@@ -4129,6 +4160,7 @@ async function spinWheel(p){
   else if (pick === "random"){ log(`🎲 Random event!`); await randomBoardEvent(p); }
   else if (pick === "random_target"){ log(`🎲 The wheel targets ${p.name}!`); await randomWheelEffect(p); }
   else if (pick === "tile_shuffle"){ log(`🌀 The wheel scrambled the board!`); await shuffleTiles(); }
+  else if (pick === "gold_rain"){ await goldRain(p); }
 }
 
 async function runSupport(p, allowBack){
@@ -4531,6 +4563,12 @@ function shopStock(){
   const pool = SHOP_CATALOG.filter(i => i.enabled);
   for (let i = pool.length - 1; i > 0; i--){ const j = (Math.random()*(i+1))|0; [pool[i],pool[j]] = [pool[j],pool[i]]; }
   return pool.slice(0, SHOP.STOCK);
+}
+// Merely WALKING PAST a gold square counts too: the move pauses at the shop door,
+// you browse (or wave it off), then the walk carries on to the landing square.
+async function shopPassby(p, cell){
+  if (!FEATURES.shop || !FEATURES.shopPassby || !SHOP_TILES.includes(cell)) return;
+  await runShop(p);
 }
 async function runShop(p){
   await revealRuleOnce("shop");

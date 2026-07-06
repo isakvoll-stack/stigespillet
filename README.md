@@ -53,6 +53,12 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
+Recently shipped (2026-07-06, later session): **💰 Gold-rain wheel slice + shop
+pass-by** — the wheel gained an 8th slice (50 coins, but the weight knocks you two
+rows *straight down* the board; flattened in place on the bottom row), and walking
+**past** a gold shop square now pauses the move to browse before carrying on
+(`FEATURES.shopPassby`). Machine-verified headless, 10/10 checks, 0 errors.
+
 Recently shipped (2026-07-06): **9 new items + black market v2-lite + QoL batch** —
 Isak's picks from the suggestions doc, all built and machine-verified (29/29 checks +
 a full 4-bot game, 0 errors):

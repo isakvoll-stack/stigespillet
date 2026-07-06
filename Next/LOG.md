@@ -3,6 +3,34 @@
 Newest first. One entry per working session; note what shipped and what's next.
 
 ---
+## 2026-07-06 (later) — 💰 Gold-rain wheel slice + shop pass-by
+
+Two rule edits Isak asked for directly:
+
+**💰 Gold rain (8th wheel slice)**: pays `GOLD_RAIN.COINS` (50) with a new `gold`
+coin-shower FX, then the weight hammers the spinner **two rows straight down** the
+board — same column via `cellRC`/`rcToCell`, *not* back along the path. Falls fewer
+rows if the floor is closer; on the bottom row there's nowhere to fall, so
+`downPlayer` flattens them in place. Ladders/chutes/tile rules fire on the landing
+square (`resolveLanding`). Tunables in `GOLD_RAIN`; handler `goldRain` next to the
+other wheel effects; slice added to the three `WHEEL_*` data arrays (odds now 1/8).
+
+**Shop pass-by** (`FEATURES.shopPassby`): stepping onto a gold square mid-move —
+without landing on it — pauses the walk and opens the shop (`shopPassby` helper →
+`runShop`; bots auto-spree as usual), then the move carries on. Wired into the step
+loops of BOTH `moveCurrent` and `advancePlayer` (indexed loops; the final path cell
+is excluded — landing is still the tile rule's job). Covers backwards radiation
+hops too.
+
+Machine-verified headless (10/10 checks, 0 errors): mid-board drop 43→25 +50 coins,
+bottom-row flatten, one-row fall 16→3, pass-by fires once passing tile 6, continues
+to landing square, and does NOT fire when landing on the shop. (Headless note:
+`requestAnimationFrame` needs a setTimeout shim under Edge `--headless=new
+--virtual-time-budget`, or every token tween hangs.)
+
+Open judgment call: from the second-to-bottom row the gold rain drops the single
+available row (still upright) rather than knocking over — flagged in QUESTIONS.md.
+
 ## 2026-07-06 — 9 new items + black market v2-lite + QoL batch (Isak's picks)
 
 Isak picked from `Next/SUGGESTIONS.md`: Monkey's Paw, Loaded Dice, Helmet, Crown,

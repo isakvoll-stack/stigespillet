@@ -200,15 +200,20 @@ places with the player **in last** — an instant, dramatic shake-up of the orde
 
 ### Orange choice — Wheel / Support / Gun (hidden rule)
 Land on an **orange square** and pick one of three:
-- **🎡 Wheel** — spin the wheel of fortune; each slice is **1-in-7**: **Nuke**
+- **🎡 Wheel** — spin the wheel of fortune; each slice is **1-in-8**: **Nuke**
   (knocks down everyone *not* standing on a blue tile), **back to start**,
   **forward one square**, **forward 15 squares**, **🎲 Random event** (fires a game
   event based on the current board state — lightning hits the leader, star carries
   the trailer, fate swaps leader and last; may also do nothing), **🎲 Random (targets
-  you)** (same pool of effects but all aimed at the spinner), or **🌀 Tile shuffle**
+  you)** (same pool of effects but all aimed at the spinner), **🌀 Tile shuffle**
   (every special tile — teleporters, orange, freeze, shops, fishing **and the dark-red
   setback square** — moves to a fresh random spot, avoiding snake and ladder squares.
-  A setback square reshuffled high up the board is devastating).
+  A setback square reshuffled high up the board is devastating), or **💰 Gold rain**
+  (a shower of **50 coins** — but the sheer weight of the falling gold hammers you
+  **two rows straight down** the board: same column, *not* back along the path.
+  If the floor is closer you fall as far as it goes; ladders, chutes and tile effects
+  fire where you land. On the **bottom row** there's nowhere to fall — you're simply
+  **knocked flat** where you stand. Amounts in `GOLD_RAIN`).
 - **🤝 Support** — pick another player and move **them** forward 5. Picking happens
   **on the board**: a light veil falls with spotlights on every candidate; hovering a
   player highlights them and previews **where they'd land** (dotted trail, plus the
@@ -269,6 +274,12 @@ Four **gold squares** are cabin shops (tiles **6, 28, 52, 75**). Land on one and
 full catalog each visit, and each item can be **bought only once per visit** (it shows
 as *sold out* after). You carry a small inventory: **up to 3 consumables plus 1
 passive** at a time. *(Shelf size = `SHOP.STOCK`.)*
+
+You don't even have to stop: **walking past** a shop square mid-move pauses your
+token at the shop door to browse (each pause is a fresh shelf), then the move
+carries on to where your roll was taking you. This fires on *every* pass — your
+own roll, wheel and support moves, even being dragged backwards. *(Toggle:
+`FEATURES.shopPassby`.)*
 
 **Item toggles:** on the *Choose players* screen, open **⚙️ Advanced settings → 🛒
 Items** to enable or disable any item. Disabled items never appear on the shop or

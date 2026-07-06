@@ -3,6 +3,16 @@
 Standing file: autonomous sessions log clarifications here instead of stopping to ask.
 Answer whenever — each answer gets folded in and the question checked off.
 
+## 2026-07-06 — from the gold-rain + shop pass-by session (defaults picked, say if wrong)
+
+- [ ] **Gold rain from the second-to-bottom row** — you specced "two rows down, and
+  on the bottom row you're knocked over". One row up from the bottom, only ONE row
+  of falling exists: today you fall that one row and stay upright. Should the
+  short fall knock you over too (took the full weight, less distance)?
+- [ ] **Bots browse on pass-by too** — every pass triggers the same shop for bots
+  (their usual auto-shopping-spree), so they'll snack on items far more often now.
+  Same rule for everyone felt fair; say if bots should only shop when they LAND.
+
 ## 2026-07-06 — from the 9-item + QoL batch (defaults picked, say if wrong)
 
 - [ ] **"The QoL idea"** — you said to add *"the QoL idea"* (singular); the
