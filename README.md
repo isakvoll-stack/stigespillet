@@ -13,10 +13,12 @@ offline. To share it, send `index.html` (and optionally `Play game.cmd`). You ca
 also just drag `index.html` onto an open browser window.
 
 ## How to play
-- **Title screen → Spill → Setup**: pick the player count (2–11), type a name for
-  each player, and set each seat to **Player** or **Bot** (toggle button on the
-  row), then **Start spillet**. The *Autonomous mode* checkbox makes **every** seat
-  a bot (the whole game plays itself).
+- **Title screen → Play → Game mode → Setup**: pick a mode (**🏁 Classic** race or
+  **🏆 King of the Hill** — most trophies after a set number of rounds; a slider
+  picks the rounds, defaulting to 6 × players), then the player count (2–11),
+  type a name for each player, and set each seat to **Player** or **Bot** (toggle
+  button on the row), then **Start game**. The *Autonomous mode* checkbox makes
+  **every** seat a bot (the whole game plays itself).
 - 2–11 players, hotseat (share one device). Bots take their own turns automatically.
 - Click the die (or press **SPACE / ENTER**) on your turn (human seats only).
 - **Stiger** (ladders) carry you up; **sklier** (slides) send you down.
@@ -53,7 +55,19 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
-Recently shipped (2026-07-06, later session): **💰 Gold-rain wheel slice + shop
+Recently shipped (2026-07-06, latest): **🏆 King of the Hill game mode + mode-select
+screen** — Play now opens a **Game mode** screen (`GAME_MODES` DATA table): 🏁 Classic
+or 🏆 King of the Hill. KOTH is a trophy hunt over a set number of rounds (setup-screen
+slider, default 6 × players): +1 trophy for starting your turn in sole 1st, +1 per fish
+caught, +10 for reaching tile 90 — then it's back to the start and the game rolls on.
+Most trophies when the rounds run out wins (ties → furthest up the board); the podium,
+leaderboard, scoreboard and a "Round X of Y" HUD line all show the count. Tunables in
+`KOTH`. Machine-verified: 29/29 headless checks + a full 40-round 4-bot KOTH game
+(organic laps in rounds 22 & 27) + a classic regression game, 0 JS errors. Queued next:
+Mario-Party-style end-of-game bonus trophies, and a **Family mode** rule walkthrough
+with Isak.
+
+Before that (2026-07-06, later session): **💰 Gold-rain wheel slice + shop
 pass-by + candle lightning** — the wheel gained an 8th slice (50 coins, but the
 weight knocks you two rows *straight down* the board; flattened in place on the
 bottom row), walking **past** a gold shop square now pauses the move to browse

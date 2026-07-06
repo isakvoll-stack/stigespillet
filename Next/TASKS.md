@@ -71,6 +71,33 @@ See `LOG.md` for the running session history.
 ---
 
 ## Done
+### 2026-07-06 — 🏆 King of the Hill game mode + mode-select screen (Isak's spec)
+- [x] **Game-mode screen**: Play → **Game mode** → Choose players (Back buttons walk
+      the chain in reverse; the in-game "New game" button also starts at the mode
+      screen). Modes come from the `GAME_MODES` DATA table — a future mode is one
+      new entry. `game.mode` carries the pick; "Play again" replays the same mode.
+- [x] **🏆 Rounds slider** on the setup screen (KOTH only): range 5–60, default
+      **6 × players** (5 players → 30, per Isak's "25–30 for a group of 5"),
+      follows the seat count until touched. Tunables in `KOTH`.
+- [x] **King of the Hill rules**: +1 trophy for starting your turn in **sole 1st**
+      (pos > 0); +1 per **fish caught**; **+10 for reaching tile 90**, then back
+      to the START lane (a lap — `p.laps`). A lap ends the move but a rolled 6
+      still re-rolls; all other rules play exactly as Classic. After the set
+      rounds, **most trophies wins** (tie → furthest up the board);
+      `finishKoth` podium + leaderboard show 🏆 counts.
+- [x] **Plumbing**: `finishPlayer` is now async and mode-aware (classic branch
+      untouched); all 4 win call-sites awaited; `afterKothLap` handles the
+      post-lap turn; round cap checked in `endTurn`; `awardTrophy` +
+      `iconPopup` (generalised `coinPopup`); 🏆 in scoreboard; "Round X of Y"
+      HUD line.
+- [x] **Verified headless Edge**: 29/29 checks ×2 runs (mode screen, slider
+      defaults/range/visibility, classic regression incl. a full bot game,
+      trophy sources incl. tie/start-lane guards, lap via roll / rolled-6 /
+      bounce / off-turn, round cap + tie-break, banner/scoreboard 🏆) + a full
+      **40-round 4-bot KOTH game** with organic laps in rounds 22 & 27, final
+      trophies 15/14/13/12, 0 JS errors. Defaults logged in QUESTIONS.md.
+- [ ] Queued follow-up: **Mario-Party end-of-game bonus trophies** (see Active).
+
 ### 2026-07-06 — 9-item batch + QoL from SUGGESTIONS.md (Isak's picks)
 - [x] **📦 Mystery Box (3)** — pops into a random enabled consumable (never another
       box); coins fallback if the pool is empty (`MYSTERY`).
@@ -263,10 +290,22 @@ See `LOG.md` for the running session history.
       winner with popups on, 0 JS errors. Screenshot eyeballed: arrows/pawns/popup OK.
 
 ### 2026-07-03 — queued from Isak's batch (not yet built)
-- [ ] **Title screen: add a game-mode selection screen.**
-- [ ] **Design new game mode — King of the Hill**: earn a trophy every round you hold
-      1st place + trophies for special goals; most trophies after a set number of
-      rounds wins.
+- [x] **Title screen: add a game-mode selection screen.** Built 2026-07-06 (Play →
+      Game mode → Choose players; `GAME_MODES` DATA table).
+- [x] **Design new game mode — King of the Hill**: built 2026-07-06 to Isak's full
+      spec (see the Done entry below).
+- [ ] **KOTH: Mario-Party-style bonus trophies at the end** (Isak, 2026-07-06):
+      when the rounds run out, hand out bonus trophies for side achievements
+      before crowning the winner (à la Mario Party's bonus stars). Needs a list of
+      bonus categories — candidates: most coins, most fish, most kicks/knockdowns,
+      most laps, most tiles travelled, most items used, unluckiest (most knocked
+      down). Design + build in a later session.
+- [ ] **Design game mode — «Family mode»** (Isak, 2026-07-06): a calmer, less
+      chaotic mode. ⚠ NOT an autonomous task: Isak wants to walk through the rule
+      list together and say which rules are on/off (and possibly add new ones).
+      Prep for that session: the mode-picker + `GAME_MODES` table are ready, and
+      every rule is already a `FEATURES` flag — Family mode will mostly be a
+      per-mode FEATURES preset.
 - [ ] **Black market v2 — design the real stock + costs** (delayed-cost "very powerful"
       items). Idea pool from Isak: passives you can never replace, going into debt,
       powerful items with horrible side effects, cursed items, pity items.

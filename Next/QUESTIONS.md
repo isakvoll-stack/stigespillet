@@ -3,6 +3,31 @@
 Standing file: autonomous sessions log clarifications here instead of stopping to ask.
 Answer whenever — each answer gets folded in and the question checked off.
 
+## 2026-07-06 — from the King of the Hill build (defaults picked, say if wrong)
+
+- [ ] **First-place trophy needs SOLE 1st** — you earn the trophy at the start of
+  your turn only when you're strictly ahead of everyone; a tie for the lead pays
+  nobody (same rule the 👑 Crown uses). Should a shared lead pay everyone tied?
+- [ ] **Downed/frozen leaders still collect** — position is position: starting your
+  turn in 1st pays even while lying down or frozen. Or should the trophy require
+  standing?
+- [ ] **Tie at the final whistle** — equal trophies is broken by who's furthest up
+  the board (then it's just standings order). Prefer a shared win, or a sudden-death
+  extra round?
+- [ ] **Reaching 90 on a rolled 6** — you bank the 10 trophies, walk back to start,
+  AND the 6 still gives another roll (from the start lane). Keep, or should a lap
+  always end the turn?
+- [ ] **Default rounds = 6 × players** (clamped 5–60): 5 players → 30, matching
+  your "25–30 for a group of 5". Slider on the setup screen adjusts freely. Happy
+  with the formula? (2 players → 12 might feel short.)
+- [ ] **All chaos rules stay on in KOTH** — sniper, lightning, items, everything
+  plays exactly as in Classic; only the goal changes. Anything you'd switch off in
+  this mode? (Family mode will get its own rule pass with you.)
+- [ ] **Balance observation from a 40-round 4-bot test game**: laps landed in rounds
+  22 and 27, final trophies 15/14/13/12 — holding the lead pays about as well as
+  lapping. At 25–30 rounds a lap weighs relatively more. Feels right, or should
+  the lap pay more than 10?
+
 ## 2026-07-06 — from the gold-rain + shop pass-by session (defaults picked, say if wrong)
 
 - [ ] **Gold rain from the second-to-bottom row** — you specced "two rows down, and

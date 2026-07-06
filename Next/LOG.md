@@ -3,6 +3,57 @@
 Newest first. One entry per working session; note what shipped and what's next.
 
 ---
+## 2026-07-06 (latest) — 🏆 King of the Hill mode + game-mode select screen (autonomous)
+
+Isak's spec, built start-to-finish autonomously: game modes pop up on Play, and
+King of the Hill = collect the most trophies inside a chosen number of rounds.
+
+**Mode screen**: new `screenMode` between title and setup (Play → mode → players;
+Back walks the chain in reverse; the in-game "New game" button starts at the mode
+screen too). Modes are a `GAME_MODES` DATA table — id/ico/name/desc — so a future
+mode (Family mode is queued) is one entry + its rules. `game.mode` carries the
+pick; "Play again" replays the same mode + rounds.
+
+**Rounds slider** (KOTH only, on the setup screen): `<input type=range>` 5–60
+with a live label; default **6 × players** (`KOTH.ROUNDS_PER_PLAYER`, clamped) —
+5 players → 30, straight from Isak's "25–30 sounds reasonable for a group of 5".
+It re-follows the seat count until the player drags it (`chosenRounds` 0 =
+untouched).
+
+**The mode itself** (all tunables in `KOTH`): `awardTrophy` (mode-gated no-op in
+Classic) + `iconPopup` (generalised from `coinPopup`, 🏆 pops staggered like the
+blue-coin fanfare, capped at `FX_MAX_POPS`). Sources: start-of-turn **sole-1st**
+check in `startTurn` (same predicate as the Crown, pos > 0 so the start lane
+never pays); **fish catch** in `runFishing`; **tile 90** in `finishPlayer`, which
+is now async + mode-aware — the KOTH branch banks `TROPHY_WIN`, bumps `p.laps`,
+confettis, and walks the runner back to `pos 0`. `afterKothLap` gives the post-lap
+turn its ending (a rolled 6 still re-rolls, from the start lane); the
+mid-encounter bounce-onto-90 case is caught by a `p.laps` delta in `moveCurrent`.
+`endTurn` checks the round cap and calls `finishKoth`: sort by trophies (tie →
+board position), same podium/leaderboard with 🏆 counts appended. Scoreboard
+shows 🏆N; HUD gained a "Round X of Y" line. Classic paths behave exactly as
+before (the classic branch of `finishPlayer` is untouched; all 4 call sites
+awaited).
+
+**Verified headless Edge** (`--headless=new --virtual-time-budget`, rAF shim +
+an animationend shim for the gun cutscene): **29/29 checks** — mode screen,
+slider defaults/range/hidden-in-classic, classic regression (fields, finish,
+banner without 🏆, awardTrophy no-op), KOTH defaults/explicit rounds/HUD line,
+lap via direct call / rolled 5 / rolled 6 (keeps turn) / bounce mid-encounter /
+off-turn `resolveLanding`, sole-1st + tie + start-lane guards, fish trophy,
+round-cap end with trophy-then-position tie-break — plus a full **40-round
+4-bot KOTH game** (organic laps in rounds 22 & 27; final 15/14/13/12 — lead-
+holding and lapping pay comparably at 40 rounds) and a full classic 4-bot game.
+0 JS errors. Harness note: full bot games need `SPEED.fastForward` + botThoughts
+off to fit the virtual-time budget.
+
+**Queued** (Isak's asks): Mario-Party-style **end-of-game bonus trophies**
+(needs a category list — candidates logged in TASKS.md) and the **Family mode**
+rule walkthrough (explicitly a WITH-Isak session, not autonomous). Defaults
+logged in QUESTIONS.md (sole-1st, downed leaders collect, tie rule, 6-re-roll
+after a lap, rounds formula, all-chaos-rules-on).
+
+---
 ## 2026-07-06 (later) — 💰 Gold-rain wheel slice + shop pass-by + candle-lightning
 
 Three rule edits Isak asked for directly:

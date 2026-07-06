@@ -5,13 +5,33 @@ A summer-themed Norwegian *stigespill* (snakes & ladders). Single self-contained
 
 ---
 
+## Game modes
+Pressing **Play** first asks which mode to play (the *Game mode* screen; modes
+live in the `GAME_MODES` DATA table):
+
+- **🏁 Classic** — the original race, described under *Goal* below.
+- **🏆 King of the Hill** — a trophy hunt over a fixed number of rounds. The
+  setup screen gains a **Rounds slider** (5–60; the default is **6 × players**,
+  so 5 players ≈ 30 rounds — it follows the player count until you move it).
+  Every other rule plays exactly as Classic; only the goal changes. Trophies:
+  - **+1** for starting your turn in **sole 1st place** (ties pay nobody; the
+    start lane doesn't count).
+  - **+1** for every **fish you catch**.
+  - **+10** for reaching **tile 90** — you celebrate a *lap* and walk back to
+    the **start lane**. The game rolls on; landing there on a rolled 6 still
+    grants the extra roll.
+  - When the rounds run out, **most trophies takes the hill**. A tie is broken
+    by whoever is **furthest up the board**. The podium and leaderboard show
+    everyone's 🏆 count, and the HUD shows *Round X of Y* all game.
+  *(All payouts + the rounds formula are tunables in the `KOTH` DATA block.)*
+
 ## Goal
 Be the **first** player to land **exactly** on the final square (**tile 90**) —
 that player **wins**. The game then ends and everyone is ranked: 1st is the
 winner, and the rest are ordered by how far up the board they are. The end screen
 shows a **podium** (1st 🥇 in the centre, 2nd 🥈 and 3rd 🥉 either side, with 4th
 and 5th on the sides when there are enough players) followed by a full
-**leaderboard**.
+**leaderboard**. *(In King of the Hill the same podium ranks by trophies instead.)*
 
 ## The board
 - **9 × 10 = 90 tiles**, numbered 1 (bottom-left) → 90 (top-left) in a

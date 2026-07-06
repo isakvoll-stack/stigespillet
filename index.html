@@ -140,6 +140,18 @@
   .adv-item input{width:17px;height:17px;flex:none;accent-color:var(--barn-red);cursor:pointer}
   .adv-item .adv-desc{opacity:.65;font-size:12.5px}
 
+  /* game-mode picker + King-of-the-Hill rounds slider */
+  .modelist{display:flex;flex-direction:column;gap:10px;margin:6px 0 14px}
+  .modebtn{display:flex;align-items:center;gap:14px;text-align:left;font:inherit;cursor:pointer;
+    background:rgba(0,0,0,.16);border:1px solid var(--brass);border-radius:12px;padding:12px 14px;color:var(--cream)}
+  .modebtn:hover{background:rgba(212,166,86,.18)}
+  .modebtn .mico{font-size:30px;line-height:1;flex:none}
+  .modebtn .mname{display:block;font-weight:800;font-size:17px}
+  .modebtn .mdesc{display:block;font-size:13px;opacity:.75;margin-top:2px}
+  .rounds{margin:2px 0 12px;color:var(--cream);font-size:14px}
+  .rounds .rounds-label{margin-bottom:4px;font-weight:700}
+  .rounds input{width:85%;accent-color:var(--barn-red);cursor:pointer}
+
   /* hidden-rule reveal + bounce/kick choice modals */
   .modal{position:fixed;inset:0;display:none;place-items:center;background:rgba(20,30,15,.55);z-index:6;padding:20px}
   .modal.show{display:grid}
@@ -406,6 +418,7 @@
           <span id="turnName">—</span>
         </div>
         <div class="turn-sub" id="turnSub"></div>
+        <div class="turn-sub" id="roundLine" style="display:none"></div>
         <div class="dice-row">
           <div class="die disabled" id="die" data-face="1" title="Roll the die">
             <span class="pip"></span><span class="pip"></span><span class="pip"></span>
@@ -483,6 +496,15 @@
     </div>
   </div>
 
+  <div class="screen" id="screenMode">
+    <div class="sheet">
+      <h2>Game mode</h2>
+      <p class="sub">how do you want to play?</p>
+      <div class="modelist" id="modeList"></div>
+      <button class="btn ghost" id="modeBack">Back</button>
+    </div>
+  </div>
+
   <div class="screen" id="screenSettings">
     <div class="sheet">
       <h2>Settings</h2>
@@ -496,13 +518,17 @@
   <div class="screen" id="screenSetup">
     <div class="sheet">
       <h2>Choose players</h2>
-      <p class="sub">up to 11 players · name them · set each to Player or Bot</p>
+      <p class="sub" id="setupSub">up to 11 players · name them · set each to Player or Bot</p>
       <div class="setup-count">
         <button class="seat-opt" id="seatMinus">−</button>
         <div class="seat-label" id="setupCount">2 players</div>
         <button class="seat-opt" id="seatPlus">+</button>
       </div>
       <div class="namelist" id="nameList"></div>
+      <div class="rounds" id="roundsRow" style="display:none">
+        <div class="rounds-label">🏆 Rounds: <b id="roundsVal"></b></div>
+        <input type="range" id="roundsRange">
+      </div>
       <label class="toggle"><input type="checkbox" id="autoMode"> Autonomous mode (make every player a bot)</label>
       <details class="adv" id="advSettings">
         <summary>⚙️ Advanced settings</summary>
@@ -768,6 +794,26 @@ const BOARD_OPTIONS = [
     desc:"Every special tile starts at a random spot each new game." },
 ];
 const boardOpt = key => { const o = BOARD_OPTIONS.find(b => b.key === key); return !!(o && o.enabled); };
+/* ---- DATA: game modes -------------------------------------------------
+   Picked on the mode screen (Play → mode → players). Classic is the
+   original race; King of the Hill is a trophy hunt over a set number of
+   rounds. The chosen mode lives on `game.mode`; every trophy tunable is
+   in KOTH. */
+const GAME_MODES = [
+  { id:"classic", ico:"🏁", name:"Classic",
+    desc:"The race: first to reach tile 90 wins." },
+  { id:"koth",    ico:"🏆", name:"King of the Hill",
+    desc:"Trophy hunt: lead the pack, catch fish, reach the top — most trophies when the rounds run out wins." },
+];
+const KOTH = {
+  ROUNDS_PER_PLAYER:6, ROUNDS_MIN:5, ROUNDS_MAX:60,  // default rounds = players × 6 (5 players → 30); slider range
+  TROPHY_LEAD:1,      // starting your turn in sole 1st place
+  TROPHY_FISH:1,      // catching a fish
+  TROPHY_WIN:10,      // reaching tile 90 — the runner then walks back to the start
+  LAP_PAUSE_MS:900, LAP_CONFETTI:45,                 // summit celebration before the walk of fame back down
+  FX_MAX_POPS:5, FX_GAP_MS:110, FX_SCALE:1.4,        // 🏆 pops per award (a 10-trophy haul shows 5 pops)
+};
+const defaultRounds = n => Math.min(KOTH.ROUNDS_MAX, Math.max(KOTH.ROUNDS_MIN, n * KOTH.ROUNDS_PER_PLAYER));
 const BLUE_COLORS   = new Set(["#6fa8dc", FISH_COLOR]);   // light + dark blue squares (safe from the Nuke)
 function isBlueTile(cell){ return BLUE_COLORS.has(cellColor(cell)); }
 function isPlainTile(cell){
@@ -1714,8 +1760,10 @@ function newGame(roster){
       items:[], passive:null, rollBonus:0, forceSix:false, coins:0,
       radSick:false, radTurns:0, radLevel:0, radImmune:false, shieldOn:false,
       mirrorOn:false, forceRoll:0, diceCharges:0, curseRolls:0,
+      trophies:0, laps:0,
     })),
     current:0, winner:null, over:false, busy:false, round:1, autonomous: !!(roster[0] && roster[0].bot),
+    mode: chosenMode, maxRounds: chosenMode === "koth" ? (chosenRounds || defaultRounds(count)) : 0,
     standings: null, fishStreak: 0, fishCaught: 0, marketVisits: 0, traps: [],
   };
   hideSecret();
@@ -1739,6 +1787,9 @@ function refreshHUD(){
   document.getElementById("turnName").textContent = `${p.name} ${TXT.turnSuffix}`;
   const sub = document.getElementById("turnSub");
   const hint = document.getElementById("rollHint");
+  const roundLine = document.getElementById("roundLine");
+  roundLine.style.display = isKoth() ? "" : "none";
+  if (isKoth()) roundLine.textContent = `🏆 Round ${Math.min(game.round, game.maxRounds)} of ${game.maxRounds}`;
   if (game.winner){
     sub.textContent = "";
     hint.innerHTML = "";
@@ -1773,7 +1824,8 @@ function renderScoreboard(){
     const bagMark  = (p.items||[]).map(id=>itemDef(id).ico).join("");
     const passMark = p.passive ? itemDef(p.passive).ico : "";
     const shopMark = (bagMark || passMark) ? " " + bagMark + passMark : "";
-    const mark = (p.finished ? " "+medal : "") + (p.downed ? (p.frozen ? " 🧊" : " 🤕") : "")
+    const mark = (isKoth() && (p.trophies||0) > 0 ? " 🏆"+p.trophies : "")
+               + (p.finished ? " "+medal : "") + (p.downed ? (p.frozen ? " 🧊" : " 🤕") : "")
                + (p.sniper ? " 🎯" : "") + (p.shame>0 ? " 😳" : "")
                + (p.fish>0 ? " 🐟"+(p.fish>1?p.fish:"") : "") + shopMark + (p.mirrorOn ? " 🪞" : "")
                + (p.coins>0 ? " 🪙"+p.coins : "")
@@ -1895,8 +1947,14 @@ async function moveCurrent(rollValue){
   if (!(await applyLink(p, i))) log(TXT.moved(from, landed));
   layoutTokens(); renderScoreboard();
 
-  // reached the finish? first one out wins; the game ends and ranks everyone
-  if (p.pos === BOARD.WIN){ finishPlayer(p); return; }
+  // reached the finish? Classic ends the game; a KOTH lap banks trophies and
+  // puts the runner back in the START lane, where only the 6 rule still applies
+  if (p.pos === BOARD.WIN){
+    await finishPlayer(p);
+    if (game.over) return;
+    await afterKothLap(p, rollValue);
+    return;
+  }
 
   // A 6 means another roll is still coming, so the square you're on isn't your
   // final stop yet. Choice/minigame tiles (fishing, teleporter, orange, shop,
@@ -1908,8 +1966,10 @@ async function moveCurrent(rollValue){
   // Bounce forward and you leave this square (so its event never fires for you);
   // kick the occupant back and you keep the square, so its event triggers below.
   if (FEATURES.encounter){
+    const lapsBefore = p.laps || 0;
     await resolveEncounters(p);
     if (game.over) return;
+    if ((p.laps||0) > lapsBefore){ await afterKothLap(p, rollValue); return; }   // bounced onto the top mid-chain
   }
 
   // a planted banana peel fires before the tile itself gets a say
@@ -1991,15 +2051,67 @@ function hidePrompt(){ document.getElementById("prompt").classList.remove("show"
 
 /* ---- finishing (top-3 podium) / ladder-or-slide / encounter -------- */
 const MEDALS = ["🥇","🥈","🥉"];
-// The first player to the exit wins; the game then ends and everyone is ranked:
-// place 1 = the winner, the rest by how far up the board they are.
-function finishPlayer(p){
+const isKoth = () => !!game && game.mode === "koth";
+// Reaching tile 90, by mode. Classic: the first player there wins, the game
+// ends and everyone is ranked. King of the Hill: the summit pays trophies
+// and the runner walks back to the start — the game rolls on.
+async function finishPlayer(p){
+  if (isKoth()){
+    p.laps = (p.laps||0) + 1;
+    SFX.play("win");
+    confettiBurst(KOTH.LAP_CONFETTI);
+    awardTrophy(p, "🏔️ Reached the top", KOTH.TROPHY_WIN);
+    await sleep(ffms(KOTH.LAP_PAUSE_MS));
+    p.pos = 0; p.onSecret = false;
+    log(`${p.name} heads back down to the start.`);
+    layoutTokens(); renderScoreboard();
+    return;
+  }
   game.over = true; game.winner = p;
   const rest = game.players.filter(q => q !== p).sort((a,b) => b.pos - a.pos);
   game.standings = [p, ...rest];
   game.standings.forEach((q,idx) => { q.place = idx + 1; });
   SFX.play("win");
   log(`${p.name} reached the exit and wins! 🥇`, "win");
+  showStandings();
+  game.busy = false; refreshHUD();
+}
+
+/* ---- King of the Hill: trophies + the final whistle ----------------- */
+function awardTrophy(p, reason, n){
+  if (!isKoth()) return;
+  const k = n === undefined ? 1 : n;
+  if (k < 1) return;
+  p.trophies = (p.trophies||0) + k;
+  const pops = Math.min(k, KOTH.FX_MAX_POPS);
+  for (let i = 0; i < pops; i++)
+    setTimeout(()=>{ SFX.play("coin"); iconPopup(p, "🏆", 1, KOTH.FX_SCALE); }, i * KOTH.FX_GAP_MS);
+  log(`🏆 ${reason} — ${p.name} earns ${k === 1 ? "a trophy" : k + " trophies"}! (${p.trophies} total)`);
+  renderScoreboard();
+}
+
+// After a lap the runner stands in the START lane, where no tile logic
+// applies; only the roll-again rule is still honoured before the turn passes.
+async function afterKothLap(p, rollValue){
+  if (FEATURES.sixRollsAgain && rollValue === RULES.DICE_SIDES){
+    if (FEATURES.coins) awardCoin(p, "Rolled a 6", 1, "six");
+    log(TXT.rollAgain);
+    game.busy = false; refreshHUD(); maybeAuto();
+  } else {
+    await endTurn();
+  }
+}
+
+// Time is up: most trophies takes the hill (ties go to whoever is furthest up
+// the board), and everyone is ranked the same way for the podium.
+function finishKoth(){
+  game.over = true;
+  const s = [...game.players].sort((a,b) => ((b.trophies||0) - (a.trophies||0)) || (b.pos - a.pos));
+  game.winner = s[0];
+  game.standings = s;
+  s.forEach((q,idx) => { q.place = idx + 1; });
+  SFX.play("win");
+  log(`⏰ Time! ${game.winner.name} takes the hill with ${game.winner.trophies||0} 🏆!`, "win");
   showStandings();
   game.busy = false; refreshHUD();
 }
@@ -2055,7 +2167,7 @@ async function resolveEncounters(p){
       await sleep(ANIM.STEP + 60);
       await applyLink(p, i);            // a bounce onto a ladder/chute takes effect
       renderScoreboard();
-      if (p.pos === BOARD.WIN){ finishPlayer(p); return; }
+      if (p.pos === BOARD.WIN){ await finishPlayer(p); return; }
       // loop: a fresh head on the next square earns another choice
     } else {
       const victim = others[(Math.random()*others.length)|0];   // kick ONE random occupant
@@ -2420,11 +2532,12 @@ function updateShield(i){
 }
 function refreshBadges(){ if (game) game.players.forEach((_,i)=>{ updateShame(i); updateShield(i); }); }
 
-// Mario-style coin pop: a coin rises off the player's head and fades.
-function coinPopup(p, n, scale){
+// Mario-style pop: an icon (coin, trophy …) rises off the player's head and fades.
+function coinPopup(p, n, scale){ iconPopup(p, "🪙", n, scale); }
+function iconPopup(p, ico, n, scale){
   const g = tokenEls[idxOf(p)]; if (!g) return;
   const t = el("text",{y:-60,"text-anchor":"middle","font-size":20*TOKEN.ICON_SCALE*(scale||1)});
-  t.textContent = n > 1 ? `🪙×${n}` : "🪙";
+  t.textContent = n > 1 ? `${ico}×${n}` : ico;
   t.style.transition = "transform .8s ease-out, opacity .8s ease-out";
   g.appendChild(t);
   requestAnimationFrame(()=>{ t.style.transform = "translateY(-26px)"; t.style.opacity = "0"; });
@@ -2471,6 +2584,9 @@ async function startTurn(){
   if (FEATURES.shop && cur.passive === "crown" && cur.pos > 0 && !cur.finished
       && game.players.every(q => q === cur || q.finished || q.pos < cur.pos))
     awardCoin(cur, "👑 Leading the pack", CROWN_COINS, "plain");
+  // King of the Hill: starting your turn in sole 1st place pays a trophy
+  if (isKoth() && cur.pos > 0 && game.players.every(q => q === cur || q.pos < cur.pos))
+    awardTrophy(cur, "👑 First place", KOTH.TROPHY_LEAD);
   // shame countdown -> the kicker eventually collapses (and needs a harder roll to rise)
   if (cur.shame > 0){
     cur.shame--;
@@ -2507,7 +2623,11 @@ async function endTurn(){
   do { c = (c + 1) % n; } while (game.players[c].finished && c !== prev);
   game.current = c;
   game.autonomous = !!game.players[c].bot;                 // auto-drive this turn only if it's a bot
-  if (c <= prev){ game.round++; grantSniperIfDue(); }      // wrapped past the end -> new round
+  if (c <= prev){                                          // wrapped past the end -> new round
+    game.round++;
+    if (isKoth() && game.round > game.maxRounds){ finishKoth(); return; }   // the final whistle
+    grantSniperIfDue();
+  }
   game.busy = false; refreshHUD();
   await startTurn();
 }
@@ -3066,6 +3186,7 @@ async function runFishing(p){
     game.fishCaught = (game.fishCaught || 0) + 1;
     SFX.play("catch");
     log(`${p.name} caught a fish! 🐟`);
+    awardTrophy(p, "🐟 A catch", KOTH.TROPHY_FISH);
     renderScoreboard();
   } else {
     game.fishStreak = 0;
@@ -3528,7 +3649,7 @@ async function resolveLanding(pl, depth, skipTeleport){
   if (linkAt(pl.pos)){
     await applyLink(pl, idxOf(pl), depth);
     if (game.over) return;
-    if (pl.pos === BOARD.WIN){ finishPlayer(pl); return; }
+    if (pl.pos === BOARD.WIN){ await finishPlayer(pl); return; }
     return resolveLanding(pl, depth+1);
   }
   // a planted banana peel fires before the tile rules get a say
@@ -3536,7 +3657,7 @@ async function resolveLanding(pl, depth, skipTeleport){
   // hand the landing to the tile-rule registry (offTurn path); a rule that
   // fires ends the cascade — a frozen player is stuck, a setback is final
   if (await runTileRules(pl, {offTurn:true, depth, skipTeleport})) return;
-  if (pl.pos === BOARD.WIN) finishPlayer(pl);
+  if (pl.pos === BOARD.WIN) await finishPlayer(pl);
 }
 
 // Walk a player N spaces (bounce-aware), apply a ladder/chute, check the win.
@@ -4673,6 +4794,7 @@ async function runOrange(p){
 /* ---- banner / final standings -------------------------------------- */
 function showStandings(){
   const s = game.standings;
+  const trophies = p => isKoth() ? ` 🏆${p.trophies||0}` : "";
   const heights = {1:96, 2:74, 3:58, 4:42, 5:42};
   // podium order across the screen: 4th · 2nd · 1st · 3rd · 5th (sides only if enough)
   const order = [4,2,1,3,5].filter(pl => s.length >= pl);
@@ -4680,7 +4802,7 @@ function showStandings(){
   order.forEach(pl => {
     const p = s[pl-1];
     pod += `<div class="pcol${pl<=3?" top3":""}">` +
-             `<div class="pname">${MEDALS[pl-1]||""} ${p.name}</div>` +
+             `<div class="pname">${MEDALS[pl-1]||""} ${p.name}${trophies(p)}</div>` +
              `<div class="pbar" style="height:${heights[pl]}px;background:${p.color}">${pl}</div>` +
            `</div>`;
   });
@@ -4688,7 +4810,7 @@ function showStandings(){
   let lb = '<div class="lbtitle">Leaderboard</div><div class="lb">';
   s.forEach((p,idx) => {
     lb += `<div class="lbrow"><span>${idx+1}. ${MEDALS[idx]||""}</span>` +
-          `<b style="color:${p.color}">${p.name}</b></div>`;
+          `<b style="color:${p.color}">${p.name}</b>${trophies(p)}</div>`;
   });
   lb += '</div>';
   document.getElementById("bannerText").innerHTML = pod + lb;
@@ -4701,6 +4823,33 @@ function hideBanner(){ document.getElementById("banner").classList.remove("show"
 let chosenSeats = 2;
 let setupNames = [];
 let setupBots = [];
+let chosenMode = "classic";
+let chosenRounds = 0;        // 0 = follow the player-count default until the slider is touched
+
+/* ---- game-mode screen (Play → pick a mode → players) --------------- */
+function buildModeScreen(){
+  const list = document.getElementById("modeList");
+  list.innerHTML = "";
+  GAME_MODES.forEach(m => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "modebtn";
+    b.innerHTML = `<span class="mico">${m.ico}</span>` +
+                  `<span><span class="mname">${m.name}</span><span class="mdesc">${m.desc}</span></span>`;
+    b.onclick = () => { chosenMode = m.id; openSetup(); };
+    list.appendChild(b);
+  });
+}
+
+// The KOTH rounds slider on the setup screen: hidden in Classic; its default
+// follows the seat count until the player drags it themselves.
+function buildRoundsRow(){
+  document.getElementById("roundsRow").style.display = chosenMode === "koth" ? "" : "none";
+  if (chosenMode !== "koth") return;
+  const r = document.getElementById("roundsRange");
+  r.min = KOTH.ROUNDS_MIN; r.max = KOTH.ROUNDS_MAX;
+  r.value = chosenRounds || defaultRounds(chosenSeats);
+  document.getElementById("roundsVal").textContent = r.value;
+}
 
 /* ---- advanced settings (setup screen) -------------------------------
    Each entry is one pull-down group inside "Advanced settings", built as
@@ -4738,9 +4887,10 @@ function buildAdvanced(){
 /* ---- screen flow: title -> setup -> game --------------------------- */
 function showScreen(which){
   document.getElementById("screenTitle").classList.toggle("show", which==="title");
+  document.getElementById("screenMode").classList.toggle("show", which==="mode");
   document.getElementById("screenSetup").classList.toggle("show", which==="setup");
   document.getElementById("screenSettings").classList.toggle("show", which==="settings");
-  // "game" simply hides both overlays, revealing the board underneath
+  // "game" simply hides all overlays, revealing the board underneath
 }
 
 function openSetup(){
@@ -4749,12 +4899,15 @@ function openSetup(){
     setupNames = game.players.map(p=>p.name);
     setupBots  = game.players.map(p=>!!p.bot);
   }
+  const m = GAME_MODES.find(x => x.id === chosenMode) || GAME_MODES[0];
+  document.getElementById("setupSub").textContent = `${m.ico} ${m.name} · name them · set each to Player or Bot`;
   buildSetup();
   showScreen("setup");
 }
 
 function buildSetup(){
   document.getElementById("setupCount").textContent = chosenSeats + " players";
+  buildRoundsRow();
   const list = document.getElementById("nameList");
   list.innerHTML = "";
   for (let i=0;i<chosenSeats;i++){
@@ -4860,7 +5013,12 @@ document.getElementById("optGun").addEventListener("click", ()=>{ if (orangeReso
 
 document.getElementById("invBtn").addEventListener("click", openInventory);
 document.getElementById("invDone").addEventListener("click", closeInventory);
-document.getElementById("playBtn").addEventListener("click", openSetup);
+document.getElementById("playBtn").addEventListener("click", ()=>showScreen("mode"));
+document.getElementById("modeBack").addEventListener("click", ()=>showScreen("title"));
+document.getElementById("roundsRange").addEventListener("input", e=>{
+  chosenRounds = +e.target.value;
+  document.getElementById("roundsVal").textContent = e.target.value;
+});
 document.getElementById("settingsBtn").addEventListener("click", ()=>{
   document.getElementById("optBotThoughts").checked = FEATURES.botThoughts;
   document.getElementById("optFastForward").checked = SPEED.fastForward;
@@ -4874,8 +5032,8 @@ document.getElementById("optVolume").addEventListener("change", e=>{
   SOUND.VOLUME = Math.min(1, Math.max(0, (+e.target.value)/100));
   saveSettings(); SFX.play("coin");                      // a taste of the new level
 });
-document.getElementById("toSetup").addEventListener("click", openSetup);
-document.getElementById("backBtn").addEventListener("click", ()=>showScreen("title"));
+document.getElementById("toSetup").addEventListener("click", ()=>showScreen("mode"));
+document.getElementById("backBtn").addEventListener("click", ()=>showScreen("mode"));
 document.getElementById("seatMinus").addEventListener("click", ()=>{ chosenSeats=Math.max(2,chosenSeats-1); buildSetup(); });
 document.getElementById("seatPlus").addEventListener("click", ()=>{ chosenSeats=Math.min(MAX_PLAYERS,chosenSeats+1); buildSetup(); });
 document.getElementById("startBtn").addEventListener("click", startFromSetup);
@@ -4888,6 +5046,7 @@ loadSettings();                  // restore remembered toggles BEFORE the checkb
 makeSnow(38);
 makeClouds(5);
 buildWheel();
+buildModeScreen();
 buildAdvanced();
 showScreen("title");
 
