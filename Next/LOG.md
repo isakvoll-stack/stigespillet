@@ -3,9 +3,18 @@
 Newest first. One entry per working session; note what shipped and what's next.
 
 ---
-## 2026-07-06 (later) — 💰 Gold-rain wheel slice + shop pass-by
+## 2026-07-06 (later) — 💰 Gold-rain wheel slice + shop pass-by + candle-lightning
 
-Two rule edits Isak asked for directly:
+Three rule edits Isak asked for directly:
+
+**🕯️→🌩️ Soul Candle lightning penalty**: a candle holder struck by lightning is
+hurled `CANDLE.LIGHTNING_MULT` (2×) times as far back — `lightningStrike` scales
+`LIGHTNING.BACK` when `victim.passive === "soulcandle"`, with its own log line
+(dynamic distance, no hardcoded "twice"). Applies to every strike path (rare event,
+which already homes in on candle holders, and the 🎲 random-target wheel effect).
+Item card stays atmospheric ("the sky takes notice"); detail in RULES.md.
+Verified in the same harness (14/14 now): plain strike 30→23 (7 back), candle
+strike 60→46 (14 back), both downed.
 
 **💰 Gold rain (8th wheel slice)**: pays `GOLD_RAIN.COINS` (50) with a new `gold`
 coin-shower FX, then the weight hammers the spinner **two rows straight down** the

@@ -759,7 +759,7 @@ const MYSTERY  = { FALLBACK_COINS:3 };           // if no item can pop out, the 
 const HELMET_GETUP = 1;                          // Helmet wearers rise on any roll
 const CROWN_COINS  = 1;                          // paid at the start of each round spent in the lead
 const LOADED   = { CHARGES:3, CURSE_ROLLS:3 };   // picked faces per purchase; forced 1s once the charges run dry
-const CANDLE   = { BONUS:2 };                    // the Soul Candle's permanent stride
+const CANDLE   = { BONUS:2, LIGHTNING_MULT:2 };  // the Soul Candle's permanent stride; lightning hurls a candle holder this many times further back
 /* ---- DATA: board options (Advanced settings → Board) -----------------
    Setup-screen board toggles; the checkboxes write `enabled`, newGame
    reads it via boardOpt(key). */
@@ -3276,12 +3276,16 @@ async function lightningStrike(victim){
   if (!victim || victim.finished || victim.pos <= 0) return;
   const fromTile = victim.pos;
   await lightningFx(fromTile);                             // clouds → flickers → forked multi-strike + electric impact
-  const onSecret = setBackPos(victim, victim.pos - LIGHTNING.BACK);
+  const candleStruck = FEATURES.shop && victim.passive === "soulcandle";
+  const back = LIGHTNING.BACK * (candleStruck ? CANDLE.LIGHTNING_MULT : 1);
+  const onSecret = setBackPos(victim, victim.pos - back);
   victim.downed = true; victim.getupMin = SNIPER.GETUP_MIN; updateDowned(idxOf(victim));
   layoutTokens(); renderScoreboard();
   log(onSecret
     ? `🌩️ Lightning blasted ${victim.name} clear off the board — onto the secret square!`
-    : `🌩️ Lightning struck ${victim.name} — knocked flat and back to tile ${victim.pos}!`);
+    : candleStruck
+      ? `🌩️🕯️ The bolt feeds on ${victim.name}'s candle — hurled ${back} tiles back, down to tile ${victim.pos}!`
+      : `🌩️ Lightning struck ${victim.name} — knocked flat and back to tile ${victim.pos}!`);
   if (onSecret) await visitSecret(victim);
   await sleep(500);
   await resolveLanding(victim);                            // the new tile fires too

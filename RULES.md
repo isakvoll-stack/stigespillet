@@ -262,7 +262,8 @@ what they say.
 - **🕯️ Soul Candle** — **9 coins**, passive. **+2 to every roll, forever** — and it
   can **never be removed or replaced** (the passive slot is locked for the rest of
   the game). The hook: **lightning only ever strikes a candle holder** while one is
-  in play, no matter who leads.
+  in play, no matter who leads — and the bolt feeds on the flame, hurling the holder
+  **twice as far back** as a normal strike (multiplier in `CANDLE.LIGHTNING_MULT`).
 
 *Toggles: `FEATURES.secretSquare`, `FEATURES.blackMarket`. Shelf + pricing in `MARKET`
 (`EXOTIC_STOCK`, `NORMAL_STOCK`, `BEHIND_PER`, `MAX_DISCOUNT`, `VISIT_MARKUP`); the

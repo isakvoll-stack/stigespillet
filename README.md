@@ -54,10 +54,12 @@ The live to-do list and session history now live in the **`Next/`** folder
 what's next.
 
 Recently shipped (2026-07-06, later session): **💰 Gold-rain wheel slice + shop
-pass-by** — the wheel gained an 8th slice (50 coins, but the weight knocks you two
-rows *straight down* the board; flattened in place on the bottom row), and walking
-**past** a gold shop square now pauses the move to browse before carrying on
-(`FEATURES.shopPassby`). Machine-verified headless, 10/10 checks, 0 errors.
+pass-by + candle lightning** — the wheel gained an 8th slice (50 coins, but the
+weight knocks you two rows *straight down* the board; flattened in place on the
+bottom row), walking **past** a gold shop square now pauses the move to browse
+before carrying on (`FEATURES.shopPassby`), and lightning hurls a **Soul Candle**
+holder **twice as far back** (`CANDLE.LIGHTNING_MULT`). Machine-verified headless,
+14/14 checks, 0 errors.
 
 Recently shipped (2026-07-06): **9 new items + black market v2-lite + QoL batch** —
 Isak's picks from the suggestions doc, all built and machine-verified (29/29 checks +
