@@ -110,7 +110,10 @@ so the board follows the registry (even through the wheel's 🌀 tile shuffle).
 (`feature`, `amount(p)`, optional `note`).
 
 **A new rare turn-start event**: one entry in `RARE_EVENTS` (`feature`, `chance()`, `run`),
-with its chance tunable in a DATA block.
+with its chance tunable in a DATA block. For a **deterministic** turn-start trigger
+(fires on a condition, not a dice roll — e.g. the gray warp square), give the entry
+`when(p)` instead of `chance()`: it fires exactly when the predicate is true for the
+current player, unscaled by seat count.
 
 **Rule reveal cards stay vague (Isak, 2026-07-03).** Every `RULE_INFO` card — current and
 future — keeps the *why* clear but the details (numbers, exact consequences, what happens
