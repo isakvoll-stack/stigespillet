@@ -3,6 +3,32 @@
 Standing file: autonomous sessions log clarifications here instead of stopping to ask.
 Answer whenever — each answer gets folded in and the question checked off.
 
+## 2026-07-10 — from the 8-point batch (defaults picked, say if wrong)
+
+- [ ] **Finish-line details** — a finisher gets NO bonus roll on a 6 (their race is
+  run), stays parked on tile 90 (finished players are already immune to snipers,
+  encounters, rare events), and when only ONE racer remains they auto-take the
+  last place and the game ends (nobody rolls alone). The slider goes 1–11 and is
+  clamped to the seat count at start. Any of that feel wrong?
+- [ ] **Gun wobble = 1 slot** — each draw starts from the exact 3 blank / 2 live /
+  1 self and re-rolls ONE random slot on those same odds, so a draw is at most one
+  chamber off the classic mix (e.g. 3/3/0 or 2/2/2 happen; 6 live can't). Want it
+  wilder (`GUN.MIX_WOBBLE` is one number)?
+- [ ] **Gray warp square** — ONE tile, at 44 (mid-board, plain-looking gray); the
+  flip lasts exactly the flipped player's turn and rights itself when the next
+  turn starts; it also wanders with the 🌀 scramble/shuffle like the other
+  specials. Landing on it does nothing (no coin either — it's a special tile).
+  Want more tiles, a longer-lasting flip, or a chance-based trigger instead?
+- [ ] **RGB is exclusive** — the rainbow counts as one colour: if someone claims it
+  in the picker, the 11th seat falls back to a normal free colour. Should RGB be
+  stackable (several rainbow players) instead?
+- [ ] **Theme scope** — themes only redress the page (sky, drifting glyphs, clouds,
+  tagline); the board, tiles and cutscenes are untouched so rule colours stay
+  readable. Happy, or should themes also reskin the board frame / flakes-on-board?
+  (A Minecraft BOARD skin would live better in the skins task.)
+- [ ] **Boss battle + skins** — both logged as design tasks in TASKS.md Active with
+  open directions listed; neither built. Pick a direction when you want them.
+
 ## 2026-07-10 — from the Singularity Bomb build (defaults picked, say if wrong)
 
 - [ ] **The recipe pieces** — the game had a Shield but no bomb and no fire egg, so I

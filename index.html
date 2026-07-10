@@ -14,6 +14,7 @@
     --passive-blue:#2e6da8; --passive-blue-dark:#1d4c77;
     --ink:#2a2018; --shadow:rgba(0,0,0,.35);
     --p1:#d64541; --p2:#2e86c1; --p3:#27ae60; --p4:#f1c40f;
+    --sky1:#7cc6ec; --sky2:#a9dca0; --sky3:#5fa84f; --glow:rgba(255,243,170,.95);
   }
   *{box-sizing:border-box}
   html,body{margin:0;height:100%}
@@ -21,8 +22,8 @@
     font-family:"Segoe UI",system-ui,sans-serif;
     color:var(--cream);
     background:
-      radial-gradient(70% 45% at 50% -2%, rgba(255,243,170,.95) 0%, rgba(255,243,170,0) 55%),
-      linear-gradient(180deg, #7cc6ec 0%, #a9dca0 52%, #5fa84f 100%);
+      radial-gradient(70% 45% at 50% -2%, var(--glow) 0%, transparent 55%),
+      linear-gradient(180deg, var(--sky1) 0%, var(--sky2) 52%, var(--sky3) 100%);
     background-attachment:fixed;
     display:flex;flex-direction:column;align-items:center;
     min-height:100%;padding:18px 14px 40px;gap:14px;
@@ -109,8 +110,8 @@
   /* title / setup screens */
   .screen{position:fixed;inset:0;z-index:10;display:none;place-items:center;padding:24px;overflow:auto;
     background:
-      radial-gradient(70% 50% at 50% 0%, rgba(255,243,170,.95), rgba(255,243,170,0) 60%),
-      linear-gradient(180deg,#7cc6ec 0%, #a9dca0 55%, #5fa84f 100%);}
+      radial-gradient(70% 50% at 50% 0%, var(--glow), transparent 60%),
+      linear-gradient(180deg,var(--sky1) 0%, var(--sky2) 55%, var(--sky3) 100%);}
   .screen.show{display:grid}
   .screen .sheet{background:rgba(38,58,38,.88);border:2px solid var(--brass);border-radius:18px;
     padding:26px 28px;max-width:460px;width:100%;text-align:center;box-shadow:0 22px 60px rgba(0,0,0,.4)}
@@ -388,6 +389,19 @@
                    to{transform:translateX(132vw) scale(var(--s,1))}}
   @media (prefers-reduced-motion:reduce){ .cloud{display:none} }
 
+  /* RGB player: the pawn / swatch cycles the whole rainbow, forever */
+  .rgbflash{animation:rgbhue 1.4s linear infinite}
+  @keyframes rgbhue{to{filter:hue-rotate(360deg)}}
+
+  /* player-colour picker (setup screen) */
+  .namerow .swatch.pick{cursor:pointer}
+  .colorpop{position:fixed;z-index:12;display:flex;gap:6px;flex-wrap:wrap;width:236px;
+    padding:10px;border-radius:10px;background:rgba(28,20,12,.97);border:2px solid var(--brass);
+    box-shadow:0 10px 26px rgba(0,0,0,.5)}
+  .colorpop .copt{width:26px;height:26px;border-radius:7px;border:2px solid #241a12;cursor:pointer;padding:0}
+  .colorpop .copt.taken{opacity:.25;cursor:not-allowed}
+  .colorpop .copt.sel{outline:3px solid #fff}
+
   /* players scoreboard */
   .score{display:flex;flex-direction:column;gap:6px}
   .score .row{display:flex;align-items:center;gap:9px;font-size:14px;padding:4px 6px;border-radius:8px}
@@ -488,10 +502,11 @@
         <g fill="#fff" opacity=".9"><ellipse cx="280" cy="24" rx="20" ry="9"/><ellipse cx="296" cy="20" rx="13" ry="9"/><ellipse cx="266" cy="26" rx="12" ry="7"/></g>
       </svg>
       <h2>Ladder game 2</h2>
-      <p class="sub">summer at the cabin</p>
+      <p class="sub" id="titleSub">summer at the cabin</p>
       <div style="display:flex;flex-direction:column;gap:10px;align-items:center">
         <button class="btn big" id="playBtn">Play</button>
         <button class="btn ghost" id="settingsBtn">Settings</button>
+        <button class="btn ghost" id="themeBtn">🎨 Theme</button>
       </div>
     </div>
   </div>
@@ -510,6 +525,7 @@
       <h2>Settings</h2>
       <label class="toggle"><input type="checkbox" id="optBotThoughts" checked> Bot decision popups 🤖</label>
       <label class="toggle"><input type="checkbox" id="optFastForward"> Fast-forward bot turns ⏩</label>
+      <label class="toggle"><input type="checkbox" id="optRgb"> RGB player 🌈 (the 11th seat's natural colour)</label>
       <label class="toggle">🔊 Volume <input type="range" id="optVolume" min="0" max="100" value="100" style="width:150px;vertical-align:middle;margin-left:8px"></label>
       <button class="btn ghost" id="settingsBack">Back</button>
     </div>
@@ -677,6 +693,7 @@ const FEATURES = {
   freeze:        true,   // icy squares freeze you solid; LANDING next to a frozen player freezes you too
   radioactive:   true,   // a nuke leaves radioactive fallout tiles: a stacking roll sickness, then a permanent +1
   trapdoor:      true,   // tile 89 (disguised as plain): the FIRST player to land there drops back to start, then it's normal
+  warp:          true,   // the gray square: start your turn on it and the board flips + inverts for that turn
   fishPowers:    true,   // carrying fish grants escalating powers (extra movement, ice escape) + quirks (slippery ladders, teleporter overload)
   secretSquare:  true,   // a hidden square before tile 1, only revealed when a backtrack lands someone on it
   blackMarket:   true,   // the secret square hosts a shady dealer: dynamic prices, shadier stock later
@@ -701,6 +718,12 @@ const SNAKE_TAILS = new Set(Object.values(SLIDES));
 const PLAYER_COLORS = ["#e6402f","#2e86c1","#27ae60","#f1c40f","#8e44ad","#e67e22",
                        "#17a2b8","#ff6fb5","#2c3e50","#ecf0f1","#a4c639"]; // supports up to 11
 const MAX_PLAYERS = PLAYER_COLORS.length;
+/* ---- DATA: the RGB player (Settings toggle) --------------------------
+   When on, the 11th seat's colour defaults to RGB — a pawn that flashes
+   through the whole rainbow forever. Any seat can pick RGB in the colour
+   picker instead; it counts as ONE colour, so only one player has it. */
+const RGB = { enabled:false, ID:"rgb", BASE:"#ff0040",
+              SWATCH:"conic-gradient(#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00)" };
 const CELL_PALETTE  = ["#f6d55c","#f6d55c","#f6d55c","#f6d55c","#6fa8dc",
                        "#f6d55c","#f6d55c","#f6d55c"]; // plain tiles: yellow, with the blue tiles kept
 // Tile colours by the link role a tile plays (overrides the festive palette).
@@ -817,6 +840,33 @@ const BOARD_OPTIONS = [
     desc:"Every special tile starts at a random spot each new game." },
 ];
 const boardOpt = key => { const o = BOARD_OPTIONS.find(b => b.key === key); return !!(o && o.enabled); };
+/* ---- DATA: the finish line (Advanced settings → Game) -----------------
+   Classic mode: how many players must reach tile 90 before the game ends.
+   1 = first past the post (the original rule). Clamped to the seat count;
+   when only one racer is left unfinished they take the last place and the
+   game ends anyway. */
+const FINISH = { NEED:1 };
+/* ---- DATA: page themes (title-screen 🎨 button cycles them) -----------
+   Ambient dressing only: sky gradient, sun-glow tint, drifting glyphs,
+   clouds and the title tagline. Board and tile colours are untouched. */
+const THEMES = [
+  { id:"summer",    ico:"☀️", name:"Summer",         sub:"summer at the cabin",
+    sky:["#7cc6ec","#a9dca0","#5fa84f"], glow:"rgba(255,243,170,.95)",
+    glyphs:["🍃","🌿","🌼","🦋","✿"], flakes:38, clouds:5 },
+  { id:"christmas", ico:"🎄", name:"Christmas",      sub:"christmas at the cabin",
+    sky:["#1d2a4d","#5a7fae","#dfe9f2"], glow:"rgba(200,225,255,.75)",
+    glyphs:["❄️","❅","❆","✨"], flakes:60, clouds:0 },
+  { id:"worldcup",  ico:"⚽", name:"World Cup",      sub:"match day at the cabin",
+    sky:["#2f86c8","#57a85e","#2e7d32"], glow:"rgba(255,255,255,.8)",
+    glyphs:["⚽","🏆","🎉","🟨"], flakes:26, clouds:4 },
+  { id:"sakura",    ico:"🌸", name:"Sakura",         sub:"hanami at the cabin",
+    sky:["#f6c7dd","#fbe3ee","#dba3c0"], glow:"rgba(255,240,246,.9)",
+    glyphs:["🌸","💮","🌷","✿"], flakes:55, clouds:3 },
+  { id:"minecraft", ico:"⛏️", name:"Minecraft",      sub:"block by block at the cabin",
+    sky:["#7ab0ff","#9cc98a","#5d8a44"], glow:"rgba(255,255,255,.6)",
+    glyphs:["🟩","🟫","⬛","⛏️"], flakes:24, clouds:4 },
+];
+const THEME = { current:0 };
 /* ---- DATA: game modes -------------------------------------------------
    Picked on the mode screen (Play → mode → players). Classic is the
    original race; King of the Hill is a trophy hunt over a set number of
@@ -968,6 +1018,11 @@ const RULE_INFO = {
     name: "The Shop",
     text: "A gold square hides a little cabin shop. Coins buy help — what's on the shelf is for you to find out.",
   },
+  warp: {
+    ico: "🌫️",
+    name: "The gray square",
+    text: "Some squares are best not lingered on. Wake up on the gray one and the world may not be quite the way you left it.",
+  },
 };
 
 /* ---- ANIMATION timing (ms) ----------------------------------------- */
@@ -1031,7 +1086,8 @@ const LEVI = {
 /* ---- DATA: gun cutscene (revolver roulette) ------------------------ */
 const GUN = {
   CHAMBERS:6,
-  LAYOUT:["blank","live","blank","self","live","blank"],  // hidden chamber outcomes (the landed one is NOT shown)
+  MIX:{ blank:3, live:2, self:1 },    // the average chamber make-up — the odds the big display teaches
+  MIX_WOBBLE:1,                       // per draw, this many random slots are re-rolled on the MIX odds
   SHOTS:3,                            // a LIVE chamber fires this many shots at the leaders
   SPIN_MS:2000, SHOT_GAP:430,         // chamber-spin length + gap between shots (ms) — slowed for drama
   SPIN_ROT_MS:380,                    // ms for one full cylinder rotation (controls animation smoothness)
@@ -1041,6 +1097,13 @@ const TELEPORT_COLOR = "#17b5a3";          // teal
 const FREEZE_TILES = [29, 63];             // icy squares — land here and you freeze solid
 const FREEZE_COLOR = "#bfe9ff";            // pale icy blue
 const FREEZE = { GETUP_MIN: 4, ADJ: 1 };   // need 4+ to break free; LANDING within ADJ grid-tiles of a frozen player freezes you (1 = the 8 around them, diagonals included)
+/* ---- DATA: the gray warp square ---------------------------------------
+   START your turn standing on it and the whole board flips (90/180/270°)
+   with every colour inverted — and you play your turn like that. The
+   board rights itself when the next player's turn begins. */
+const WARP_TILES = [44];
+const WARP_COLOR = "#9aa0a6";              // plain gray
+const WARP = { ANGLES:[90, 180, 270], SPIN_MS:800, active:0 };
 /* ---- DATA: radioactive fallout (created by a nuke) ------------------ */
 const RAD_TILES = [];                      // fallout tiles — empty until a nuke converts plain tiles
 const RAD_COLOR = "#58c81b";               // radioactive green
@@ -1465,8 +1528,10 @@ function addNameLabel(g, name){
 function buildTokens(count){
   tokenEls.forEach(t=>t.remove()); tokenEls = [];
   for (let i=0;i<count;i++){
-    const g = makePawn(PLAYER_COLORS[i]);
-    addNameLabel(g, game.players[i].name);
+    const p = game.players[i];
+    const g = makePawn(p.color);
+    if (p.rgb) g.classList.add("rgbflash");
+    addNameLabel(g, p.name);
     g.style.transition = `transform ${ANIM.STEP}ms ease-in-out`;
     svg.appendChild(g); tokenEls.push(g);
   }
@@ -1557,6 +1622,8 @@ const TILE_RULES = {
   freeze: { feature:"freeze", tiles:FREEZE_TILES, color:FREEZE_COLOR,
     matches(){ return true; },      // the frost check lives in tryFreeze (icy tile OR next to a frozen player)
     onLand: tryFreeze, offLand: tryFreeze },
+
+  warp: { feature:"warp", tiles:WARP_TILES, color:WARP_COLOR },   // paints gray; the flip fires at turn START (RARE_EVENTS)
 };
 
 /* Who gets the landing first, per path. On your own roll the freeze check
@@ -1690,12 +1757,14 @@ function moveBonusTotal(p){
   return total;
 }
 
-/* RARE_EVENTS: the once-in-a-blue-moon turn-start strikes. Each entry is
-   feature flag + per-turn chance + effect. startTurn rolls them in order. */
+/* RARE_EVENTS: the turn-start strikes. Each entry is a feature flag + an
+   effect, triggered either by a per-turn chance() (scaled by seat count)
+   or by a deterministic when(p) condition. startTurn walks them in order. */
 const RARE_EVENTS = [
   { id:"lightning", feature:"lightning", chance:()=>LIGHTNING.CHANCE, run:()=>strikeLightning() },
   { id:"luckyStar", feature:"luckyStar", chance:()=>LUCKY.CHANCE,     run:()=>strikeLucky() },
   { id:"fateSwap",  feature:"fateSwap",  chance:()=>FATE.CHANCE,      run:()=>strikeFate() },
+  { id:"warp",      feature:"warp",      when:p=>warpDue(p),          run:()=>runWarp() },
 ];
 
 // A jagged screen-space lightning-bolt path from (x1,y1) to (x2,y2).
@@ -1792,7 +1861,9 @@ function newGame(roster){
   const count = roster.length;
   game = {
     players: roster.map((r,i)=>({
-      name: r.name || `Player ${i+1}`, color: PLAYER_COLORS[i], pos:0, bot: !!r.bot,
+      name: r.name || `Player ${i+1}`,
+      color: r.color === RGB.ID ? RGB.BASE : (r.color || PLAYER_COLORS[i]),
+      rgb: r.color === RGB.ID, pos:0, bot: !!r.bot,
       downed:false, frozen:false, sniper:false, finished:false, shame:0, getupMin: SNIPER.GETUP_MIN, fish:0, fishStreak:0, fishCaught:0, onSecret:false, marketDue:false,
       items:[], passive:null, rollBonus:0, forceSix:false, coins:COIN.START,
       radSick:false, radTurns:0, radLevel:0, radImmune:false, shieldOn:false,
@@ -1801,11 +1872,13 @@ function newGame(roster){
     })),
     current:0, winner:null, over:false, busy:false, round:1, turnCount:0, autonomous: !!(roster[0] && roster[0].bot),
     mode: chosenMode, maxRounds: chosenMode === "koth" ? (chosenRounds || defaultRounds(count)) : 0,
+    finishNeed: Math.max(1, Math.min(FINISH.NEED, count)), placesTaken: 0,
     standings: null, marketVisits: 0, traps: [],
   };
   hideSecret();
   TRAP89_TILES.splice(0, Infinity, TRAP89.TILE);   // re-arm the tile-89 trapdoor for the new game
   RAD_TILES.splice(0, Infinity);                   // clear last game's fallout
+  WARP.active = 0; applyWarp();                    // right the board if a warp was live
   setSpecialTiles(boardOpt("scrambledStart") ? scrambledLayout() : DEFAULT_SPECIALS);
   rulesSeen = {};
   buildBoard();
@@ -1820,7 +1893,9 @@ function newGame(roster){
 
 function refreshHUD(){
   const p = game.players[game.current];
-  document.getElementById("turnSwatch").style.background = p.color;
+  const ts = document.getElementById("turnSwatch");
+  ts.style.background = p.rgb ? RGB.SWATCH : p.color;
+  ts.classList.toggle("rgbflash", !!p.rgb);
   document.getElementById("turnName").textContent = `${p.name} ${TXT.turnSuffix}`;
   const sub = document.getElementById("turnSub");
   const hint = document.getElementById("rollHint");
@@ -1869,17 +1944,17 @@ function renderScoreboard(){
                + (p.radSick ? " ☢️"+(p.radLevel||"") : (p.radImmune ? " ☢️+"+RAD.IMMUNE_BONUS : ""));
     const cellTxt = p.finished ? "done" : (p.onSecret ? "secret 🚪" : (p.pos === 0 ? "—" : "tile " + p.pos));
     row.innerHTML =
-      `<span class="swatch" style="background:${p.color}"></span>` +
+      `<span class="swatch${p.rgb ? " rgbflash" : ""}" style="background:${p.rgb ? RGB.SWATCH : p.color}"></span>` +
       `<span class="name">${p.name}${p.bot ? " 🤖" : ""}${mark}</span>` +
       `<span class="cell">${cellTxt}</span>`;
     box.appendChild(row);
   });
 }
 
-function makeSnow(n){
+function makeSnow(n, glyphs){
   const c = document.getElementById("snow");
   c.innerHTML = "";
-  const glyphs = ["🍃","🌿","🌼","🦋","✿"];
+  glyphs = glyphs || ["🍃","🌿","🌼","🦋","✿"];
   for (let i=0;i<n;i++){
     const f = document.createElement("div");
     f.className = "flake";
@@ -1909,6 +1984,19 @@ function makeClouds(n){
     d.style.opacity = (0.6 + Math.random()*0.3).toFixed(2);
     wrap.appendChild(d);
   }
+}
+
+// Dress the page in the current THEMES entry: sky vars, drifting glyphs,
+// clouds, title tagline and the 🎨 button label. Board colours untouched.
+function applyTheme(){
+  const t = THEMES[THEME.current];
+  const r = document.documentElement.style;
+  r.setProperty("--sky1", t.sky[0]); r.setProperty("--sky2", t.sky[1]); r.setProperty("--sky3", t.sky[2]);
+  r.setProperty("--glow", t.glow);
+  makeSnow(t.flakes, t.glyphs);
+  makeClouds(t.clouds);
+  document.getElementById("titleSub").textContent = t.sub;
+  document.getElementById("themeBtn").textContent = `🎨 Theme: ${t.ico} ${t.name}`;
 }
 
 function log(msg, cls){
@@ -1984,12 +2072,14 @@ async function moveCurrent(rollValue){
   if (!(await applyLink(p, i))) log(TXT.moved(from, landed));
   layoutTokens(); renderScoreboard();
 
-  // reached the finish? Classic ends the game; a KOTH lap banks trophies and
-  // puts the runner back in the START lane, where only the 6 rule still applies
+  // reached the finish? Classic banks a place (the game ends once finishNeed
+  // players are home); a KOTH lap banks trophies and puts the runner back in
+  // the START lane, where only the 6 rule still applies
   if (p.pos === BOARD.WIN){
     await finishPlayer(p);
     if (game.over) return;
-    await afterKothLap(p, rollValue);
+    if (isKoth()) await afterKothLap(p, rollValue);
+    else await endTurn();               // finished: no bonus roll, the rest race on
     return;
   }
 
@@ -2007,6 +2097,7 @@ async function moveCurrent(rollValue){
     await resolveEncounters(p);
     if (game.over) return;
     if ((p.laps||0) > lapsBefore){ await afterKothLap(p, rollValue); return; }   // bounced onto the top mid-chain
+    if (p.finished){ await endTurn(); return; }   // bounced home mid-chain (multi-finish race)
   }
 
   // a planted banana peel fires before the tile itself gets a say
@@ -2082,16 +2173,22 @@ function updateBeam(tx,ty){
   beamEl.setAttribute("x2", beamFrom.x+dx/len*1500); beamEl.setAttribute("y2", beamFrom.y+dy/len*1500);
 }
 function hideBeam(){ if (beamEl) beamEl.style.opacity="0"; }
-function svgPoint(evt){ const r=svg.getBoundingClientRect(); return { x:(evt.clientX-r.left)/r.width*940, y:(evt.clientY-r.top)/r.height*1040 }; }
+// Screen → board-space. getScreenCTM tracks the live CSS transform too, so
+// clicking and aiming still line up while the warp square has the board flipped.
+function svgPoint(evt){
+  const pt = new DOMPoint(evt.clientX, evt.clientY).matrixTransform(svg.getScreenCTM().inverse());
+  return { x: pt.x, y: pt.y };
+}
 function showPrompt(t){ const p=document.getElementById("prompt"); p.textContent=t; p.classList.add("show"); }
 function hidePrompt(){ document.getElementById("prompt").classList.remove("show"); }
 
 /* ---- finishing (top-3 podium) / ladder-or-slide / encounter -------- */
 const MEDALS = ["🥇","🥈","🥉"];
 const isKoth = () => !!game && game.mode === "koth";
-// Reaching tile 90, by mode. Classic: the first player there wins, the game
-// ends and everyone is ranked. King of the Hill: the summit pays trophies
-// and the runner walks back to the start — the game rolls on.
+// Reaching tile 90, by mode. Classic: the runner banks the next place; the
+// game ends once game.finishNeed players are home (1 = the original first-
+// past-the-post). King of the Hill: the summit pays trophies and the runner
+// walks back to the start — the game rolls on.
 async function finishPlayer(p){
   if (isKoth()){
     p.laps = (p.laps||0) + 1;
@@ -2104,12 +2201,34 @@ async function finishPlayer(p){
     layoutTokens(); renderScoreboard();
     return;
   }
-  game.over = true; game.winner = p;
-  const rest = game.players.filter(q => q !== p).sort((a,b) => b.pos - a.pos);
-  game.standings = [p, ...rest];
-  game.standings.forEach((q,idx) => { q.place = idx + 1; });
+  if (p.finished) return;
+  p.finished = true;
+  p.place = ++game.placesTaken;
   SFX.play("win");
-  log(`${p.name} reached the exit and wins! 🥇`, "win");
+  log(`${p.name} reached the exit — ${MEDALS[p.place-1] || "#"+p.place}!`, "win");
+  const unfinished = game.players.filter(q => !q.finished);
+  if (game.placesTaken < game.finishNeed && unfinished.length > 1){
+    confettiBurst(30);
+    renderScoreboard();
+    return;                             // the race carries on for the rest
+  }
+  if (unfinished.length === 1){         // no race left — last place is settled
+    const last = unfinished[0];
+    last.finished = true; last.place = ++game.placesTaken;
+    log(`${last.name} is the only racer left — the game is over.`);
+  }
+  endClassic();
+}
+
+// The final whistle for Classic: rank finishers by place, the rest by position.
+function endClassic(){
+  game.over = true;
+  const done = game.players.filter(q => q.finished).sort((a,b) => a.place - b.place);
+  const rest = game.players.filter(q => !q.finished).sort((a,b) => b.pos - a.pos);
+  game.standings = [...done, ...rest];
+  game.standings.forEach((q,idx) => { q.place = idx + 1; });
+  game.winner = game.standings[0];
+  log(TXT.won(game.winner.name), "win");
   showStandings();
   game.busy = false; refreshHUD();
 }
@@ -2637,11 +2756,13 @@ async function startTurn(){
       refreshHUD();
     }
   }
-  // the once-in-a-blue-moon strikes — each RARE_EVENTS entry rolls its own chance,
-  // scaled by seat count so chaos-per-round stays what a REF_PLAYERS table gets
+  // the turn-start strikes — chance() entries roll their odds (scaled by seat
+  // count so chaos-per-round stays what a REF_PLAYERS table gets); when(p)
+  // entries fire deterministically on their condition
   const rareScale = BALANCE.REF_PLAYERS / game.players.length;
   for (const ev of RARE_EVENTS){
-    if (!FEATURES[ev.feature] || Math.random() >= ev.chance() * rareScale) continue;
+    if (!FEATURES[ev.feature]) continue;
+    if (!(ev.when ? ev.when(cur) : Math.random() < ev.chance() * rareScale)) continue;
     game.busy = true; refreshHUD();
     await ev.run();
     game.busy = false; refreshHUD();
@@ -2749,12 +2870,13 @@ function flashScreen(){
   if (bw){ bw.classList.remove("shake"); void bw.offsetWidth; bw.classList.add("shake"); }
 }
 
-// Map a board cell to on-screen pixels (centre of that tile). Uses the SVG's live
-// viewBox + bounding rect so it tracks the responsive board size on any screen.
+// Map a board cell to on-screen pixels (centre of that tile). getScreenCTM
+// tracks the responsive board size AND the warp square's flip, so cutscenes
+// and crosshairs land on the right spot either way.
 function cellToScreen(cell){
-  const c = cellCenter(cell), r = svg.getBoundingClientRect(), vb = svg.viewBox.baseVal;
-  return { x: r.left + (c.x - vb.x)/vb.width  * r.width,
-           y: r.top  + (c.y - vb.y)/vb.height * r.height };
+  const c = cellCenter(cell);
+  const pt = new DOMPoint(c.x, c.y).matrixTransform(svg.getScreenCTM());
+  return { x: pt.x, y: pt.y };
 }
 
 // Explosion centred on a board cell (where the victim stood); no arg = screen centre.
@@ -3066,7 +3188,7 @@ async function leviathanFx4(fromCell, toCell, victim){
   const ball = document.createElement("div");
   ball.style.cssText = "position:fixed;z-index:15;width:28px;height:28px;border-radius:50%;pointer-events:none;"
     + "transform:translate(-50%,-50%);border:2px solid rgba(6,20,40,.45);box-shadow:0 4px 10px rgba(0,0,0,.45);"
-    + `background:radial-gradient(circle at 36% 30%, #ffffff70, ${vi>=0 ? PLAYER_COLORS[vi] : "#e6402f"} 62%)`;
+    + `background:radial-gradient(circle at 36% 30%, #ffffff70, ${vi>=0 ? game.players[vi].color : "#e6402f"} 62%)`;
   const mx = peekX - 40, my = rearY - 6;
   ball.style.left = mx+"px"; ball.style.top = my+"px";
   document.body.appendChild(ball);
@@ -3186,7 +3308,7 @@ async function leviathanFx(fromCell, toCell, victim){
   const dest = cellToScreen(toCell), mouthX = peekX - 46, mouthY = rearY - 4;
   const flier = document.createElement("div"); flier.className = "leviflier";
   flier.style.background = "radial-gradient(circle at 38% 32%, #ffffff66, "
-                         + (vi>=0 ? PLAYER_COLORS[vi] : "#e6402f") + " 60%, rgba(0,0,0,.3))";
+                         + (vi>=0 ? game.players[vi].color : "#e6402f") + " 60%, rgba(0,0,0,.3))";
   flier.style.left = mouthX+"px"; flier.style.top = mouthY+"px";
   document.body.appendChild(flier);
   SFX.play("kick");
@@ -3568,6 +3690,32 @@ async function fateSwapYou(p){
   await fateSwapPlayers(p, other);
 }
 
+/* ---- the gray warp square: start a turn there and the board flips ---- */
+function warpDue(p){
+  return WARP.active > 0 || (p.pos > 0 && !p.onSecret && WARP_TILES.includes(p.pos));
+}
+function applyWarp(){
+  const a = WARP.active;
+  const fit = (a === 90 || a === 270) ? ` scale(${(940/1040).toFixed(3)})` : "";
+  svg.style.transition = `transform ${ffms(WARP.SPIN_MS)}ms ease, filter ${ffms(WARP.SPIN_MS)}ms ease`;
+  svg.style.transform = a ? `rotate(${a}deg)${fit}` : "";
+  svg.style.filter = a ? "invert(1)" : "";
+}
+async function runWarp(){
+  const cur = game.players[game.current];
+  if (cur.pos > 0 && !cur.onSecret && WARP_TILES.includes(cur.pos)){
+    await revealRuleOnce("warp");
+    WARP.active = WARP.ANGLES[(Math.random()*WARP.ANGLES.length)|0];
+    SFX.play("teleport");
+    log(`🌫️ The gray square stirs — the board twists ${WARP.active}° and every colour turns inside out! ${cur.name} plays on regardless.`);
+  } else if (WARP.active){
+    WARP.active = 0;
+    log(`🌫️ The board rights itself.`);
+  }
+  applyWarp();
+  await sleep(WARP.SPIN_MS);
+}
+
 /* ---- orange square: Wheel / Support / Gun -------------------------- */
 function awardCoin(p, reason, n, fx){
   const k = n === undefined ? 1 : n;
@@ -3897,11 +4045,22 @@ function gunMuzzle(at, aimDeg){
   const r = aimDeg*Math.PI/180, mx = 62, my = -3;
   return { x: at.x + mx*Math.cos(r) - my*Math.sin(r), y: at.y + mx*Math.sin(r) + my*Math.cos(r) };
 }
-// Show a large front-on cylinder view so players can read the chamber odds, then spin it
-// to pick (without revealing which landed). Fades out when done.
-async function showLargeChambers(){
+// The chamber load-out for one roulette: start from the exact MIX counts, then
+// re-roll MIX_WOBBLE random slots on the same odds — most draws look classic,
+// some run a touch hotter or kinder. Shuffled so position tells you nothing.
+function rollChambers(){
+  const segs = [];
+  for (const type in GUN.MIX) for (let i = 0; i < GUN.MIX[type]; i++) segs.push(type);
+  const types = Object.keys(GUN.MIX), weights = types.map(t => GUN.MIX[t]);
+  for (let k = 0; k < GUN.MIX_WOBBLE; k++) segs[(Math.random()*segs.length)|0] = weightedPick(types, weights);
+  for (let i = segs.length - 1; i > 0; i--){ const j = (Math.random()*(i+1))|0; [segs[i],segs[j]] = [segs[j],segs[i]]; }
+  return segs.slice(0, GUN.CHAMBERS);
+}
+
+// Show a large front-on cylinder view so players can read THIS draw's chamber
+// odds, then spin it to pick (without revealing which landed). Fades out when done.
+async function showLargeChambers(segs){
   const CC = { blank:"#7f8c8d", live:"#e0453b", self:"#e67e22" };
-  const segs = GUN.LAYOUT.slice(0, GUN.CHAMBERS);
   const R = 88, CR = 24;
   const chambers = segs.map((type, i) => {
     const a = (i / GUN.CHAMBERS) * Math.PI * 2 - Math.PI / 2;
@@ -4020,15 +4179,16 @@ async function gunFx(targetCells){
 // shots that knock the leaders down with a screen-shake each (no explosions); self → the
 // trigger backfires and the shooter explodes.
 async function revolverRoulette(p){
-  const idx  = Math.floor(Math.random()*GUN.CHAMBERS);
-  const type = GUN.LAYOUT.slice(0, GUN.CHAMBERS)[idx];             // outcome stays hidden — never shown
+  const segs = rollChambers();                                     // this draw's load-out (slightly randomised)
+  const idx  = Math.floor(Math.random()*segs.length);
+  const type = segs[idx];                                          // outcome stays hidden — never shown
   const leaders = game.players.filter(q => q !== p && !q.finished && q.pos > 0)
                    .sort((a,b)=> b.pos - a.pos).slice(0, GUN.SHOTS);
 
   const dim = document.createElement("div"); dim.className = "cutdim";
   document.body.appendChild(dim); await raf(); dim.classList.add("show");
 
-  await showLargeChambers();        // large cylinder display: read odds, spin, fade out
+  await showLargeChambers(segs);    // large cylinder display: read THIS draw's odds, spin, fade out
 
   // the shooter draws a revolver on their token after the large spin resolves
   const tok0 = cellToScreen(p.pos), at = { x: tok0.x, y: tok0.y - 30 };
@@ -4261,7 +4421,8 @@ async function randomBoardEvent(p){
 // layout draws random eligible spots (not a snake/ladder tile, not start or finish).
 // Used by the wheel's 🌀 slot mid-game and by the Scrambled-board setup option.
 const DEFAULT_SPECIALS = { tp:[...TELEPORTERS], or:[...ORANGE_TILES], fz:[...FREEZE_TILES],
-                           sh:[...SHOP_TILES],  fi:[...FISH.TILES],   sb:[...SETBACK_TILES] };
+                           sh:[...SHOP_TILES],  fi:[...FISH.TILES],   sb:[...SETBACK_TILES],
+                           wp:[...WARP_TILES] };
 function scrambledLayout(){
   const pool = [];
   for (let i = 2; i < BOARD.WIN; i++){
@@ -4274,7 +4435,8 @@ function scrambledLayout(){
            fz: pool.slice(off, off += FREEZE_TILES.length),
            sh: pool.slice(off, off += SHOP_TILES.length),
            fi: pool.slice(off, off += FISH.TILES.length),
-           sb: pool.slice(off, off += SETBACK_TILES.length) };   // the dark-red tile wanders too — high up, it's devastating
+           sb: pool.slice(off, off += SETBACK_TILES.length),     // the dark-red tile wanders too — high up, it's devastating
+           wp: pool.slice(off, off += WARP_TILES.length) };
 }
 // Update the role arrays in-place: TILE_RULES holds live references to these same
 // arrays, so logic checks AND tile colours (cellColor -> specialTileColor) follow along.
@@ -4285,14 +4447,15 @@ function setSpecialTiles(lay){
   SHOP_TILES.splice(0, Infinity, ...lay.sh);
   FISH.TILES.splice(0, Infinity, ...lay.fi);
   SETBACK_TILES.splice(0, Infinity, ...lay.sb);
+  WARP_TILES.splice(0, Infinity, ...lay.wp);
 }
 // Tile shuffle (🌀 slot): every special tile moves to a new random spot mid-game.
 async function shuffleTiles(msg){
-  const oldPositions = [...TELEPORTERS, ...ORANGE_TILES, ...FREEZE_TILES, ...SHOP_TILES, ...FISH.TILES, ...SETBACK_TILES];
+  const oldPositions = [...TELEPORTERS, ...ORANGE_TILES, ...FREEZE_TILES, ...SHOP_TILES, ...FISH.TILES, ...SETBACK_TILES, ...WARP_TILES];
   const lay = scrambledLayout();
   setSpecialTiles(lay);
   // Repaint every affected cell (old positions cleared + new positions lit).
-  new Set([...oldPositions, ...lay.tp, ...lay.or, ...lay.fz, ...lay.sh, ...lay.fi, ...lay.sb]).forEach(n => repaintCell(n));
+  new Set([...oldPositions, ...lay.tp, ...lay.or, ...lay.fz, ...lay.sh, ...lay.fi, ...lay.sb, ...lay.wp]).forEach(n => repaintCell(n));
   SFX.play("teleport"); flashScreen();
   renderScoreboard();
   log(msg || `🌀 The wheel reshuffled the board — all special tiles moved to new positions!`);
@@ -5127,6 +5290,7 @@ function hideBanner(){ document.getElementById("banner").classList.remove("show"
 let chosenSeats = 2;
 let setupNames = [];
 let setupBots = [];
+let setupColors = [];        // per-seat colour pick (RGB.ID = the rainbow); empty = the seat's default
 let chosenMode = "classic";
 let chosenRounds = 0;        // 0 = follow the player-count default until the slider is touched
 
@@ -5162,6 +5326,7 @@ function buildRoundsRow(){
    (enabled is what shopStock() filters on — shop + black market alike);
    Board = BOARD_OPTIONS (read by newGame via boardOpt). */
 const ADV_SECTIONS = [
+  { id:"game", title:"🏁 Game", build: list => buildFinishRow(list) },
   { id:"items", title:"🛒 Items", entries: SHOP_CATALOG.filter(i => !i.craftOnly) },   // craft-only pieces stay a secret
   { id:"exotics", title:"🕯️ Black market", entries: EXOTICS },
   { id:"board", title:"🗺️ Board", entries: BOARD_OPTIONS },
@@ -5177,19 +5342,34 @@ function buildToggleRows(list, entries){
     row.append(box, label); list.appendChild(row);
   });
 }
+// The finishers slider (Classic mode): how many players must reach the top
+// before the game ends. Clamped to the seat count when a game starts.
+function buildFinishRow(list){
+  const row = document.createElement("div"); row.className = "rounds";
+  const label = document.createElement("div"); label.className = "rounds-label";
+  const r = document.createElement("input"); r.type = "range";
+  r.min = 1; r.max = MAX_PLAYERS; r.value = FINISH.NEED;
+  const paint = ()=>{ label.innerHTML = `🏁 Game ends after <b>${FINISH.NEED}</b> ` +
+    (FINISH.NEED === 1 ? `finisher <span class="adv-desc">— first past the post</span>`
+                       : `finishers <span class="adv-desc">— the rest race on for the places</span>`); };
+  r.oninput = ()=>{ FINISH.NEED = +r.value; paint(); saveSettings(); };
+  paint();
+  row.append(label, r); list.appendChild(row);
+}
 function buildAdvanced(){
   const body = document.getElementById("advBody");
   ADV_SECTIONS.forEach(sec => {
     const group = document.createElement("details"); group.className = "adv-group";
     const head = document.createElement("summary"); head.textContent = sec.title;
     const list = document.createElement("div"); list.className = "adv-list";
-    buildToggleRows(list, sec.entries);
+    if (sec.entries) buildToggleRows(list, sec.entries); else sec.build(list);
     group.append(head, list); body.appendChild(group);
   });
 }
 
 /* ---- screen flow: title -> setup -> game --------------------------- */
 function showScreen(which){
+  closeColorPop();
   document.getElementById("screenTitle").classList.toggle("show", which==="title");
   document.getElementById("screenMode").classList.toggle("show", which==="mode");
   document.getElementById("screenSetup").classList.toggle("show", which==="setup");
@@ -5202,6 +5382,7 @@ function openSetup(){
     chosenSeats = game.players.length;
     setupNames = game.players.map(p=>p.name);
     setupBots  = game.players.map(p=>!!p.bot);
+    setupColors = game.players.map(p=> p.rgb ? RGB.ID : p.color);
   }
   const m = GAME_MODES.find(x => x.id === chosenMode) || GAME_MODES[0];
   document.getElementById("setupSub").textContent = `${m.ico} ${m.name} · name them · set each to Player or Bot`;
@@ -5209,15 +5390,55 @@ function openSetup(){
   showScreen("setup");
 }
 
+// The colour a seat currently shows: its pick, else its default (the 11th
+// seat naturally gets the rainbow while the RGB setting is on).
+function seatColor(i){
+  if (setupColors[i]) return setupColors[i];
+  return (RGB.enabled && i === MAX_PLAYERS - 1) ? RGB.ID : PLAYER_COLORS[i];
+}
+function paintSwatchEl(el, color){
+  el.classList.toggle("rgbflash", color === RGB.ID);
+  el.style.background = color === RGB.ID ? RGB.SWATCH : color;
+}
+let colorPopEl = null;
+function closeColorPop(){ if (colorPopEl){ colorPopEl.remove(); colorPopEl = null; } }
+// Click a seat's swatch → a palette popover; colours other seats hold are
+// dimmed and unclickable. The rainbow joins the palette while RGB is on.
+// Pinned to the swatch (fixed) so the scrolling name list can't clip it.
+function openColorPop(sw, i){
+  if (colorPopEl && colorPopEl.dataset.seat == i){ closeColorPop(); return; }
+  closeColorPop();
+  const pop = document.createElement("div"); pop.className = "colorpop"; pop.dataset.seat = i;
+  const taken = [];
+  for (let k=0;k<chosenSeats;k++) if (k !== i) taken.push(seatColor(k));
+  const options = [...PLAYER_COLORS, ...(RGB.enabled ? [RGB.ID] : [])];
+  options.forEach(col => {
+    const b = document.createElement("button"); b.type = "button"; b.className = "copt";
+    paintSwatchEl(b, col);
+    if (col === seatColor(i)) b.classList.add("sel");
+    if (taken.includes(col)){ b.classList.add("taken"); b.title = "Already taken"; }
+    else b.onclick = ()=>{ setupColors[i] = col; closeColorPop(); buildSetup(); };
+    pop.appendChild(b);
+  });
+  const r = sw.getBoundingClientRect();
+  pop.style.left = Math.min(r.left, window.innerWidth - 260) + "px";
+  pop.style.top = (r.bottom + 6) + "px";
+  document.body.appendChild(pop);
+  colorPopEl = pop;
+}
+
 function buildSetup(){
+  closeColorPop();
   document.getElementById("setupCount").textContent = chosenSeats + " players";
   buildRoundsRow();
   const list = document.getElementById("nameList");
   list.innerHTML = "";
   for (let i=0;i<chosenSeats;i++){
     const row = document.createElement("div"); row.className = "namerow";
-    const sw = document.createElement("span"); sw.className = "swatch";
-    sw.style.background = PLAYER_COLORS[i];
+    const sw = document.createElement("span"); sw.className = "swatch pick";
+    sw.title = "Click to choose a colour";
+    paintSwatchEl(sw, seatColor(i));
+    sw.onclick = ()=> openColorPop(sw, i);
     const inp = document.createElement("input"); inp.type = "text"; inp.maxLength = 18;
     inp.value = setupNames[i] != null ? setupNames[i] : ("Player " + (i+1));
     inp.placeholder = "Player " + (i+1);
@@ -5233,9 +5454,13 @@ function buildSetup(){
 function startFromSetup(){
   const allBots = document.getElementById("autoMode").checked;
   const roster = [];
+  const takenCols = new Set();
   for (let i=0;i<chosenSeats;i++){
     const nm = (setupNames[i] || "").trim() || ("Player " + (i+1));
-    roster.push({ name: nm, bot: allBots || !!setupBots[i] });
+    let col = seatColor(i);                                    // default collisions fall back to a free colour
+    if (takenCols.has(col)) col = PLAYER_COLORS.find(c => !takenCols.has(c));
+    takenCols.add(col);
+    roster.push({ name: nm, bot: allBots || !!setupBots[i], color: col });
   }
   newGame(roster);
   showScreen("game");
@@ -5252,6 +5477,9 @@ function saveSettings(){
       botThoughts: FEATURES.botThoughts,
       volume: SOUND.VOLUME,
       fastForward: SPEED.fastForward,
+      rgb: RGB.enabled,
+      theme: THEMES[THEME.current].id,
+      finishNeed: FINISH.NEED,
       items: Object.fromEntries([...SHOP_CATALOG, ...EXOTICS].map(i => [i.id, i.enabled])),
       board: Object.fromEntries(BOARD_OPTIONS.map(b => [b.key, b.enabled])),
     }));
@@ -5264,6 +5492,10 @@ function loadSettings(){
     if (typeof s.botThoughts === "boolean") FEATURES.botThoughts = s.botThoughts;
     if (typeof s.volume === "number") SOUND.VOLUME = Math.min(1, Math.max(0, s.volume));
     if (typeof s.fastForward === "boolean") SPEED.fastForward = s.fastForward;
+    if (typeof s.rgb === "boolean") RGB.enabled = s.rgb;
+    if (typeof s.finishNeed === "number") FINISH.NEED = Math.max(1, Math.min(MAX_PLAYERS, s.finishNeed));
+    const ti = THEMES.findIndex(t => t.id === s.theme);
+    if (ti >= 0) THEME.current = ti;
     [...SHOP_CATALOG, ...EXOTICS].forEach(i => { if (s.items && typeof s.items[i.id] === "boolean") i.enabled = s.items[i.id]; });
     BOARD_OPTIONS.forEach(b => { if (s.board && typeof s.board[b.key] === "boolean") b.enabled = s.board[b.key]; });
   } catch(e){}
@@ -5326,8 +5558,14 @@ document.getElementById("roundsRange").addEventListener("input", e=>{
 document.getElementById("settingsBtn").addEventListener("click", ()=>{
   document.getElementById("optBotThoughts").checked = FEATURES.botThoughts;
   document.getElementById("optFastForward").checked = SPEED.fastForward;
+  document.getElementById("optRgb").checked = RGB.enabled;
   document.getElementById("optVolume").value = Math.round(SOUND.VOLUME * 100);
   showScreen("settings");
+});
+document.getElementById("optRgb").addEventListener("change", e=>{ RGB.enabled = e.target.checked; saveSettings(); });
+document.getElementById("themeBtn").addEventListener("click", ()=>{
+  THEME.current = (THEME.current + 1) % THEMES.length;
+  applyTheme(); saveSettings(); SFX.play("click");
 });
 document.getElementById("settingsBack").addEventListener("click", ()=>showScreen("title"));
 document.getElementById("optBotThoughts").addEventListener("change", e=>{ FEATURES.botThoughts = e.target.checked; saveSettings(); });
@@ -5342,13 +5580,12 @@ document.getElementById("seatMinus").addEventListener("click", ()=>{ chosenSeats
 document.getElementById("seatPlus").addEventListener("click", ()=>{ chosenSeats=Math.min(MAX_PLAYERS,chosenSeats+1); buildSetup(); });
 document.getElementById("startBtn").addEventListener("click", startFromSetup);
 document.getElementById("bannerNew").addEventListener("click", ()=>{
-  newGame(game.players.map(p=>({ name:p.name, bot:p.bot }))); // replay the same roster
+  newGame(game.players.map(p=>({ name:p.name, bot:p.bot, color: p.rgb ? RGB.ID : p.color }))); // replay the same roster
   startTurn();
 });
 
 loadSettings();                  // restore remembered toggles BEFORE the checkboxes are built
-makeSnow(38);
-makeClouds(5);
+applyTheme();
 buildWheel();
 buildModeScreen();
 buildAdvanced();

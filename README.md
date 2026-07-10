@@ -55,7 +55,20 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
-Recently shipped (2026-07-10, latest): **⚖️ Player-count balance pass (sweep B1–B5
+Recently shipped (2026-07-10, latest): **Isak's 8-point batch** — an **adjustable
+finish line** (Advanced settings: the game ends after N finishers; finishers bank
+medals while the rest race on), **randomised gun chambers** (each roulette draws
+its 6 slots around the 3 blank / 2 live / 1 self odds — the cylinder display shows
+the real draw), a **player colour picker** on the setup screen (click the swatch;
+taken colours locked), the **🌈 RGB player** (Settings toggle — the 11th seat's
+rainbow-flashing pawn, claimable by anyone), a **🎨 Theme button** on the title
+menu (Summer / Christmas / World Cup / Sakura / Minecraft, ambient only), and a
+**new gray warp square** (start your turn on tile 44 and the board flips 90/180/270°
+with inverted colours for that turn). Boss-battle mode + skins logged as design
+tasks. Verified headless (41 checks + a full 4-bot game), 0 JS errors; defaults in
+`Next/QUESTIONS.md`.
+
+Before that (same day): **⚖️ Player-count balance pass (sweep B1–B5
 all built)** — a new `BALANCE = { REF_PLAYERS:4 }` anchor makes the game feel the
 same at any table size: rare-event chances scale by seat count (same chaos per
 round in a duel as at a full table), the sniper rifle arrives every 18 *turns*

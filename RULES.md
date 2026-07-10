@@ -28,11 +28,19 @@ live in the `GAME_MODES` DATA table):
 
 ## Goal
 Be the **first** player to land **exactly** on the final square (**tile 90**) —
-that player **wins**. The game then ends and everyone is ranked: 1st is the
-winner, and the rest are ordered by how far up the board they are. The end screen
+that player **wins**. By default the game then ends and everyone is ranked: 1st is
+the winner, and the rest are ordered by how far up the board they are. The end screen
 shows a **podium** (1st 🥇 in the centre, 2nd 🥈 and 3rd 🥉 either side, with 4th
 and 5th on the sides when there are enough players) followed by a full
 **leaderboard**. *(In King of the Hill the same podium ranks by trophies instead.)*
+
+**The finish line is adjustable** (Advanced settings → 🏁 Game): a slider sets **how
+many players must finish before the game ends** (1 = the classic first-past-the-post).
+With a higher number, a finisher banks their medal and sits on tile 90 while the rest
+race on for the remaining places; the game ends when enough are home — or when only
+one racer is left, who then takes the last place automatically. A finisher gets **no
+bonus roll on a 6** — their race is run. *(Setting: `FINISH.NEED`, clamped to the seat
+count when a game starts.)*
 
 ## The board
 - **9 × 10 = 90 tiles**, numbered 1 (bottom-left) → 90 (top-left) in a
@@ -189,6 +197,16 @@ trapdoor is patched: tile 89 is a completely normal tile for the rest of the gam
 
 *Toggle: `FEATURES.trapdoor`. Tile/arc tunables in `TRAP89`.*
 
+### The gray warp square (hidden rule)
+One **gray square** (tile 44) doesn't like being stood on. Landing on it does nothing —
+but **start your turn** still standing there and the whole board **flips 90, 180 or
+270 degrees** (picked at random) with **every colour inverted**, and you have to play
+your turn like that. Aiming, clicking and cutscenes all still work on the flipped
+board — only your head struggles. The board rights itself when the next player's turn
+begins (unless they, too, woke up on the gray square).
+
+*Toggle: `FEATURES.warp`. Tile in `WARP_TILES` (44), angles/spin timing in `WARP`.*
+
 ### Radioactive fallout (hidden rule)
 A **nuke** leaves scars: after the blast, **two plain tiles turn radioactive green**.
 Land on one (or get thrown onto one) and you become **radioactive**: your rolls take
@@ -236,7 +254,7 @@ Land on an **orange square** and pick one of three:
   the trailer, fate swaps leader and last; may also do nothing), **🎲 Random (targets
   you)** (same pool of effects but all aimed at the spinner), **🌀 Tile shuffle**
   (every special tile — teleporters, orange, freeze, shops, fishing **and the dark-red
-  setback square** — moves to a fresh random spot, avoiding snake and ladder squares.
+  setback square and the gray warp square** — moves to a fresh random spot, avoiding snake and ladder squares.
   A setback square reshuffled high up the board is devastating), or **💰 Gold rain**
   (a shower of **30 coins** — but the sheer weight of the falling gold hammers you
   **two rows straight down** the board: same column, *not* back along the path.
@@ -248,8 +266,13 @@ Land on an **orange square** and pick one of three:
   player highlights them and previews **where they'd land** (dotted trail, plus the
   ladder/chute it would trigger); **click** to choose — or hit the **↩ Back** button
   by the prompt to return to the Wheel/Support/Gun choice.
-- **🔫 Gun** — Russian roulette: **1-in-6** the three frontrunners go down,
-  **2-in-6** you shoot yourself down, otherwise **nothing**.
+- **🔫 Gun** — Russian roulette with a **six-slot chamber**. The load-out is drawn
+  fresh each time around an average of **3 blank / 2 live / 1 self** — one random
+  slot is re-rolled on those same odds per draw (`GUN.MIX` / `MIX_WOBBLE`), so most
+  chambers look classic but some run a shot hotter or kinder. The big cylinder
+  display shows **this draw's** true counts before the spin. **Live** → three shots
+  knock the frontrunners down; **self** → the trigger backfires and you go down;
+  **blank** → a click and nothing more.
 
 *Toggle: `FEATURES.orange`. Orange tiles = `ORANGE_TILES` (12, 46, 77).* The Wheel
 shows a real wheel that spins for ~5 seconds (fast, then slowing) before landing.
@@ -441,16 +464,31 @@ self-contained page. Toggle with `FEATURES.sound`. On the big dramatic moments
 
 **The Settings screen** (button under *Play* on the title menu) holds: the **🤖 bot
 decision popups** toggle, **⏩ Fast-forward bot turns** (bot turns run at 3× —
-`SPEED.FF_DIV` — human turns are untouched), and a **🔊 master volume slider**
-(0 = mute; covers all effects and the kill-announcer voice, `SOUND.VOLUME`). All
-settings — including the Advanced item/exotic/board toggles on the setup screen —
-are now **remembered between sessions** (browser `localStorage`; still one
+`SPEED.FF_DIV` — human turns are untouched), the **🌈 RGB player** toggle (see
+*Players & bots*), and a **🔊 master volume slider** (0 = mute; covers all effects
+and the kill-announcer voice, `SOUND.VOLUME`). All settings — including the Advanced
+item/exotic/board/finish-line toggles on the setup screen, the RGB toggle and the
+chosen theme — are **remembered between sessions** (browser `localStorage`; still one
 self-contained file, clearing browser data resets them).
+
+**Themes** — the **🎨 Theme** button on the title menu cycles the page's dressing:
+**Summer** (the original), **Christmas**, **World Cup**, **Sakura** and **Minecraft**.
+A theme swaps the sky gradient, the drifting glyphs (leaves / snow / footballs /
+petals / blocks), the clouds and the title tagline — the board and its tile colours
+are untouched, so nothing about the game reads differently. *(Data: the `THEMES`
+table — a new theme is one entry.)*
 
 ---
 
 ## Players &amp; bots
-On the setup screen each seat has a **Player / Bot** toggle, so you can mix humans and
+On the setup screen each seat shows its **colour swatch — click it to pick a colour**
+from the full 11-colour palette. A colour another seat already holds is dimmed and
+can't be taken. With the **🌈 RGB player** setting on (Settings screen), the **11th
+seat naturally gets RGB** — a pawn that flashes through the whole rainbow forever —
+and the rainbow also joins the palette so **any one seat** can claim it instead
+(it counts as a single colour: one RGB player per game).
+
+Each seat also has a **Player / Bot** toggle, so you can mix humans and
 bots in one game — bots take **only their own turns** automatically (a 🤖 marks them in
 the scoreboard). The **Autonomous mode** checkbox is a shortcut that makes **every** seat
 a bot, so the whole game **plays itself** — auto-rolls, auto-resolves every choice, and

@@ -3,6 +3,51 @@
 Newest first. One entry per working session; note what shipped and what's next.
 
 ---
+## 2026-07-10 (fifth push today) — Isak's 8-point batch: finish line · gun RNG · colour picker · RGB · themes · gray warp tile
+
+Six features built + two design tasks logged, all in one pass:
+
+1. **🏁 Adjustable finish line** — Advanced settings → new 🏁 Game group with a
+   slider: Classic now ends after `FINISH.NEED` finishers (1 = the old rule).
+   `finishPlayer` banks places/medals and lets the field race on; `endClassic`
+   blows the whistle; a lone last racer auto-places; finishers get no 6-bonus roll.
+2. **🔫 Gun chamber RNG** — `rollChambers()`: exact `GUN.MIX` (3/2/1) counts, ONE
+   slot re-rolled on the same odds (`MIX_WOBBLE`), shuffled; the big cylinder
+   shows the real draw. `GUN.LAYOUT` retired.
+3. **🎨 Colour picker** — click a seat's swatch on the setup screen → palette
+   popover; taken colours dimmed; roster carries `color`; `p.color` now drives
+   tokens + leviathan fliers (seat-index colouring gone).
+4. **🌈 RGB player** — Settings toggle; 11th seat defaults to the rainbow, any one
+   seat can claim it; `.rgbflash` hue-rotate animation on pawn + every swatch.
+5. **🎨 Themes** — title-menu button cycles Summer/Christmas/World Cup/Sakura/
+   Minecraft from a `THEMES` DATA table (sky CSS vars + glyphs + clouds + tagline).
+6. **🌫️ Gray warp square (NEW RULE)** — tile 44: start your turn on it → board
+   flips 90/180/270° + full colour inversion for that turn, rights itself next
+   turn. Registry-built: TILE_RULES paints it; RARE_EVENTS gained an optional
+   deterministic `when(p)` trigger (startTurn honours it; chance entries
+   unchanged). `svgPoint`/`cellToScreen` now ride `getScreenCTM`, so sniper aim,
+   tile picks and cutscene anchors stay correct on a flipped board. Warp tile
+   scrambles/shuffles with the other specials.
+7. + 8. **Boss-battle mode** and **skins** logged in TASKS.md Active as design
+   tasks (Isak's call on direction before building).
+
+Settings persistence extended (theme, RGB, finish need). RULES.md updated (goal,
+gun odds — also fixed the doc's inverted 1/6 vs 2/6 live/self claim — warp rule,
+themes, colour picker/RGB).
+
+**Verified headless Edge, 0 JS errors across three harnesses**: 37 statics/
+deterministic checks (chamber distribution over 300 draws + variance, warp
+paint/plainness/scramble, multi-finish need-3 + need-all incl. standings order,
+RGB flag→swatch→pawn, theme apply, seatColor defaults, adv UI); 4 integration
+checks running the REAL `startTurn` loop (warp fires on 44, clears next turn,
+inert with the flag off); full 4-bot classic with `FINISH.NEED:2` — ended in
+round 32 when the SECOND racer got home, standings B/A/C/D. Full-game harness
+note: `showScreen("game")` first, or `roll()` sits behind the title screen.
+
+Open defaults for Isak in QUESTIONS.md (finish-line details, wobble size, warp
+tile placement/duration, RGB exclusivity, theme scope).
+
+---
 ## 2026-07-10 (fourth push today) — ⚖️ balance sweep B1–B5 built ("work on all the suggestions")
 
 Isak green-lit the whole morning sweep. One new DATA anchor — `BALANCE =

@@ -11,6 +11,21 @@ See `LOG.md` for the running session history.
 
 ## Active
 
+### Queued from Isak's 8-point batch (2026-07-10)
+- [ ] **Design game mode — «Boss battle»** (Isak, 2026-07-10): a mode that is
+      *"somehow a boss battle"*. Needs a design pass with Isak first — open
+      directions: a boss piece that stalks the board and knocks players back, a
+      shared HP pool the players whittle down by landing hits/tiles, the leviathan
+      or a new monster as the boss, co-op vs. the board or last-man-standing.
+      The mode-picker + `GAME_MODES` table are ready; a boss mode will need its
+      own win condition and probably a boss-turn phase in the controller.
+- [ ] **Skins system** (Isak, 2026-07-10): proper pawn *skins*, not just colours —
+      the colour picker built today is the stepping stone. Direction: a `SKINS`
+      DATA table (id/name/how the pawn is drawn), `makePawn` reads the seat's
+      skin, picker UI beside the colour popover. Could tie into themes
+      (christmas hat pawn…), shop-bought cosmetics, or the old "PNG board skin"
+      idea. Design with Isak before building.
+
 ### Animation polish (Isak's notes, 2026-06-24)
 - [x] **Gun cutscene — rebuild to this exact vision (Isak, 2026-06-25).** Built +
       revised 2026-06-25 (tiny CSS revolver drawn on the shooter's own square, chamber
@@ -71,6 +86,43 @@ See `LOG.md` for the running session history.
 ---
 
 ## Done
+### 2026-07-10 — Isak's 8-point batch: finish line, gun RNG, colours/RGB, themes, gray warp tile
+- [x] **🏁 Adjustable finish line** (`FINISH.NEED`, new ⚙️ Advanced → 🏁 Game slider,
+      persisted): Classic ends after N finishers (1 = classic). Finishers bank a
+      place + medal, sit on 90, get no bonus roll on a 6; the field races on
+      (`finishPlayer` multi-finish + `endClassic`); a lone last racer auto-places.
+- [x] **🔫 Gun chamber randomised around the odds** (`GUN.MIX {3,2,1}` +
+      `MIX_WOBBLE:1`): each roulette draws its load-out fresh — exact MIX counts,
+      then 1 random slot re-rolled on the same odds, shuffled (`rollChambers`).
+      The big cylinder display shows the actual draw's counts.
+- [x] **🎨 Player colour picker** on the setup screen: click a seat's swatch →
+      palette popover (fixed-positioned so the name list can't clip it); colours
+      other seats hold are dimmed/unclickable; default collisions fall back to a
+      free colour at start. Roster now carries `color`; tokens/cutscenes read
+      `p.color` (not the seat index).
+- [x] **🌈 RGB player** (Settings toggle, persisted; `RGB` DATA): the 11th seat's
+      natural colour, claimable by any one seat via the picker (counts as one
+      colour). Pawn + all swatches flash the full rainbow forever (CSS
+      `hue-rotate` animation, `.rgbflash`).
+- [x] **🎨 Theme button** on the title menu (persisted): cycles Summer / Christmas /
+      World Cup / Sakura / Minecraft — sky vars + drifting glyphs + clouds +
+      tagline from the `THEMES` DATA table (a new theme = one entry). Board
+      colours untouched.
+- [x] **NEW RULE: 🌫️ gray warp square** (`FEATURES.warp`, tile 44): START your turn
+      on it → the board flips 90/180/270° with colours inverted for that whole
+      turn; rights itself next turn. Built via the registries (TILE_RULES paints
+      it + a `RARE_EVENTS` entry with the new deterministic `when(p)` trigger —
+      the registry contract now supports condition-fired turn-start events).
+      Scrambles/shuffles along with the other specials. `svgPoint`/`cellToScreen`
+      rebuilt on `getScreenCTM` so aiming + cutscenes stay accurate while flipped.
+- [x] **Boss-battle mode + skins logged** as design tasks (see Active).
+- [x] **Verified headless Edge 41/41 + full game**: chamber stats (μ 3.05/1.90/1.05,
+      varies per draw), warp statics + fire/clear via the real `startTurn` loop +
+      flag-off inert + newGame reset, multi-finish need-3 and need-all paths,
+      RGB flag/swatch/pawn, theme apply, colour-picker internals, adv Game group;
+      full 4-bot classic with `FINISH.NEED:2` ended round 32 on the 2nd finisher,
+      places B1/A2/C3/D4, 0 JS errors. Defaults in QUESTIONS.md.
+
 ### 2026-07-10 — ⚖️ Balance sweep B1–B5 ALL BUILT (Isak: "work on all the suggestions")
 - [x] **`BALANCE = { REF_PLAYERS:4 }`** DATA anchor — count-aware spots scale
       from it; current numbers now officially mean "tuned for a 4-player table".
