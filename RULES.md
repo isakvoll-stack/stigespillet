@@ -11,8 +11,9 @@ live in the `GAME_MODES` DATA table):
 
 - **🏁 Classic** — the original race, described under *Goal* below.
 - **🏆 King of the Hill** — a trophy hunt over a fixed number of rounds. The
-  setup screen gains a **Rounds slider** (5–60; the default is **6 × players**,
-  so 5 players ≈ 30 rounds — it follows the player count until you move it).
+  setup screen gains a **Rounds slider** (5–60; the default comes from a
+  per-count table — **2 players → 20, 3 → 24, 4 → 26, 5 → 30, 6 → 32** (+2 per
+  extra seat past 6) — and follows the player count until you move it).
   Every other rule plays exactly as Classic; only the goal changes. Trophies:
   - **+1** for starting your turn in **sole 1st place** (ties pay nobody; the
     start lane doesn't count).
@@ -98,8 +99,9 @@ Space won't skip it).
 *Toggle: `FEATURES.encounter`.*
 
 ### Sniper (hidden rule)
-Every **5th round** (round 5, 10, 15 …) the player in **last place** gets a
-**one-shot sniper rifle**. On their turn, before rolling, a **red laser** follows
+Every **18th turn** (counting everyone's turns, so the pace is the same whether
+2 or 6 are playing — roughly every 5th round at a 4-player table) the player in
+**last place** gets a **one-shot sniper rifle**. On their turn, before rolling, a **red laser** follows
 the mouse — **click to fire**. Every player on the beam is **knocked down**
 (aim at empty space to skip the shot).
 
@@ -114,7 +116,7 @@ A knocked-down player, on their next turn, rolls to **get up** instead of moving
   rolled a 6**, in which case they stand and roll again to move.
 - **2 or less** → they stay down and try again next turn.
 
-*Toggle: `FEATURES.sniper`. (A round = one full pass through the players still in play.)*
+*Toggle: `FEATURES.sniper`. Cadence = `SNIPER.EVERY_TURNS`.*
 
 ### Kick a man while he's down (hidden rule)
 If, on a **kick**, the player you kick is **already lying down**:
@@ -134,9 +136,11 @@ to lift the green bar and keep it over the fish until the meter fills (a **catch
 you keep a 🐟 and stay put). Let the meter empty and a **leviathan** swallows you
 and spits you onto a **random tile near the start (1–30)**.
 
-It's tricky even the first time, and **every catch in a row makes the next one
+It's tricky even the first time, and **every catch in a row makes YOUR next one
 harder** (a 3rd straight attempt is brutal); a miss resets it to the base
-difficulty. *Controls: only the **↑ Up arrow** — no mouse / space / enter.*
+difficulty. The pond keeps score **per angler** — someone else's hot streak
+doesn't sour your fishing. *Controls: only the **↑ Up arrow** — no mouse /
+space / enter.*
 
 *Toggle: `FEATURES.fishing`. Trigger tiles = `FISH.TILES` (35, 49 & 70 — the dark-blue squares).*
 
@@ -218,6 +222,11 @@ places with the player **in last** — an instant, dramatic shake-up of the orde
 
 *Toggle: `FEATURES.fateSwap` (chance in `FATE`).*
 
+**A note on the "very rare" odds:** the percentages above are per *turn* at a
+**4-player table**. The game scales them by seat count (`BALANCE.REF_PLAYERS`),
+so a 2-player duel and a 6-player party see the same number of strikes per
+*round* — chaos density doesn't grow with the crowd.
+
 ### Orange choice — Wheel / Support / Gun (hidden rule)
 Land on an **orange square** and pick one of three:
 - **🎡 Wheel** — spin the wheel of fortune; each slice is **1-in-8**: **Nuke**
@@ -271,8 +280,10 @@ players get blasted off the board at once, each gets their own quiet word with t
 dealer instead of a pile of popups. His shelf holds **2 exotics** (drawn from the
 dealer-only `EXOTICS` stock, purple in the UI, tagged *· exotic*) plus **1 normal
 catalog item**. Only the normal item's price flexes — cheaper the further you trail
-the pack's average position, and **+1 coin** for every earlier visit (by anyone,
-all game). Exotic deals are exactly what they say.
+the pack's average position, and marked up as earlier visits (by anyone, all
+game) pile up — the markup is normalized to the seat count, so a full table
+doesn't inflate the dealer's shelf faster per player than a duel does. Exotic
+deals are exactly what they say.
 
 **The exotics** — every one is powerful, and every one has a hook:
 
@@ -471,10 +482,11 @@ tile you settle on is), with a dash of random jitter so they stay beatable:
 
 While a bot decides, a **🤖 thought popup** shows what it's weighing and its verdict
 (deliberately slows bot turns a touch so you can watch them play — turn off with
-`FEATURES.botThoughts`). At the **fishing** square a bot's odds still get **harder the
-more fish have already been caught in the game** — roughly a 40% loss on the first
-catch, then 60% / 80% / 90% / 95%. *(Tunables: the `BOT` DATA block —
-scores/weights/popup timing — and `FISH.BOT_LOSS_BY_CATCHES`.)*
+`FEATURES.botThoughts`). At the **fishing** square a bot's odds get **harder the
+more fish that bot has already caught itself** — roughly a 40% loss on its first
+catch, then 60% / 80% / 90% / 95% (other players' catches don't count against it).
+*(Tunables: the `BOT` DATA block — scores/weights/popup timing — and
+`FISH.BOT_LOSS_BY_CATCHES`.)*
 
 ---
 
@@ -488,7 +500,7 @@ const FEATURES = {
   exactFinish:   true,   // exact landing on 90 (overshoot bounces back)
   sixRollsAgain: true,   // a 6 grants another roll
   encounter:     true,   // bounce / kick on an occupied tile past tile 10
-  sniper:        true,   // every 5th round, last place gets a one-shot sniper
+  sniper:        true,   // every 18th turn, last place gets a one-shot sniper
   kickWhileDown: true,   // kicking a downed player drops them a row & shames the kicker
 };
 ```

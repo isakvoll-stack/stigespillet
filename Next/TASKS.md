@@ -71,6 +71,34 @@ See `LOG.md` for the running session history.
 ---
 
 ## Done
+### 2026-07-10 — ⚖️ Balance sweep B1–B5 ALL BUILT (Isak: "work on all the suggestions")
+- [x] **`BALANCE = { REF_PLAYERS:4 }`** DATA anchor — count-aware spots scale
+      from it; current numbers now officially mean "tuned for a 4-player table".
+- [x] **B1 — rare events normalized**: `startTurn` scales every `RARE_EVENTS`
+      chance by `REF_PLAYERS / players` — same lightning/star/swap density per
+      ROUND at any seat count (duels ×2 per turn, 6-player ×⅔).
+- [x] **B2 — sniper by total turns**: new `game.turnCount` (bumped in `endTurn`);
+      rifle to last place every `SNIPER.EVERY_TURNS:18` turns (was every 5th
+      round = 20 turns at 4 seats). Bot shield-threat check updated to the same
+      clock (rifle lands within the coming round).
+- [x] **B3 — fishing fully per-player**: `p.fishStreak` (minigame curve) +
+      `p.fishCaught` (bot loss table) replace the global `game.*` pair; your
+      streak is yours, a full table no longer sours the pond ~3× faster.
+- [x] **B4 — market markup normalized**: `floor(visits × REF_PLAYERS / players)`
+      — identical to before at 4 seats, no more runaway inflation at 6.
+- [x] **B5 — KOTH default rounds table** `ROUNDS_BY_PLAYERS {2:20, 3:24, 4:26,
+      5:30, 6:32}` (+`ROUNDS_EXTRA:2` per seat past 6, slider still overrides).
+      `TROPHY_LEAD` scaling NOT built (needs Isak's feel-pass — see QUESTIONS).
+- [x] **B6 — no change** (watch-only observations, per the sweep).
+- [x] RULES.md synced (sniper cadence, per-angler pond, dealer markup, KOTH
+      table, "odds quoted for a 4-player table" note).
+- [x] **Verified headless Edge 18/18**: statics + defaultRounds ladder, B1
+      density measured statistically (300 turns: 135 fires @2p vs 51 @6p with a
+      0.25 probe — ~matches 0.5/0.167 expected), B2 grant at turn 18 only (not
+      16/19) + threat window, B3 win/loss isolation + own-curve escalation +
+      global state gone, B4 prices 18/26/15 at 4/2/6 seats, full 4-bot classic
+      (23 rounds) + full 2-bot KOTH on the new 20-round default, 0 JS errors.
+
 ### 2026-07-10 — 🕳️ SINGULARITY BOMB: crafting system + 2 new items (Isak + friend's idea)
 - [x] **Crafting system** (`CRAFT` registry — a future recipe is one entry): holding
       any 2 of the recipe's `needs` auto-fuses them into `mid`; gaining the last

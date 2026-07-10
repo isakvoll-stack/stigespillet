@@ -33,10 +33,39 @@ Answer whenever — each answer gets folded in and the question checked off.
 - [ ] **Get-up on a 6 + the dealer** — standing up on the secret square with a 6
   opens the black market FIRST, then you still get your bonus roll. Felt right
   (deal done, then off you go); say if the roll should come first.
-- [ ] **Balance sweep picks** — six player-count findings live in SUGGESTIONS.md
+- [x] **Balance sweep picks** — six player-count findings live in SUGGESTIONS.md
   ("2026-07-10 balance sweep", B1–B6) with proposed one-place fixes. B1 (rare-event
   density) and B3 (global fishing curves) are the ones I'd fix first. Pick what to
   build, or say "all of B1–B5".
+  **✔ Answered 2026-07-10: "work on all the suggestions" — B1–B5 all built (B6
+  stays watch-only). Defaults below.**
+
+## 2026-07-10 — from the balance-sweep build (defaults picked, say if wrong)
+
+- [ ] **B2 sniper cadence: every 18 turns** (`SNIPER.EVERY_TURNS`). The old rule
+  (every 5th round) at a 4-player table meant a rifle every 20 turns, first one
+  after 16; 18 splits the difference, per the sweep's "18-ish". Duels now see a
+  rifle every 9 rounds instead of every 5 — say if the pace feels off either way.
+- [ ] **B4 market markup anchored, not flattened** — the markup is
+  `floor(visits × 4 / players)` (`BALANCE.REF_PLAYERS`), so the 4-player feel is
+  EXACTLY as before (+1 per visit); duels inflate faster per visit (visits are
+  rarer), 6-player tables slower. The sweep's alternative was a plain
+  `floor(visits / players)`, which would have slowed 4-player inflation 4× too.
+  No `MARKUP_MAX` cap added — say the word if the dealer should have a ceiling.
+- [ ] **B5 KOTH rounds table** `{2:20, 3:24, 4:26, 5:30, 6:32}` (+2 per seat past
+  6) — the sweep's starting-point numbers, unreviewed by you. The slider still
+  overrides. **NOT built:** making `TROPHY_LEAD` worth more at big tables — a
+  test KOTH duel ended 19–0 in trophies (the sole-1st fountain is real in duels
+  even at 20 rounds), so if duels still feel lopsided that's the next lever.
+- [ ] **B3 is fully per-player** — both the minigame difficulty curve AND the bot
+  loss table now ride the individual player's own catches; a miss resets only
+  YOUR streak (before, anyone's miss reset the shared pond and everyone's catch
+  soured it). Global "the pond remembers" flavour is gone — say if you want a
+  small global component back.
+- [ ] **B1 duels get double chaos-chance per turn** — chances are anchored to a
+  4-player table, so 2 players ⇒ ×2 per turn (same strikes per round). RULES.md
+  now quotes the odds "at a 4-player table". If duels feel stormy, the anchor is
+  one number (`BALANCE.REF_PLAYERS`).
 
 ## 2026-07-06 — from the King of the Hill build (defaults picked, say if wrong)
 

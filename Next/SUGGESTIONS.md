@@ -14,6 +14,10 @@ Costs are suggestions on today's 4–10 coin scale.
 
 ## 2026-07-10 — Balance sweep: how the game shifts with player count
 
+> **2026-07-10 (later) — Isak: "work on all the suggestions" → B1–B5 ALL BUILT**
+> (B6 was watch-only, unchanged). `BALANCE = { REF_PLAYERS:4 }` anchor added;
+> details + defaults in `TASKS.md` / `LOG.md` / `QUESTIONS.md`.
+
 Isak asked for an intensive sweep focused on balancing by number of players.
 Verified against the code, not guessed. The core insight: **games last roughly the
 same number of ROUNDS regardless of seats** (first to 90 needs ~20–25 rounds of

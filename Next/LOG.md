@@ -3,6 +3,38 @@
 Newest first. One entry per working session; note what shipped and what's next.
 
 ---
+## 2026-07-10 (fourth push today) — ⚖️ balance sweep B1–B5 built ("work on all the suggestions")
+
+Isak green-lit the whole morning sweep. One new DATA anchor — `BALANCE =
+{ REF_PLAYERS:4 }` — and five one-place fixes, exactly per the sweep's recipes:
+
+- **B1**: `startTurn` scales each `RARE_EVENTS` chance by `REF_PLAYERS/players`
+  — chaos per ROUND is now flat across seat counts (duel turns roll ×2, 6-player
+  turns ×⅔; RULES.md quotes the odds "at a 4-player table").
+- **B2**: sniper rifle every `SNIPER.EVERY_TURNS:18` total turns via a new
+  `game.turnCount` (was every 5th round — rifle-saturated duels, starved big
+  tables). Bot shield-threat check rides the same clock.
+- **B3**: fishing per-player — `p.fishStreak` drives the minigame curve,
+  `p.fishCaught` the bot loss table; the shared `game.fishStreak/fishCaught`
+  pair is gone. Your miss resets only your streak.
+- **B4**: dealer markup = `floor(visits × REF_PLAYERS / players)` — byte-same
+  at 4 seats, normalized elsewhere; no cap added.
+- **B5**: KOTH default rounds from `ROUNDS_BY_PLAYERS {2:20,3:24,4:26,5:30,6:32}`
+  (+2/seat past 6); slider unchanged. `TROPHY_LEAD` scaling deliberately NOT
+  built — a verification KOTH duel ended 19–0 (the sole-1st fountain is real),
+  flagged in QUESTIONS.md as the next lever if duels feel lopsided.
+
+**Verified 18/18 headless Edge, 0 JS errors**: statics, defaultRounds ladder
+(20/24/26/30/32/36/42 for 2..6/8/11), B1 measured statistically with a 0.25
+probe event over 300 startTurns (135 fires @2p, 51 @6p ≈ the 150/50 expected),
+B2 grants at turn 18 but not 16/19 + threat window near/far, B3 win + own-curve
+escalation + loss isolation + `game.*` state gone, B4 prices 18/26/15 at
+4/2/6 seats, full 4-bot classic to a winner (23 rounds, 88 turns) and a full
+2-bot KOTH on the new 20-round default. Defaults + open feel-questions logged
+in QUESTIONS.md (B2 pace, B4 no-cap, B5 numbers, B3 no global component, B1
+duel storminess).
+
+---
 ## 2026-07-10 (latest, third push today) — 🕳️ Singularity Bomb: crafting + 2 items + vortex cutscene
 
 Isak's friend's idea (Rain World Gourmand homage), built live. The game had a Shield

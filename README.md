@@ -15,7 +15,7 @@ also just drag `index.html` onto an open browser window.
 ## How to play
 - **Title screen → Play → Game mode → Setup**: pick a mode (**🏁 Classic** race or
   **🏆 King of the Hill** — most trophies after a set number of rounds; a slider
-  picks the rounds, defaulting to 6 × players), then the player count (2–11),
+  picks the rounds, defaulting per player count: 2→20 … 6→32), then the player count (2–11),
   type a name for each player, and set each seat to **Player** or **Bot** (toggle
   button on the row), then **Start game**. The *Autonomous mode* checkbox makes
   **every** seat a bot (the whole game plays itself).
@@ -55,7 +55,18 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
-Recently shipped (2026-07-10, latest): **🕳️ SINGULARITY BOMB** — the game's first
+Recently shipped (2026-07-10, latest): **⚖️ Player-count balance pass (sweep B1–B5
+all built)** — a new `BALANCE = { REF_PLAYERS:4 }` anchor makes the game feel the
+same at any table size: rare-event chances scale by seat count (same chaos per
+round in a duel as at a full table), the sniper rifle arrives every 18 *turns*
+instead of every 5 *rounds* (duels no longer rifle-saturated), fishing difficulty
+and bot catch odds are **per player** (someone else's streak no longer sours your
+pond), the black-market markup is normalized to the seat count, and King of the
+Hill's default rounds come from a per-count table (2→20 … 6→32). RULES.md synced;
+verified 18/18 headless (incl. full classic + KOTH bot games); open feel-questions
+in `Next/QUESTIONS.md`.
+
+Before that (same day): **🕳️ SINGULARITY BOMB** — the game's first
 crafted item (never sold): carry any two of Shield + the NEW 💣 Bomb (6c, tile blast)
 + the NEW 🔥 Fire Egg (5c, singe: next roll −2) and they auto-fuse into an unusable
 🌑 Casing; the last piece completes the 🕳️ Singularity Bomb. Aim it anywhere: every
