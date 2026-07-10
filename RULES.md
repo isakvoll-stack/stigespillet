@@ -357,6 +357,13 @@ next game.
   lightning's knockdown, anything that goes through a knockdown/freeze. The new
   victim's own Shield can still block it, and *their* Mirror can bounce it onward
   (every bounce burns a mirror, so it always lands somewhere).
+- **💣 Bomb** — **6 coins.** Lob it at **any tile within 8** (either direction, never
+  your own square): the blast **floors everyone standing on it or beside it** (the 8
+  surrounding grid squares). Shields block, Mirrors deflect; the thrower ducks their
+  own blast. *(Tunables in `BOMB`.)*
+- **🔥 Fire Egg** — **5 coins.** Hurl it at a **rival within 8**: they're **singed**
+  — their **next roll burns 2 steps shorter** (`FIRE_EGG.SINGE`; a low roll can shrink
+  to nothing, or even drag them backwards like radiation).
 
 **Passive** (1 slot, always on while equipped):
 
@@ -370,6 +377,28 @@ next game.
   none of it keeps you on the floor for more than a turn.
 - **👑 Crown** — **5 coins.** **+1 coin at the start of every turn you begin in sole
   1st place** on the board (`CROWN_COINS`). Wealth flows to the front-runner.
+
+### Crafting — the Singularity Bomb (hidden rule)
+Some items don't want to stay apart. Carry **any two** of **🛡️ Shield, 💣 Bomb and
+🔥 Fire Egg** in your bag at the same time and they **fuse by themselves** into a
+**🌑 Singularity Casing** — it can't be used, it just hums, and it remembers which
+piece is missing (a *second* copy of something you already fed it won't do). Gain
+that last piece and the casing **snaps shut**: you now carry the **🕳️ SINGULARITY
+BOMB** — the only item in the game that can't be bought anywhere.
+
+Use it and **pick any tile**: reality gives way. The sky darkens, a hole tears open,
+and **every player on the map** — all of them, any distance, downed or frozen, no
+Shield or Mirror can refuse it — **spirals into the vortex**. A beat of dead
+silence… then it **detonates**, hurling everyone back out **3–10 tiles from the
+epicenter** in a semi-random spread (flights past the summit fold back; flights past
+tile 1 crash onto the **secret square**). Ladders, chutes and tile effects fire
+where they land.
+
+**The thrower is not safe.** Stand close and the vortex takes you too: within **3
+tiles it almost certainly does (95%)**, at **5 it's a coin flip (55%)**, at **7 it
+probably passes you by (25%)**, and beyond that it only rarely reaches (10%).
+Players on the start lane or the secret square are off the map — out of its reach.
+*(All numbers in `SING`; recipes in `CRAFT`. Preview: `index.html#preview=singularity`.)*
 
 **Using items:** on your turn, before rolling, press the **🎒 Inventory** button next
 to the die. Use any consumable, then roll. Using one

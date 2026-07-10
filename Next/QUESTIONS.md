@@ -3,6 +3,29 @@
 Standing file: autonomous sessions log clarifications here instead of stopping to ask.
 Answer whenever — each answer gets folded in and the question checked off.
 
+## 2026-07-10 — from the Singularity Bomb build (defaults picked, say if wrong)
+
+- [ ] **The recipe pieces** — the game had a Shield but no bomb and no fire egg, so I
+  built both as NEW normal shop consumables (your "equivalent" hint): **💣 Bomb, 6
+  coins** (lob at a tile within 8 — floors everyone on/beside it, shield-aware) and
+  **🔥 Fire Egg, 5 coins** (singe a rival within 8 — their next roll is 2 shorter).
+  Recipe = Shield + Bomb + Fire Egg. Different equivalents in mind?
+- [ ] **Scattered players land on their feet** — the vortex flings everyone 3–10
+  tiles but nobody is knocked down by it (the ride IS the punishment). Should the
+  landing floor them too?
+- [ ] **Nothing resists the vortex** — armed Shields and Mirrors don't help; downed
+  and frozen players are dragged along as well. Feels right for an ultimate; say if
+  Shields should hold.
+- [ ] **Suction odds between your waypoints** — within 3 = 95%, within 5 = 55%,
+  within 7 = 25%, farther = 10% (`SING.SELF_PULL`). Tweak freely.
+- [ ] **The secret stays secret** — casing + singularity are hidden from the
+  Advanced-settings Items list (they'd spoil the recipe); disabling any ingredient
+  item blocks the craft naturally. There's also NO rule-card popup for it — the fuse
+  announces itself in the log with a flash. Want a vague reveal card anyway?
+- [ ] **No cheap wins** — you can't aim the vortex at tile 90, and outbound flights
+  past the summit fold back down (a flight can still land someone on a ladder that
+  resolves normally). OK?
+
 ## 2026-07-10 — from the 4-point batch (defaults picked, say if wrong)
 
 - [ ] **Get-up on a 6 + the dealer** — standing up on the secret square with a 6

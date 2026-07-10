@@ -71,6 +71,40 @@ See `LOG.md` for the running session history.
 ---
 
 ## Done
+### 2026-07-10 — 🕳️ SINGULARITY BOMB: crafting system + 2 new items (Isak + friend's idea)
+- [x] **Crafting system** (`CRAFT` registry — a future recipe is one entry): holding
+      any 2 of the recipe's `needs` auto-fuses them into `mid`; gaining the last
+      missing piece (tracked in `p.craftNeed` — spare duplicates don't count)
+      completes `out`. Hooked centrally in `giveItem`, so shop, black market and
+      Mystery Box gains all trigger it.
+- [x] **NEW ITEM: 💣 Bomb (6)** — lob at any tile within 8 (`BOMB`): blast floors
+      everyone on/beside it (`gridNear`), shield/mirror-aware via `downPlayer`,
+      thrower ducks. **NEW ITEM: 🔥 Fire Egg (5)** — singe a rival within 8
+      (`FIRE_EGG`): next roll −2 via a `MOVE_BONUSES` entry (can sap a roll to
+      nothing / backwards, same pipeline as radiation).
+- [x] **🌑 Singularity Casing + 🕳️ Singularity Bomb** — `craftOnly` catalog entries:
+      never on any shelf, never in the Mystery Box, hidden from the settings toggle
+      list (secret preserved). Casing is unusable (it hums). Recipe: Shield + Bomb +
+      Fire Egg.
+- [x] **The vortex** (`SING`): pick any tile (not 90) — EVERY player on the map
+      (any distance, downed/frozen too, nothing blocks it) spirals into a black
+      hole there, dead-still beat, then implosion + shockwave rings hurl everyone
+      3–10 tiles out in a semi-random spread; past-90 folds back, below-1 lands on
+      the secret square (dealer queues per the own-turn rule). Thrower suction by
+      distance: ≤3 95% · ≤5 55% · ≤7 25% · else 10% (`SELF_PULL`).
+- [x] **Dramatic cutscene**: sky-gloom, growing hole + rotating accretion ring +
+      pulsing glow, accelerating spiral pull (tokens shrink + vanish), silence,
+      megaboom + flashbang ear-ring + 3 shockwave rings + screen shake, staggered
+      arc fly-outs. Preview: `#preview=singularity`. Screenshots eyeballed.
+- [x] **Bots**: buy the pieces (`ITEM_VALUE` bomb 3 / fireegg 2), throw bombs at the
+      juiciest cluster, singe the leader, and detonate the singularity aimed at the
+      leader only from ≥7 tiles away (`BOT.SING_SAFE_DIST`).
+- [x] **Verified headless Edge 24/24**: catalog/filter statics, both fuse orders,
+      spare-duplicate guard, casing unusable, bomb shield-block + thrower immunity,
+      singe math, deterministic blast (pull-all, fold-back at 90, secret-square
+      crash + own-turn dealer), full 4-bot game to a winner (27 rounds), 0 JS errors.
+      Defaults logged in QUESTIONS.md.
+
 ### 2026-07-10 — Isak's 4-point batch + player-count balance sweep (live session)
 - [x] **📦 Mystery Box costs 5** (was 3, `SHOP_CATALOG`).
 - [x] **Everyone starts with 5 coins** (`COIN.START`, player factory reads it).

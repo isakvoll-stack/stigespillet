@@ -766,6 +766,14 @@ const SHOP_CATALOG = [
     desc:"Passive: knockdowns barely faze you — any roll gets you back on your feet." },
   { id:"crown",  ico:"👑", name:"Crown",            kind:"passive",    cost:5,  enabled:true,
     desc:"Passive: +1 coin every round you start in the lead." },
+  { id:"bomb",   ico:"💣", name:"Bomb",             kind:"consumable", cost:6,  enabled:true,
+    desc:"When used: lob it at a tile within 8 — the blast flattens everyone on and beside it." },
+  { id:"fireegg", ico:"🔥", name:"Fire Egg",        kind:"consumable", cost:5,  enabled:true,
+    desc:"When used: hurl it at a rival within 8 — singed, their next roll burns 2 steps shorter." },
+  { id:"singcasing", ico:"🌑", name:"Singularity Casing", kind:"consumable", cost:0, enabled:true, craftOnly:true,
+    desc:"Two pieces fused into something that shouldn't exist. It can't be used — it hums, waiting for a final piece." },
+  { id:"singularity", ico:"🕳️", name:"Singularity Bomb",  kind:"consumable", cost:0, enabled:true, craftOnly:true,
+    desc:"When used: tears a hole in the board where you aim — EVERYONE on the map is dragged in, then hurled back out. Stand well back." },
 ];
 /* ---- DATA: black-market exotics --------------------------------------
    Dealer-only stock — never on the gold-shop shelf. Every exotic is
@@ -786,6 +794,21 @@ const HELMET_GETUP = 1;                          // Helmet wearers rise on any r
 const CROWN_COINS  = 1;                          // paid at the start of each round spent in the lead
 const LOADED   = { CHARGES:3, CURSE_ROLLS:3 };   // picked faces per purchase; forced 1s once the charges run dry
 const CANDLE   = { BONUS:2, LIGHTNING_MULT:2 };  // the Soul Candle's permanent stride; lightning hurls a candle holder this many times further back
+const BOMB     = { RANGE:8, NEAR:1 };            // lob range in tiles; the blast floors the target tile + NEAR grid-rings around it
+const FIRE_EGG = { RANGE:8, SINGE:2 };           // singe: the victim's next roll loses SINGE steps
+const SING = {                                   // the crafted Singularity Bomb (never sold)
+  SPREAD_MIN:3, SPREAD_MAX:10,                   // how far the blast hurls everyone from the epicenter
+  SELF_PULL:[[3,0.95],[5,0.55],[7,0.25],[999,0.10]],   // [max distance, suction odds] for the thrower — stand well back
+  DARK_MS:900, PULL_MS:1600, HOLD_MS:650,        // cutscene pacing: sky darkens, spiral pull, dead-still beat
+  FLY_MS:750, FLY_STAGGER_MS:90,                 // each victim's outbound flight + launch stagger
+  RING_COUNT:3, RING_MS:800, SWIRL_TURNS:2.5,    // implosion shockwave rings; spiral turns on the way in
+};
+/* ---- DATA: crafting recipes -------------------------------------------
+   Auto-crafting: holding any 2 of `needs` fuses them into `mid` (unusable);
+   gaining the last missing piece completes `out`. Checked on every item gain. */
+const CRAFT = [
+  { needs:["shield","bomb","fireegg"], mid:"singcasing", out:"singularity" },
+];
 /* ---- DATA: board options (Advanced settings → Board) -----------------
    Setup-screen board toggles; the checkboxes write `enabled`, newGame
    reads it via boardOpt(key). */
@@ -1074,7 +1097,9 @@ const BOT = {
   COIN_VALUE:0.15,                              // how many "tiles" one coin is worth when deciding a purchase
   ITEM_VALUE:{ shoes:5, shield:4, clover:3, coffee:3, warhorn:3, gloves:2,
                mysterybox:2, snowball:3, banana:2, mirror:3, helmet:3, crown:3,
-               loadeddice:4, soulcandle:4, monkeypaw:0 },  // base shopping appeal per item id (paw 0: bots can't wish well)
+               loadeddice:4, soulcandle:4, monkeypaw:0,
+               bomb:3, fireegg:2, singcasing:0, singularity:6 },  // base shopping appeal per item id (paw 0: bots can't wish well)
+  SING_SAFE_DIST:7,                             // bots only detonate the singularity this far from the epicenter
   THINK_MS:700, DECIDE_MS:650,                  // decision popup: thinking pause + verdict linger (FEATURES.botThoughts)
   SCORE:{ WIN:60, FREEZE:-8, RADIOACTIVE:-6, FISHING:-1, ORANGE:2, SHOP:2,
           TELEPORT_BEHIND:3, TELEPORT_AHEAD:-2, BLUE:1 },   // landing-quality guesses per special tile
@@ -1630,6 +1655,9 @@ const MOVE_BONUSES = [
     note: (p,n) => `🐟 ${p.name}'s catch carries them +${n} extra.` },
   { id:"coffee", feature:"shop",                          // a used Coffee boosts this one roll
     amount: p => { const n = p.rollBonus||0; p.rollBonus = 0; return n; } },
+  { id:"fireegg", feature:"shop",                         // a Fire Egg singe shortens the next roll
+    amount: p => { if (!p.singeRolls) return 0; p.singeRolls--; return -FIRE_EGG.SINGE; },
+    note: (p,n) => `🔥 ${p.name} is singed — ${n} on this roll.` },
   { id:"shoes",  feature:"shop",                          // Running Shoes: +1 on every roll while worn
     amount: p => p.passive === "shoes" ? ITEM.SHOES_BONUS : 0 },
   { id:"soulcandle", feature:"shop",                      // the Soul Candle burns +2 into every roll, forever
@@ -1759,7 +1787,7 @@ function newGame(roster){
       downed:false, frozen:false, sniper:false, finished:false, shame:0, getupMin: SNIPER.GETUP_MIN, fish:0, onSecret:false, marketDue:false,
       items:[], passive:null, rollBonus:0, forceSix:false, coins:COIN.START,
       radSick:false, radTurns:0, radLevel:0, radImmune:false, shieldOn:false,
-      mirrorOn:false, forceRoll:0, diceCharges:0, curseRolls:0,
+      mirrorOn:false, forceRoll:0, diceCharges:0, curseRolls:0, singeRolls:0, craftNeed:null,
       trophies:0, laps:0,
     })),
     current:0, winner:null, over:false, busy:false, round:1, autonomous: !!(roster[0] && roster[0].bot),
@@ -4334,7 +4362,38 @@ function giveItem(p, id){
   if (p.items.length >= INV.CONSUMABLES) return false;
   p.items.push(id);
   if (id === "loadeddice") p.diceCharges = LOADED.CHARGES;
+  checkCrafting(p);
   return true;
+}
+function takeItem(p, id){ const k = p.items.indexOf(id); if (k >= 0) p.items.splice(k, 1); }
+// The CRAFT recipes fuse by themselves the moment the pieces share a bag.
+function checkCrafting(p){
+  for (const r of CRAFT){
+    for (let fused = true; fused;){
+      fused = false;
+      if (p.items.includes(r.mid)){
+        if (p.craftNeed && p.items.includes(p.craftNeed)){
+          takeItem(p, r.mid); takeItem(p, p.craftNeed);
+          p.items.push(r.out); p.craftNeed = null;
+          const def = itemDef(r.out);
+          SFX.play("megaboom"); flashScreen(); iconPopup(p, def.ico);
+          log(`${def.ico} The casing SNAPS shut around the last piece — ${p.name} now carries the ${def.name.toUpperCase()}!`, "win");
+          fused = true;
+        }
+      } else if (!p.items.includes(r.out)){
+        const have = r.needs.filter(id => p.items.includes(id));
+        if (have.length >= 2){
+          takeItem(p, have[0]); takeItem(p, have[1]);
+          p.items.push(r.mid);
+          p.craftNeed = r.needs.find(id => id !== have[0] && id !== have[1]);
+          const def = itemDef(r.mid);
+          SFX.play("rumble"); iconPopup(p, def.ico);
+          log(`${def.ico} ${itemDef(have[0]).ico} and ${itemDef(have[1]).ico} fuse by themselves in ${p.name}'s bag — a ${def.name}! It hums, unfinished…`);
+          fused = true;
+        }
+      }
+    }
+  }
 }
 function buyItem(p, item){
   if (!canBuy(p, item)) return false;
@@ -4384,7 +4443,7 @@ async function hornBlast(p){
 
 // Mystery Box: pops open into a random enabled consumable (never another box).
 function openMysteryBox(p){
-  const pool = SHOP_CATALOG.filter(i => i.enabled && i.kind === "consumable" && i.id !== "mysterybox");
+  const pool = SHOP_CATALOG.filter(i => i.enabled && !i.craftOnly && i.kind === "consumable" && i.id !== "mysterybox");
   if (!pool.length){
     awardCoin(p, "📦 The box held nothing but loose change", MYSTERY.FALLBACK_COINS, "blue");
     return;
@@ -4563,6 +4622,201 @@ function pickDiceFace(p){
 
 // Use one consumable from the bag before rolling. Shield isn't used by hand — it
 // guards automatically — so only Coffee and the Clover do anything here.
+/* ---- Bomb: lob it at a tile, flatten everyone on and around it ------ */
+function bombSpots(p){
+  const spots = [], base = Math.max(1, p.pos);
+  const lo = Math.max(1, base - BOMB.RANGE), hi = Math.min(BOARD.WIN - 1, base + BOMB.RANGE);
+  for (let t = lo; t <= hi; t++) if (t !== p.pos) spots.push(t);
+  return spots;
+}
+function bombVictims(p, tile){
+  return game.players.filter(q => q !== p && !q.finished && !q.downed && q.pos > 0
+    && (q.pos === tile || gridNear(q.pos, tile, BOMB.NEAR)));
+}
+function throwArcFx(A, B, fill, stroke){
+  return new Promise(res => {
+    const ball = el("circle",{cx:A.x, cy:A.y - 40, r:9, fill, stroke, "stroke-width":"2"});
+    svg.appendChild(ball);
+    const t0 = performance.now(), ms = ffms(500);
+    (function frame(){
+      const t = Math.min(1, (performance.now() - t0) / ms);
+      ball.setAttribute("cx", A.x + (B.x - A.x)*t);
+      ball.setAttribute("cy", A.y - 40 + (B.y - A.y + 40)*t - Math.sin(Math.PI*t)*120);
+      if (t < 1) requestAnimationFrame(frame);
+      else { ball.remove(); res(); }
+    })();
+  });
+}
+async function throwBomb(p, idx){
+  const spots = bombSpots(p);
+  if (!spots.length){ log(`💣 Nowhere in range to lob the bomb.`); return; }
+  let tile = null;
+  if (p.bot){
+    let bs = -1;
+    for (const t of spots){
+      const s = bombVictims(p, t).filter(q => !q.shieldOn).length * 1000 + t;
+      if (s > bs){ bs = s; tile = t; }
+    }
+  } else {
+    tile = await pickTileOnBoard(`${p.name}: lob the 💣 at a tile (within ${BOMB.RANGE})`, spots, true);
+    if (!tile || tile === "back") return;
+  }
+  p.items.splice(idx, 1);
+  await itemFlourish(p, "💣");
+  await throwArcFx(tokenXY(idxOf(p)), cellCenter(tile), "#3a3a44", "#16161c");
+  const victims = bombVictims(p, tile);
+  explode(tile); SFX.play("boom"); flashScreen();
+  victims.forEach(q => downPlayer(q));
+  layoutTokens(); renderScoreboard();
+  log(victims.some(q => q.downed)
+    ? `💣 ${p.name}'s bomb goes off on tile ${tile} — floored: ${victims.filter(q=>q.downed).map(q=>q.name).join(", ")}!`
+    : `💣 ${p.name}'s bomb goes off on tile ${tile} — nothing but smoke.`);
+  await sleep(400);
+}
+
+/* ---- Fire Egg: singe a rival, their next roll burns shorter ---------- */
+function fireEggTargets(p){
+  if (p.pos < 1) return [];
+  return game.players.filter(q => q !== p && !q.finished && q.pos > 0
+    && Math.abs(q.pos - p.pos) <= FIRE_EGG.RANGE);
+}
+async function throwFireEgg(p, idx){
+  const targets = fireEggTargets(p);
+  if (!targets.length){ log(`🔥 No one is within ${FIRE_EGG.RANGE} tiles to singe.`); return; }
+  const target = p.bot
+    ? targets.reduce((a,q)=> q.pos > a.pos ? q : a)
+    : await pickPlayerOnBoard(`${p.name}: click who to hit with the Fire Egg`, targets, null, true);
+  if (!target || target === "back") return;
+  p.items.splice(idx, 1);
+  await itemFlourish(p, "🔥");
+  await throwArcFx(tokenXY(idxOf(p)), tokenXY(idxOf(target)), "#ff9a3d", "#c23b22");
+  explode(target.pos); SFX.play("crack");
+  target.singeRolls = 1;
+  iconPopup(target, "🔥");
+  log(`🔥 ${p.name}'s Fire Egg bursts over ${target.name} — singed! Their next roll burns ${FIRE_EGG.SINGE} shorter.`);
+  await sleep(400);
+}
+
+/* ---- the Singularity Bomb (crafted, never sold) -----------------------
+   Everyone on the map spirals into a vortex at the chosen tile, it implodes,
+   and the blast hurls them back out in a semi-random spread. The thrower
+   risks being dragged in too — the closer they stand, the surer the pull. */
+function singularityPullChance(dist){
+  return SING.SELF_PULL.find(([d]) => dist <= d)[1];
+}
+async function useSingularity(p, idx){
+  const spots = [];
+  for (let t = 1; t < BOARD.WIN; t++) spots.push(t);
+  let tile;
+  if (p.bot){
+    const rivals = game.players.filter(q => q !== p && !q.finished && q.pos > 0);
+    tile = rivals.length ? rivals.reduce((a,q)=> q.pos > a.pos ? q : a).pos
+                         : Math.min(BOARD.WIN - 1, Math.max(1, p.pos + 10));
+  } else {
+    tile = await pickTileOnBoard(`${p.name}: choose where reality gives way…`, spots, true);
+    if (!tile || tile === "back") return;
+  }
+  p.items.splice(idx, 1);
+  await itemFlourish(p, "🕳️");
+  await singularityBlast(p, tile);
+}
+async function singularityBlast(thrower, epi){
+  const onMap = q => !q.finished && q.pos > 0 && !q.onSecret;
+  const pulled = game.players.filter(q => q !== thrower && onMap(q));
+  const selfIn = onMap(thrower) && Math.random() < singularityPullChance(Math.abs(thrower.pos - epi));
+  if (selfIn) pulled.push(thrower);
+  log(`🕳️ ${thrower.name} arms the SINGULARITY BOMB — tile ${epi} tears open!`, "win");
+  await vortexFx(epi, pulled);
+  if (selfIn) log(`🕳️ ${thrower.name} stood too close — dragged into their own vortex!`);
+  const flights = pulled.map(q => {
+    const dir = Math.random() < 0.5 ? -1 : 1;
+    const d = SING.SPREAD_MIN + ((Math.random()*(SING.SPREAD_MAX - SING.SPREAD_MIN + 1))|0);
+    let dest = epi + dir*d;
+    if (dest >= BOARD.WIN) dest = (BOARD.WIN - 1) - (dest - (BOARD.WIN - 1));   // fold back under the summit
+    return { q, dest };
+  });
+  await Promise.all(flights.map((f, k) => flyOutFx(f.q, epi, f.dest, k)));
+  flights.forEach(f => setBackPos(f.q, f.dest));
+  layoutTokens(); renderScoreboard();
+  const sunk = flights.filter(f => f.q.onSecret).map(f => f.q.name);
+  log(`💥 The singularity collapses — everyone is hurled away from tile ${epi}!`);
+  if (sunk.length) log(`🕳️ Blown clean off the board: ${sunk.join(", ")} — onto the secret square!`);
+  await sleep(500);
+  for (const f of flights){
+    if (game.over) return;
+    if (!f.q.onSecret) await resolveLanding(f.q, 1);
+  }
+  if (thrower.onSecret) await arriveAtSecret(thrower);
+}
+async function vortexFx(epi, pulled){
+  const C = cellCenter(epi);
+  const dark = el("rect",{x:-96, y:0, width:1174, height:1040, fill:"#04030a", opacity:"0"});
+  svg.appendChild(dark);
+  dark.style.transition = `opacity ${ffms(SING.DARK_MS)}ms ease`;
+  requestAnimationFrame(() => dark.style.opacity = "0.72");
+  SFX.play("rumble");
+  await sleep(SING.DARK_MS);
+  const g = el("g",{});
+  const glow = el("circle",{cx:C.x, cy:C.y, r:0,  fill:"none", stroke:"#8f6bff", "stroke-width":"3", opacity:"0.8"});
+  const hole = el("circle",{cx:C.x, cy:C.y, r:0,  fill:"#000"});
+  const ring = el("circle",{cx:C.x, cy:C.y, r:44, fill:"none", stroke:"#c9b6ff", "stroke-width":"2", "stroke-dasharray":"14 22", opacity:"0"});
+  g.append(glow, hole, ring); svg.appendChild(g);
+  SFX.play("leviathan");
+  glow.style.transition = hole.style.transition = ring.style.transition = "r 450ms ease-out, opacity 450ms ease-out";
+  requestAnimationFrame(() => { glow.style.r = "60px"; hole.style.r = "34px"; ring.style.opacity = "1"; });
+  const spin0 = performance.now(); let spinning = true;
+  (function spin(){
+    if (!spinning) return;
+    const t = performance.now() - spin0;
+    ring.setAttribute("transform", `rotate(${t*0.25} ${C.x} ${C.y})`);
+    glow.setAttribute("r", 60 + Math.sin(t/140)*8);
+    requestAnimationFrame(spin);
+  })();
+  await Promise.all(pulled.map((q, k) => {
+    const S = tokenXY(idxOf(q));
+    const r0 = Math.hypot(S.x - C.x, S.y - C.y), a0 = Math.atan2(S.y - C.y, S.x - C.x);
+    return tweenToken(idxOf(q), SING.PULL_MS + k*120, t => {
+      const e = t*t;                                        // the pull accelerates
+      const r = r0 * (1 - e), a = a0 + SING.SWIRL_TURNS*2*Math.PI*e;
+      const s = 1 - 0.9*e;
+      return { x: C.x + Math.cos(a)*r, y: C.y + Math.sin(a)*r, sx: s, sy: s };
+    });
+  }));
+  pulled.forEach(q => tokenEls[idxOf(q)].style.opacity = "0");   // swallowed
+  SFX.play("teleport");
+  await sleep(SING.HOLD_MS);                                     // dead still…
+  spinning = false;
+  SFX.play("megaboom"); SFX.play("earring"); flashScreen();
+  for (let k = 0; k < SING.RING_COUNT; k++){
+    setTimeout(() => {
+      const w = el("circle",{cx:C.x, cy:C.y, r:20, fill:"none", stroke:"#e8ddff", "stroke-width":"5", opacity:"0.9"});
+      w.style.transition = `r ${ffms(SING.RING_MS)}ms ease-out, opacity ${ffms(SING.RING_MS)}ms ease-out`;
+      svg.appendChild(w);
+      requestAnimationFrame(() => { w.style.r = "560px"; w.style.opacity = "0"; });
+      setTimeout(() => w.remove(), ffms(SING.RING_MS) + 80);
+    }, k*140);
+  }
+  g.remove();
+  dark.style.opacity = "0";
+  setTimeout(() => dark.remove(), ffms(SING.DARK_MS) + 80);
+  await sleep(300);
+}
+async function flyOutFx(q, epi, dest, k){
+  const i = idxOf(q);
+  const A = cellCenter(epi), B = dest >= 1 ? cellCenter(dest) : secretCenter();
+  await sleep(k * SING.FLY_STAGGER_MS);
+  tokenEls[i].style.opacity = "1";
+  SFX.play("bounce");
+  await tweenToken(i, SING.FLY_MS, t => {
+    if (t < 0.85){
+      const u = t / 0.85;
+      return { x:A.x + (B.x - A.x)*u, y:A.y + (B.y - A.y)*u - Math.sin(u*Math.PI)*(ANIM.HOP*3) };
+    }
+    const u = (t - 0.85) / 0.15;
+    return { x:B.x, y:B.y, sx:1.15 - 0.15*u, sy:0.8 + 0.2*u };
+  });
+}
+
 async function useItem(p, idx){
   const id = p.items[idx];
   if (["coffee","clover","shield","warhorn"].includes(id)) await itemFlourish(p, itemDef(id).ico);
@@ -4603,6 +4857,14 @@ async function useItem(p, idx){
     await wishMonkeyPaw(p, idx);
   } else if (id === "loadeddice"){
     await useLoadedDice(p, idx);
+  } else if (id === "bomb"){
+    await throwBomb(p, idx);
+  } else if (id === "fireegg"){
+    await throwFireEgg(p, idx);
+  } else if (id === "singcasing"){
+    log(`🌑 The casing only hums in ${p.name}'s hand — a piece is still missing.`);
+  } else if (id === "singularity"){
+    await useSingularity(p, idx);
   }
   refreshBadges(); renderScoreboard();
 }
@@ -4638,6 +4900,15 @@ async function botMaybeUseItem(p){
       let best = -Infinity;
       for (let n = 1; n <= RULES.DICE_SIDES; n++) best = Math.max(best, landingScore(p.pos, n, p));
       if (bagFull || best >= BOT.CLOVER_MIN_SCORE) await useItem(p, k);
+    } else if (id === "bomb"){
+      const worth = bombSpots(p).some(t => bombVictims(p, t).some(q => !q.shieldOn));
+      if (worth || bagFull) await useItem(p, k);
+    } else if (id === "fireegg"){
+      if (bagFull || fireEggTargets(p).some(q => q.pos > p.pos)) await useItem(p, k);
+    } else if (id === "singularity"){
+      const rivals = game.players.filter(q => q !== p && !q.finished && q.pos > 0);
+      const top = rivals.reduce((a,q)=> !a || q.pos > a.pos ? q : a, null);
+      if (top && (bagFull || Math.abs(p.pos - top.pos) >= BOT.SING_SAFE_DIST)) await useItem(p, k);
     }
   }
 }
@@ -4691,7 +4962,7 @@ function renderInventory(){
 /* ---- shop (gold square): spend coins on items ----------------------- */
 // Each visit stocks SHOP.STOCK items drawn at random from the enabled catalog.
 function shopStock(){
-  const pool = SHOP_CATALOG.filter(i => i.enabled);
+  const pool = SHOP_CATALOG.filter(i => i.enabled && !i.craftOnly);
   for (let i = pool.length - 1; i > 0; i--){ const j = (Math.random()*(i+1))|0; [pool[i],pool[j]] = [pool[j],pool[i]]; }
   return pool.slice(0, SHOP.STOCK);
 }
@@ -4872,7 +5143,7 @@ function buildRoundsRow(){
    (enabled is what shopStock() filters on — shop + black market alike);
    Board = BOARD_OPTIONS (read by newGame via boardOpt). */
 const ADV_SECTIONS = [
-  { id:"items", title:"🛒 Items", entries: SHOP_CATALOG },
+  { id:"items", title:"🛒 Items", entries: SHOP_CATALOG.filter(i => !i.craftOnly) },   // craft-only pieces stay a secret
   { id:"exotics", title:"🕯️ Black market", entries: EXOTICS },
   { id:"board", title:"🗺️ Board", entries: BOARD_OPTIONS },
 ];
@@ -5065,7 +5336,7 @@ buildAdvanced();
 showScreen("title");
 
 /* ---- dev preview: watch a cutscene without playing a game -----------
-   Open  index.html#preview=leviathan  (or lightning | star | nuke | gun).
+   Open  index.html#preview=leviathan  (or lightning | star | nuke | gun | singularity).
    It boots a demo board and plays the cutscene; SPACE / ENTER / clicking
    the board replays it. Has no effect on normal play. */
 let previewBusy = false;
@@ -5076,6 +5347,7 @@ async function runPreview(name){
     star:      () => starFx(game.players[0], 60),
     nuke:      () => nukeSequence(),
     gun:       () => revolverRoulette(game.players[0]),
+    singularity: () => singularityBlast(game.players[0], 48),
   }[name];
   if (!fx || previewBusy) return;
   previewBusy = true;

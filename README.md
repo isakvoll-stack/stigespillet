@@ -55,7 +55,17 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
-Recently shipped (2026-07-10, latest): **4-point batch + balance sweep** — Mystery
+Recently shipped (2026-07-10, latest): **🕳️ SINGULARITY BOMB** — the game's first
+crafted item (never sold): carry any two of Shield + the NEW 💣 Bomb (6c, tile blast)
++ the NEW 🔥 Fire Egg (5c, singe: next roll −2) and they auto-fuse into an unusable
+🌑 Casing; the last piece completes the 🕳️ Singularity Bomb. Aim it anywhere: every
+player on the map spirals into a black-hole vortex, it implodes, and everyone is
+hurled 3–10 tiles out (past-90 folds back, below-1 crashes onto the secret square).
+The thrower risks the pull too — 95%/55%/25%/10% by distance. Full cutscene
+(`#preview=singularity`), bots craft and detonate, `CRAFT` registry for future
+recipes. Verified 24/24 headless. Defaults in `Next/QUESTIONS.md`.
+
+Earlier today: **4-point batch + balance sweep** — Mystery
 Box costs 5; everyone starts with a 5-coin purse (`COIN.START`); rule cards only
 auto-dismiss in all-bot games (humans present → the card waits for a click); the
 black-market dealer now appears on the visitor's OWN turn (after standing up if

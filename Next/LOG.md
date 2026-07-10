@@ -3,7 +3,37 @@
 Newest first. One entry per working session; note what shipped and what's next.
 
 ---
-## 2026-07-10 (latest, later same session) — 4-point batch + player-count balance sweep
+## 2026-07-10 (latest, third push today) — 🕳️ Singularity Bomb: crafting + 2 items + vortex cutscene
+
+Isak's friend's idea (Rain World Gourmand homage), built live. The game had a Shield
+but no bomb/fire egg, so both were built as NEW cheap shop consumables (each useful
+alone): **💣 Bomb 6c** (lob within 8, blast floors on/adjacent, shield-aware) and
+**🔥 Fire Egg 5c** (singe within 8: next roll −2 via a `MOVE_BONUSES` entry).
+**Recipe = Shield + Bomb + Fire Egg** in the new `CRAFT` registry: any 2 pieces
+auto-fuse into the unusable **🌑 Casing** (`p.craftNeed` remembers the missing piece;
+duplicates don't count), the last piece completes the **🕳️ Singularity Bomb** —
+`craftOnly` entries: no shelf, no Mystery Box, hidden from the toggle list, hooked
+once in `giveItem`.
+
+**The vortex** (`SING`): aim at any tile (not 90); EVERYONE on the map spirals in
+(nothing resists — shields, mirrors, downed, frozen all come along), implosion, then
+a 3–10 tile semi-random scatter (past-90 folds back; below-1 = the secret square,
+dealer queued per the own-turn rule). Thrower suction by distance: ≤3 95% / ≤5 55% /
+≤7 25% / else 10% (Isak's "almost guaranteed / maybe / probably not" curve).
+Cutscene: gloom → black hole + rotating accretion ring → accelerating spiral pull
+(tokens shrink into it) → dead-still beat → megaboom/ear-ring/shockwave rings/shake
+→ staggered arc fly-outs. `#preview=singularity` added; two headless screenshots
+eyeballed (pull + implosion frames look properly ominous).
+
+Bots buy the pieces, bomb clusters, singe the leader, and only detonate from ≥7
+tiles away (`BOT.SING_SAFE_DIST`). **Verified 24/24 headless** (fuse both orders,
+duplicate guard, casing unusable, bomb shield-block/thrower-ducks, singe math,
+deterministic blast: pull-all / fold-back / secret-crash + own-turn dealer, full
+4-bot game to a winner, 0 JS errors). Defaults in QUESTIONS.md — biggest one: the
+invented Bomb/Fire Egg equivalents and the no-knockdown scatter.
+
+---
+## 2026-07-10 (second push today) — 4-point batch + player-count balance sweep
 
 Isak's picks, built live: **Mystery Box 5 coins** (was 3); **5-coin starting purse**
 (`COIN.START`, factory reads it); **rule cards no longer auto-dismiss when a human
