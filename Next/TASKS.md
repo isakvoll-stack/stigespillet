@@ -89,9 +89,10 @@ See `LOG.md` for the running session history.
 - [x] **The vortex** (`SING`): pick any tile (not 90) — EVERY player on the map
       (any distance, downed/frozen too, nothing blocks it) spirals into a black
       hole there, dead-still beat, then implosion + shockwave rings hurl everyone
-      3–10 tiles out in a semi-random spread; past-90 folds back, below-1 lands on
-      the secret square (dealer queues per the own-turn rule). Thrower suction by
-      distance: ≤3 95% · ≤5 55% · ≤7 25% · else 10% (`SELF_PULL`).
+      3–10 tiles out in a semi-random spread — every rider slams down FLAT on
+      landing (Isak's follow-up; ice shatters in the ride); past-90 folds back,
+      below-1 lands on the secret square (dealer queues per the own-turn rule).
+      Thrower suction by distance: ≤3 95% · ≤5 55% · ≤7 25% · else 10% (`SELF_PULL`).
 - [x] **Dramatic cutscene**: sky-gloom, growing hole + rotating accretion ring +
       pulsing glow, accelerating spiral pull (tokens shrink + vanish), silence,
       megaboom + flashbang ear-ring + 3 shockwave rings + screen shake, staggered

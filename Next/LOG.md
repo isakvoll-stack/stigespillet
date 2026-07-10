@@ -30,7 +30,13 @@ tiles away (`BOT.SING_SAFE_DIST`). **Verified 24/24 headless** (fuse both orders
 duplicate guard, casing unusable, bomb shield-block/thrower-ducks, singe math,
 deterministic blast: pull-all / fold-back / secret-crash + own-turn dealer, full
 4-bot game to a winner, 0 JS errors). Defaults in QUESTIONS.md — biggest one: the
-invented Bomb/Fire Egg equivalents and the no-knockdown scatter.
+invented Bomb/Fire Egg equivalents.
+
+**Follow-up same session (Isak):** scattered players now **slam down flat on
+landing** (normal get-up; the ride shatters ice — frozen riders land merely downed).
+Nice composition: a thrower flung onto the secret square lands downed, so the dealer
+waits for their get-up, exactly per today's own-turn market rule. Re-verified 27/27
+(added: all-downed on landing, ice-shatter, dealer-after-get-up chain).
 
 ---
 ## 2026-07-10 (second push today) — 4-point batch + player-count balance sweep

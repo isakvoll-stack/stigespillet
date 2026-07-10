@@ -10,9 +10,11 @@ Answer whenever — each answer gets folded in and the question checked off.
   coins** (lob at a tile within 8 — floors everyone on/beside it, shield-aware) and
   **🔥 Fire Egg, 5 coins** (singe a rival within 8 — their next roll is 2 shorter).
   Recipe = Shield + Bomb + Fire Egg. Different equivalents in mind?
-- [ ] **Scattered players land on their feet** — the vortex flings everyone 3–10
+- [x] **Scattered players land on their feet** — the vortex flings everyone 3–10
   tiles but nobody is knocked down by it (the ride IS the punishment). Should the
   landing floor them too?
+  **✔ Answered 2026-07-10: floor them — everyone slams down flat on landing (normal
+  get-up; the ride also shatters ice, so frozen riders land merely downed). Built.**
 - [ ] **Nothing resists the vortex** — armed Shields and Mirrors don't help; downed
   and frozen players are dragged along as well. Feels right for an ultimate; say if
   Shields should hold.

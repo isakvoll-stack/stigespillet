@@ -4736,10 +4736,15 @@ async function singularityBlast(thrower, epi){
     return { q, dest };
   });
   await Promise.all(flights.map((f, k) => flyOutFx(f.q, epi, f.dest, k)));
-  flights.forEach(f => setBackPos(f.q, f.dest));
+  flights.forEach(f => {
+    setBackPos(f.q, f.dest);
+    f.q.downed = true; f.q.frozen = false; f.q.getupMin = SNIPER.GETUP_MIN;   // nothing resists: knocked flat, ice shattered
+    updateDowned(idxOf(f.q)); updateFrozen(idxOf(f.q));
+  });
+  SFX.play("fall");
   layoutTokens(); renderScoreboard();
   const sunk = flights.filter(f => f.q.onSecret).map(f => f.q.name);
-  log(`💥 The singularity collapses — everyone is hurled away from tile ${epi}!`);
+  log(`💥 The singularity collapses — everyone is hurled away from tile ${epi} and slams down flat!`);
   if (sunk.length) log(`🕳️ Blown clean off the board: ${sunk.join(", ")} — onto the secret square!`);
   await sleep(500);
   for (const f of flights){

@@ -390,9 +390,11 @@ Use it and **pick any tile**: reality gives way. The sky darkens, a hole tears o
 and **every player on the map** — all of them, any distance, downed or frozen, no
 Shield or Mirror can refuse it — **spirals into the vortex**. A beat of dead
 silence… then it **detonates**, hurling everyone back out **3–10 tiles from the
-epicenter** in a semi-random spread (flights past the summit fold back; flights past
-tile 1 crash onto the **secret square**). Ladders, chutes and tile effects fire
-where they land.
+epicenter** in a semi-random spread — and every rider **slams down flat on landing**
+(knocked down, normal get-up roll; a frozen player's **ice is shattered** by the ride,
+they land merely floored). Flights past the summit fold back; flights past tile 1
+crash onto the **secret square** — where the dealer, as always, waits for you to
+stand up. Ladders, chutes and tile effects fire where they land.
 
 **The thrower is not safe.** Stand close and the vortex takes you too: within **3
 tiles it almost certainly does (95%)**, at **5 it's a coin flip (55%)**, at **7 it

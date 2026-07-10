@@ -60,7 +60,8 @@ crafted item (never sold): carry any two of Shield + the NEW 💣 Bomb (6c, tile
 + the NEW 🔥 Fire Egg (5c, singe: next roll −2) and they auto-fuse into an unusable
 🌑 Casing; the last piece completes the 🕳️ Singularity Bomb. Aim it anywhere: every
 player on the map spirals into a black-hole vortex, it implodes, and everyone is
-hurled 3–10 tiles out (past-90 folds back, below-1 crashes onto the secret square).
+hurled 3–10 tiles out and slammed flat on landing (ice shatters; past-90 folds
+back, below-1 crashes onto the secret square).
 The thrower risks the pull too — 95%/55%/25%/10% by distance. Full cutscene
 (`#preview=singularity`), bots craft and detonate, `CRAFT` registry for future
 recipes. Verified 24/24 headless. Defaults in `Next/QUESTIONS.md`.
