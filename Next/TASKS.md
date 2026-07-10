@@ -71,6 +71,28 @@ See `LOG.md` for the running session history.
 ---
 
 ## Done
+### 2026-07-10 — Isak's 4-point batch + player-count balance sweep (live session)
+- [x] **📦 Mystery Box costs 5** (was 3, `SHOP_CATALOG`).
+- [x] **Everyone starts with 5 coins** (`COIN.START`, player factory reads it).
+- [x] **Rule cards wait for a click in games with real players** — auto-dismiss
+      (3.8s) now only fires when EVERY seat is a bot; a bot discovering a rule
+      mid-game holds the card up until a human dismisses it.
+- [x] **Black-market dealer only appears on your own turn** — arriving on the
+      secret square sets `p.marketDue`; knocked there flat, you meet the dealer
+      **after you successfully stand up** (`resolveGetUp`); thrown there on your
+      feet, at your **next turn start** (`startTurn`); slipping there mid-move on
+      your own roll, immediately (`arriveAtSecret`). One audience per arrival —
+      no more off-turn popup pile-ups when several players get blasted back at
+      once. Off-turn `visitSecret` calls removed from lightning + snake-collision.
+- [x] **Balance sweep delivered** → `SUGGESTIONS.md` "2026-07-10 balance sweep":
+      six findings on how the game shifts with player count (rare-event density,
+      sniper cadence, global fishing curves, market inflation, KOTH trophy
+      economy, AoE scaling) + a `BALANCE.REF_PLAYERS` recipe. Awaiting Isak's picks.
+- [x] **Verified headless Edge 15/15**: statics, start purse, mixed-game card
+      held ≥5s + click dismiss, all-bot auto-dismiss, off-turn secret arrival
+      deferred, market on get-up / turn-start / own-turn slip, full 4-bot game
+      to a winner (27 rounds), 0 JS errors.
+
 ### 2026-07-06 — 🏆 King of the Hill game mode + mode-select screen (Isak's spec)
 - [x] **Game-mode screen**: Play → **Game mode** → Choose players (Back buttons walk
       the chain in reverse; the in-game "New game" button also starts at the mode

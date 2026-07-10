@@ -3,7 +3,35 @@
 Newest first. One entry per working session; note what shipped and what's next.
 
 ---
-## 2026-07-10 (latest) — balance tuning pass (Isak, live)
+## 2026-07-10 (latest, later same session) — 4-point batch + player-count balance sweep
+
+Isak's picks, built live: **Mystery Box 5 coins** (was 3); **5-coin starting purse**
+(`COIN.START`, factory reads it); **rule cards no longer auto-dismiss when a human
+is playing** (the 3.8s timer now requires every seat to be a bot); and the **black
+market moved to your own turn** — arriving on the secret square sets `marketDue`,
+consumed after a successful get-up (`resolveGetUp`), at your next turn start
+(`startTurn`) if you arrived standing, or immediately via `arriveAtSecret` when you
+slip there mid-move on your own roll. Off-turn `visitSecret` calls removed
+(lightning, snake collision). `marketDue` cleared everywhere `onSecret` clears.
+
+**Balance sweep** (Isak's ask: how does balance shift with player count) delivered
+as SUGGESTIONS.md "2026-07-10" section — six grounded findings: rare events are
+per-turn so chaos density scales with seats (B1, biggest); sniper grants are
+per-round so duels are rifle-saturated (B2); fishing difficulty curves are GLOBAL
+so full tables sour the pond ~3× faster per person (B3); black-market markup
+inflates with anyone's visits (B4); KOTH sole-1st trophy is a fountain in duels,
+scarce at 6 (B5); AoE/trapdoor/crown observations (B6). Proposed one-place fixes
+per finding + a `BALANCE.REF_PLAYERS` DATA recipe. Nothing built — Isak picks.
+
+**Verified 15/15 headless Edge** (statics, purse, card held in mixed / auto-closed
+in all-bot, market deferred off-turn + opens on get-up / turn start / own-turn
+slip, full 4-bot game to a winner in 27 rounds, 0 JS errors). Harness notes for
+next time: stub rAF, auto-fire `animationend`, and call `showScreen("game")`
+before `startTurn()` — `roll()` refuses while any `.screen.show` is up (that cost
+one debug loop).
+
+---
+## 2026-07-10 — balance tuning pass (Isak, live)
 
 Five DATA-only tweaks, no logic touched:
 - **KOTH lap** pays **8** trophies, was 10 (`KOTH.TROPHY_WIN`) — also answers the

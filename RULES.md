@@ -262,12 +262,17 @@ is to be **thrown back past the start** (e.g. a low-tile **lightning** strike or
 **pile-up**): instead of stopping at tile 1, you land on the secret square, which then
 **reveals itself**. From there you roll back onto the board as if starting again.
 
-**The black market** also trades here: landing on the secret square opens a **shady
-dealer**. His shelf holds **2 exotics** (drawn from the dealer-only `EXOTICS` stock,
-purple in the UI, tagged *· exotic*) plus **1 normal catalog item**. Only the normal
-item's price flexes — cheaper the further you trail the pack's average position, and
-**+1 coin** for every earlier visit (by anyone, all game). Exotic deals are exactly
-what they say.
+**The black market** also trades here: the secret square hides a **shady dealer** —
+but he only shows himself **on your own turn**. Knocked here flat on your back
+(lightning, pile-up), you meet him **after you successfully stand up**; thrown here
+on your feet, he appears **at the start of your next turn** (or immediately, if you
+slipped here mid-turn on your own roll). One audience per arrival — so when several
+players get blasted off the board at once, each gets their own quiet word with the
+dealer instead of a pile of popups. His shelf holds **2 exotics** (drawn from the
+dealer-only `EXOTICS` stock, purple in the UI, tagged *· exotic*) plus **1 normal
+catalog item**. Only the normal item's price flexes — cheaper the further you trail
+the pack's average position, and **+1 coin** for every earlier visit (by anyone,
+all game). Exotic deals are exactly what they say.
 
 **The exotics** — every one is powerful, and every one has a hook:
 
@@ -291,7 +296,8 @@ exotics live in the `EXOTICS` DATA block (own toggle group in Advanced settings)
 
 ### The Shop, inventory &amp; items (hidden rule)
 Four **gold squares** are cabin shops (tiles **6, 28, 52, 75**). Land on one and you
-**spend your coins** on items. The shelf shows **3 items drawn at random** from the
+**spend your coins** on items — everyone starts the game with a **5-coin purse**
+(`COIN.START`). The shelf shows **3 items drawn at random** from the
 full catalog each visit, and each item can be **bought only once per visit** (it shows
 as *sold out* after). You carry a small inventory: **up to 3 consumables plus 1
 passive** at a time. *(Shelf size = `SHOP.STOCK`.)*
@@ -332,7 +338,7 @@ next game.
   it). Rivals already down or frozen, on the start lane or on the secret square are
   untouched. Flattening 3+ rivals with one blast triggers the multi-kill announcer.
   *(Tunables in `HORN`.)*
-- **📦 Mystery Box** — **3 coins.** Pops open into a **random enabled consumable**
+- **📦 Mystery Box** — **5 coins.** Pops open into a **random enabled consumable**
   from the catalog (never another box). A cheap gamble — most of what's inside costs
   more than the box. *(Fallback payout `MYSTERY.FALLBACK_COINS` if nothing can pop.)*
 - **❄️ Snowball** — **6 coins.** Throw it at a rival within **8 tiles** (either

@@ -55,7 +55,16 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
-Recently shipped (2026-07-10, latest): **balance tuning pass** — KOTH lap pays 8
+Recently shipped (2026-07-10, latest): **4-point batch + balance sweep** — Mystery
+Box costs 5; everyone starts with a 5-coin purse (`COIN.START`); rule cards only
+auto-dismiss in all-bot games (humans present → the card waits for a click); the
+black-market dealer now appears on the visitor's OWN turn (after standing up if
+knocked there, at next turn start if thrown there standing) — no more off-turn
+popup pile-ups. Plus a player-count balance sweep in `Next/SUGGESTIONS.md`
+(rare-event density, sniper cadence, global fishing curves, market inflation,
+KOTH trophy economy — fixes proposed, awaiting picks). Verified 15/15 headless.
+
+Earlier same day: **balance tuning pass** — KOTH lap pays 8
 trophies (was 10), gold rain 30 coins (was 50), Crown costs 5 (was 10), lucky star
 twice as likely (0.8%/turn), lightning + fate swap 1.5× (0.75% / 0.5%). All in DATA
 (`KOTH`/`GOLD_RAIN`/`SHOP_CATALOG`/`LUCKY`/`LIGHTNING`/`FATE`); RULES.md synced.

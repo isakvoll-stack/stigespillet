@@ -12,6 +12,69 @@ Costs are suggestions on today's 4–10 coin scale.
 
 ---
 
+## 2026-07-10 — Balance sweep: how the game shifts with player count
+
+Isak asked for an intensive sweep focused on balancing by number of players.
+Verified against the code, not guessed. The core insight: **games last roughly the
+same number of ROUNDS regardless of seats** (first to 90 needs ~20–25 rounds of
+personal rolls), but everything tuned *per turn* or *globally* scales with the
+seat count. Ordered by impact:
+
+### B1 — Rare events: chaos is ~3× denser in a 6-player game than 2-player ⚠ biggest
+`LIGHTNING`/`LUCKY`/`FATE` roll **per turn**, so per ROUND the strike count grows
+linearly with seats — a 6-player game eats ~3× the lightning/stars/swaps of a
+2-player game over its life. **Fix (one labelled place):** normalize in the
+`RARE_EVENTS` loop in `startTurn` — multiply each chance by
+`BALANCE.REF_PLAYERS / players` (new `BALANCE = { REF_PLAYERS:4 }` DATA const;
+current numbers then mean "tuned for a 4-player table").
+
+### B2 — Sniper rifles invert: duels are rifle-saturated, big tables starved
+`grantSniperIfDue` arms **last place every 5 rounds** regardless of seats. Over a
+~22-round game that's ~4 rifles: in a 2-player game each player averages ~2 rifles
+and every shot has exactly one target (brutal); with 6 players most never touch one.
+**Fix:** grant every N total *turns* instead (`SNIPER.EVERY_TURNS:18`-ish keeps
+today's 4-player feel), or a per-count table `{2:8, 3:6, 4:5, 5:4, 6:4}` rounds.
+
+### B3 — The pond sours 3× faster per person at a full table
+Both fishing curves are **global**: the minigame difficulty rides `game.fishStreak`
+(anyone's catch escalates it) and bot odds ride `game.fishCaught` (total catches).
+Two players get a generous pond all game; six players hit the 95%-loss wall almost
+immediately — and in KOTH fish are trophies, so crowded KOTH quietly nerfs the
+fish strategy. **Fix:** make the streak per-player (`p.fishStreak`), or stretch
+the curves by seat count.
+
+### B4 — Black-market prices inflate with the crowd
+`MARKET.VISIT_MARKUP:1` per visit **by anyone** — more players → more knock-backs
+→ more visits → the dealer's normal item becomes unaffordable much sooner in big
+games. **Fix:** markup on `floor(marketVisits / players)`, or add a `MARKUP_MAX`.
+
+### B5 — KOTH trophy economy flips with the seat count
+Starting a turn in **sole 1st** pays 1: with 2 players *someone* is in sole 1st
+almost every turn (a near-guaranteed trophy fountain, ~6 lead trophies each over
+the default 12 rounds), with 6 players the lead flips constantly and pays rarely.
+Meanwhile a lap (now 8) is relatively WEAK in duels and STRONG at full tables.
+Combined with the already-questioned `6 × players` rounds default (QUESTIONS.md),
+KOTH plays like a different game at each count. **Fix:** a small per-count KOTH
+table — e.g. rounds `{2:20, 3:24, 4:26, 5:30, 6:32}` and/or `TROPHY_LEAD` worth
+more at big tables. Needs Isak's feel-pass; numbers above are starting points.
+
+### B6 — Observations, probably fine (the chaos is the brand)
+- **AoE grows with the crowd**: nuke (floors all non-blue), War Horn (whole row),
+  chute pile-ups/grazes — mild in duels, board-wipes at 6. Arguably correct.
+- **Trapdoor 89 / banana peels**: more players = more likely someone ELSE springs
+  it. In duels the trapdoor is effectively aimed at the leader. Fine as flavour.
+- **New this session**: start-coins 5 + Crown at 5 means a player can buy the Crown
+  at the FIRST shop — in a 2-player game the leader compounding +1/turn from round
+  one is strong. Watch it in play; a bump back to 6–7 is the lever if it snowballs.
+
+### Suggested structural recipe (matches the layering rule)
+One new `BALANCE` DATA const (e.g. `{ REF_PLAYERS:4 }`) + count-aware chances in
+exactly one place each (`startTurn` rare-event loop, `grantSniperIfDue`,
+`fishParams`, `marketPrice`). No registry change needed; every knob stays a
+labelled DATA line.
+
+---
+
 ## Part 1 — What we should work on
 
 ### Already queued (my suggested order)

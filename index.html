@@ -754,7 +754,7 @@ const SHOP_CATALOG = [
     desc:"Passive: +1 to every roll while worn." },
   { id:"gloves", ico:"🧤", name:"Thieves' Gloves",  kind:"passive",    cost:6,  enabled:true,
     desc:"Passive: steal a coin whenever you kick or bounce off a player." },
-  { id:"mysterybox", ico:"📦", name:"Mystery Box",  kind:"consumable", cost:3,  enabled:true,
+  { id:"mysterybox", ico:"📦", name:"Mystery Box",  kind:"consumable", cost:5,  enabled:true,
     desc:"When used: pops open into a random item — could be anything." },
   { id:"snowball", ico:"❄️", name:"Snowball",       kind:"consumable", cost:6,  enabled:true,
     desc:"When used: throw it at a rival within 8 tiles — they freeze solid." },
@@ -1013,7 +1013,7 @@ const FREEZE = { GETUP_MIN: 4, ADJ: 1 };   // need 4+ to break free; LANDING wit
 const RAD_TILES = [];                      // fallout tiles — empty until a nuke converts plain tiles
 const RAD_COLOR = "#58c81b";               // radioactive green
 const RAD = { PER_NUKE:2, GROW_TURNS:5, IMMUNE_BONUS:1 };  // tiles per nuke; sickness worsens 5 turns (to -5) then recovers; survive = permanent +1
-const COIN = { PLAIN:1, BLUE:3 };          // coins per plain-tile landing (yellow pays quietly, blue pays big)
+const COIN = { PLAIN:1, BLUE:3, START:5 }; // coins per plain-tile landing (yellow pays quietly, blue pays big) + the opening purse
 const COIN_FX = {                          // how each coin source announces itself
   six:   { SOUND:false, POPS:0 },                          // rolled-6 bonus: silent — you only see it on the scoreboard
   plain: { SOUND:true,  POPS:0 },                          // yellow tile: the ping only, no icon
@@ -1174,8 +1174,8 @@ function tileBelow(cell){
 // hidden secret square (pos 0 + onSecret) instead of clamping to tile 1 — the only
 // way that square is ever discovered. Returns true if they ended up on the secret.
 function setBackPos(pl, rawTarget){
-  if (FEATURES.secretSquare && rawTarget < 1){ pl.pos = SECRET.POS; pl.onSecret = true; return true; }
-  pl.pos = Math.max(1, rawTarget); pl.onSecret = false; return false;
+  if (FEATURES.secretSquare && rawTarget < 1){ pl.pos = SECRET.POS; pl.onSecret = true; pl.marketDue = true; return true; }
+  pl.pos = Math.max(1, rawTarget); pl.onSecret = false; pl.marketDue = false; return false;
 }
 
 /* =====================================================================
@@ -1756,8 +1756,8 @@ function newGame(roster){
   game = {
     players: roster.map((r,i)=>({
       name: r.name || `Player ${i+1}`, color: PLAYER_COLORS[i], pos:0, bot: !!r.bot,
-      downed:false, frozen:false, sniper:false, finished:false, shame:0, getupMin: SNIPER.GETUP_MIN, fish:0, onSecret:false,
-      items:[], passive:null, rollBonus:0, forceSix:false, coins:0,
+      downed:false, frozen:false, sniper:false, finished:false, shame:0, getupMin: SNIPER.GETUP_MIN, fish:0, onSecret:false, marketDue:false,
+      items:[], passive:null, rollBonus:0, forceSix:false, coins:COIN.START,
       radSick:false, radTurns:0, radLevel:0, radImmune:false, shieldOn:false,
       mirrorOn:false, forceRoll:0, diceCharges:0, curseRolls:0,
       trophies:0, laps:0,
@@ -1913,7 +1913,7 @@ async function roll(){
 async function moveCurrent(rollValue){
   const p = game.players[game.current];
   const i = game.current;
-  p.onSecret = false;                          // leaving the secret square (if they were on it)
+  p.onSecret = false; p.marketDue = false;     // leaving the secret square (if they were on it)
   const steps = rollValue + moveBonusTotal(p); // die face + every active MOVE_BONUSES entry
   const backwards = steps < 0 && p.pos > 1;    // radiation beyond the roll drags you back
   if (steps < 1 && !backwards){                // radiation can sap a roll to nothing
@@ -2062,7 +2062,7 @@ async function finishPlayer(p){
     confettiBurst(KOTH.LAP_CONFETTI);
     awardTrophy(p, "🏔️ Reached the top", KOTH.TROPHY_WIN);
     await sleep(ffms(KOTH.LAP_PAUSE_MS));
-    p.pos = 0; p.onSecret = false;
+    p.pos = 0; p.onSecret = false; p.marketDue = false;
     log(`${p.name} heads back down to the start.`);
     layoutTokens(); renderScoreboard();
     return;
@@ -2243,7 +2243,8 @@ function revealRuleOnce(key, arg){
       document.getElementById("reveal").classList.remove("show");
       revealResolve = null; res();
     };
-    if (game.autonomous) setTimeout(() => { if (revealResolve) revealResolve(); }, 3800);
+    if (game.autonomous && game.players.every(q => q.bot))
+      setTimeout(() => { if (revealResolve) revealResolve(); }, 3800);
   });
 }
 
@@ -2607,6 +2608,12 @@ async function startTurn(){
     game.busy = false; refreshHUD();
   }
   if (game.over) return;                 // a rare effect's cascade may have ended the game
+  if (cur.onSecret && cur.marketDue && !cur.downed && !cur.frozen){
+    game.busy = true; refreshHUD();
+    cur.marketDue = false;
+    await visitSecret(cur);
+    game.busy = false; refreshHUD();
+  }
   if (cur.sniper && !cur.downed){
     game.busy = true; refreshHUD();
     await useSniper(cur);
@@ -2647,6 +2654,7 @@ async function resolveGetUp(value){
   if (value >= getupNeed(p)){
     p.downed = false; p.frozen = false; p.getupMin = SNIPER.GETUP_MIN;
     updateDowned(game.current); updateFrozen(game.current);
+    if (p.onSecret && p.marketDue){ p.marketDue = false; await visitSecret(p); }
     if (FEATURES.sixRollsAgain && value === RULES.DICE_SIDES){
       log(wasFrozen ? `${p.name} smashed free on a 6 — rolls again!` : `${p.name} got up on a 6 — rolls again!`);
       game.busy = false; refreshHUD(); maybeAuto();         // stand, then roll to move
@@ -3407,7 +3415,6 @@ async function lightningStrike(victim){
     : candleStruck
       ? `🌩️🕯️ The bolt feeds on ${victim.name}'s candle — hurled ${back} tiles back, down to tile ${victim.pos}!`
       : `🌩️ Lightning struck ${victim.name} — knocked flat and back to tile ${victim.pos}!`);
-  if (onSecret) await visitSecret(victim);
   await sleep(500);
   await resolveLanding(victim);                            // the new tile fires too
 }
@@ -3626,7 +3633,6 @@ async function snakeCollision(slider, head, tail, depth){
   layoutTokens(); renderScoreboard();
   await sleep(750);
   for (const q of [...hits, ...grazed]){
-    if (q.onSecret) await visitSecret(q);
     await resolveLanding(q, (depth||0)+1); if (game.over) return;
   }
 }
@@ -4483,7 +4489,7 @@ async function springBanana(p, depth){
   }
   setBackPos(p, raw);
   layoutTokens(); renderScoreboard();
-  if (p.onSecret){ await visitSecret(p); return true; }
+  if (p.onSecret){ await arriveAtSecret(p); return true; }
   await resolveLanding(p, (depth||0) + 1);
   return true;
 }
@@ -4503,7 +4509,7 @@ async function wishMonkeyPaw(p, idx){
   p.items.splice(idx, 1);
   await itemFlourish(p, "🐒");
   SFX.play("teleport"); flashScreen();
-  p.pos = tile; p.onSecret = false;
+  p.pos = tile; p.onSecret = false; p.marketDue = false;
   layoutTokens(); renderScoreboard();
   log(`🐒 The paw curls a finger — ${p.name} appears on tile ${tile}!`);
   await sleep(600);
@@ -4741,6 +4747,14 @@ function renderShop(p, close, stock, bought, market){
 async function visitSecret(pl){
   await revealRuleOnce("secret");
   if (FEATURES.blackMarket && FEATURES.shop) await runBlackMarket(pl);
+}
+// The dealer only shows himself on the visitor's OWN turn: immediately if they
+// arrive standing mid-turn, otherwise the pending `marketDue` is consumed after
+// a successful get-up (resolveGetUp) or at their next turn start (startTurn).
+async function arriveAtSecret(p){
+  if (game.players[game.current] !== p || p.downed || p.frozen) return;
+  p.marketDue = false;
+  await visitSecret(p);
 }
 // The dealer's price: catalog cost, discounted the further you trail the pack's
 // average position, marked up for every past visit (by anyone).

@@ -3,6 +3,16 @@
 Standing file: autonomous sessions log clarifications here instead of stopping to ask.
 Answer whenever — each answer gets folded in and the question checked off.
 
+## 2026-07-10 — from the 4-point batch (defaults picked, say if wrong)
+
+- [ ] **Get-up on a 6 + the dealer** — standing up on the secret square with a 6
+  opens the black market FIRST, then you still get your bonus roll. Felt right
+  (deal done, then off you go); say if the roll should come first.
+- [ ] **Balance sweep picks** — six player-count findings live in SUGGESTIONS.md
+  ("2026-07-10 balance sweep", B1–B6) with proposed one-place fixes. B1 (rare-event
+  density) and B3 (global fishing curves) are the ones I'd fix first. Pick what to
+  build, or say "all of B1–B5".
+
 ## 2026-07-06 — from the King of the Hill build (defaults picked, say if wrong)
 
 - [ ] **First-place trophy needs SOLE 1st** — you earn the trophy at the start of
