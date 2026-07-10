@@ -17,7 +17,7 @@ live in the `GAME_MODES` DATA table):
   - **+1** for starting your turn in **sole 1st place** (ties pay nobody; the
     start lane doesn't count).
   - **+1** for every **fish you catch**.
-  - **+10** for reaching **tile 90** — you celebrate a *lap* and walk back to
+  - **+8** for reaching **tile 90** — you celebrate a *lap* and walk back to
     the **start lane**. The game rolls on; landing there on a rolled 6 still
     grants the extra roll.
   - When the rounds run out, **most trophies takes the hill**. A tie is broken
@@ -199,21 +199,21 @@ permanent +1 to every roll** — and immune to fallout forever.
 *Toggle: `FEATURES.radioactive`. Tiles per nuke / sickness length / reward in `RAD`.*
 
 ### Lightning (very rare)
-Once in a blue moon (about **1.5% of turns**) a storm strikes the player in the
+Once in a blue moon (about **0.75% of turns**) a storm strikes the player in the
 **lead** — knocking them **down** and **back** down the board, with a flash of
 lightning and a clap of thunder. Mercifully rare.
 
 *Toggle: `FEATURES.lightning` (chance/distance in `LIGHTNING`).*
 
 ### Lucky star (very rare)
-The flip side of lightning: once in a while (about **1.2% of turns**) a shooting
+The flip side of lightning: once in a while (about **0.8% of turns**) a shooting
 star favours whoever is **in last place**, sweeping them a good way up the board
 (never far enough to win outright). A rare comeback for the underdog.
 
 *Toggle: `FEATURES.luckyStar` (chance/distance in `LUCKY`).*
 
 ### Reversal of fortune (very rare)
-About **1% of turns**, fate flips on a whim and the player **in the lead** trades
+About **0.5% of turns**, fate flips on a whim and the player **in the lead** trades
 places with the player **in last** — an instant, dramatic shake-up of the order.
 
 *Toggle: `FEATURES.fateSwap` (chance in `FATE`).*
@@ -229,7 +229,7 @@ Land on an **orange square** and pick one of three:
   (every special tile — teleporters, orange, freeze, shops, fishing **and the dark-red
   setback square** — moves to a fresh random spot, avoiding snake and ladder squares.
   A setback square reshuffled high up the board is devastating), or **💰 Gold rain**
-  (a shower of **50 coins** — but the sheer weight of the falling gold hammers you
+  (a shower of **30 coins** — but the sheer weight of the falling gold hammers you
   **two rows straight down** the board: same column, *not* back along the path.
   If the floor is closer you fall as far as it goes; ladders, chutes and tile effects
   fire where you land. On the **bottom row** there's nowhere to fall — you're simply
@@ -362,7 +362,7 @@ next game.
 - **🪖 Helmet** — **8 coins.** Knockdowns barely faze you: you get back up (and break
   out of ice) on **any roll** (`HELMET_GETUP`). The sniper, the gun, shame collapses —
   none of it keeps you on the floor for more than a turn.
-- **👑 Crown** — **10 coins.** **+1 coin at the start of every turn you begin in sole
+- **👑 Crown** — **5 coins.** **+1 coin at the start of every turn you begin in sole
   1st place** on the board (`CROWN_COINS`). Wealth flows to the front-runner.
 
 **Using items:** on your turn, before rolling, press the **🎒 Inventory** button next

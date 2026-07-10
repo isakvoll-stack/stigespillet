@@ -3,7 +3,23 @@
 Newest first. One entry per working session; note what shipped and what's next.
 
 ---
-## 2026-07-06 (latest) — 🏆 King of the Hill mode + game-mode select screen (autonomous)
+## 2026-07-10 (latest) — balance tuning pass (Isak, live)
+
+Five DATA-only tweaks, no logic touched:
+- **KOTH lap** pays **8** trophies, was 10 (`KOTH.TROPHY_WIN`) — also answers the
+  open balance question in QUESTIONS.md.
+- **💰 Gold rain** pays **30** coins, was 50 (`GOLD_RAIN.COINS`).
+- **👑 Crown** costs **5**, was 10 (`SHOP_CATALOG`).
+- **⭐ Lucky star** ×2 as likely: `LUCKY.CHANCE` 0.004 → 0.008.
+- **⚡ Lightning + 🔄 fate swap** ×1.5: `LIGHTNING.CHANCE` 0.005 → 0.0075,
+  `FATE.CHANCE` 0.0033 → 0.005.
+
+RULES.md synced (it still carried the pre-"3× rarer" percentages for the rare
+events — now shows the true new odds). Verified: headless Edge load renders the
+full UI with the new constants, no boot errors.
+
+---
+## 2026-07-06 — 🏆 King of the Hill mode + game-mode select screen (autonomous)
 
 Isak's spec, built start-to-finish autonomously: game modes pop up on Play, and
 King of the Hill = collect the most trophies inside a chosen number of rounds.

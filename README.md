@@ -55,7 +55,12 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
-Recently shipped (2026-07-06, latest): **🏆 King of the Hill game mode + mode-select
+Recently shipped (2026-07-10, latest): **balance tuning pass** — KOTH lap pays 8
+trophies (was 10), gold rain 30 coins (was 50), Crown costs 5 (was 10), lucky star
+twice as likely (0.8%/turn), lightning + fate swap 1.5× (0.75% / 0.5%). All in DATA
+(`KOTH`/`GOLD_RAIN`/`SHOP_CATALOG`/`LUCKY`/`LIGHTNING`/`FATE`); RULES.md synced.
+
+Before that (2026-07-06): **🏆 King of the Hill game mode + mode-select
 screen** — Play now opens a **Game mode** screen (`GAME_MODES` DATA table): 🏁 Classic
 or 🏆 King of the Hill. KOTH is a trophy hunt over a set number of rounds (setup-screen
 slider, default 6 × players): +1 trophy for starting your turn in sole 1st, +1 per fish

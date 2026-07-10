@@ -23,10 +23,12 @@ Answer whenever — each answer gets folded in and the question checked off.
 - [ ] **All chaos rules stay on in KOTH** — sniper, lightning, items, everything
   plays exactly as in Classic; only the goal changes. Anything you'd switch off in
   this mode? (Family mode will get its own rule pass with you.)
-- [ ] **Balance observation from a 40-round 4-bot test game**: laps landed in rounds
+- [x] **Balance observation from a 40-round 4-bot test game**: laps landed in rounds
   22 and 27, final trophies 15/14/13/12 — holding the lead pays about as well as
   lapping. At 25–30 rounds a lap weighs relatively more. Feels right, or should
   the lap pay more than 10?
+  **✔ Answered 2026-07-10: the opposite — Isak set the lap to 8 trophies
+  (`KOTH.TROPHY_WIN:8`). Built.**
 
 ## 2026-07-06 — from the gold-rain + shop pass-by session (defaults picked, say if wrong)
 

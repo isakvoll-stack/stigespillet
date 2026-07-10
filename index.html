@@ -764,7 +764,7 @@ const SHOP_CATALOG = [
     desc:"When used: raises a mirror that deflects the next hit aimed at you onto someone else." },
   { id:"helmet", ico:"🪖", name:"Helmet",           kind:"passive",    cost:8,  enabled:true,
     desc:"Passive: knockdowns barely faze you — any roll gets you back on your feet." },
-  { id:"crown",  ico:"👑", name:"Crown",            kind:"passive",    cost:10, enabled:true,
+  { id:"crown",  ico:"👑", name:"Crown",            kind:"passive",    cost:5,  enabled:true,
     desc:"Passive: +1 coin every round you start in the lead." },
 ];
 /* ---- DATA: black-market exotics --------------------------------------
@@ -809,7 +809,7 @@ const KOTH = {
   ROUNDS_PER_PLAYER:6, ROUNDS_MIN:5, ROUNDS_MAX:60,  // default rounds = players × 6 (5 players → 30); slider range
   TROPHY_LEAD:1,      // starting your turn in sole 1st place
   TROPHY_FISH:1,      // catching a fish
-  TROPHY_WIN:10,      // reaching tile 90 — the runner then walks back to the start
+  TROPHY_WIN:8,       // reaching tile 90 — the runner then walks back to the start
   LAP_PAUSE_MS:900, LAP_CONFETTI:45,                 // summit celebration before the walk of fame back down
   FX_MAX_POPS:5, FX_GAP_MS:110, FX_SCALE:1.4,        // 🏆 pops per award (a 10-trophy haul shows 5 pops)
 };
@@ -1027,13 +1027,13 @@ const COIN_FX = {                          // how each coin source announces its
 const TRAP89 = { TILE:89, ARC:190, FLY_MS:1500 };
 const TRAP89_TILES = [TRAP89.TILE];        // emptied once it fires; re-armed by newGame
 const TRAP89_COLOR = "#f6d55c";            // same yellow the palette gives tile 89 — you can't see it coming
-const LIGHTNING = { CHANCE:0.005, BACK:7,       // ~0.5% per turn: strike the leader, knock them back (3x rarer)
+const LIGHTNING = { CHANCE:0.0075, BACK:7,      // ~0.75% per turn: strike the leader, knock them back
   GATHER_MS:1400, FLICKERS:2, STRIKES:3, FORKS:3, SPARKS:16 };  // build-up time + pre-flickers, main multi-strike, branch forks, impact sparks
-const LUCKY     = { CHANCE:0.004, FORWARD:8 };  // ~0.4% per turn: sweep the last-place player forward (3x rarer)
-const FATE      = { CHANCE:0.0033 };            // ~0.33% per turn: leader and last place swap places (3x rarer)
+const LUCKY     = { CHANCE:0.008, FORWARD:8 };  // ~0.8% per turn: sweep the last-place player forward
+const FATE      = { CHANCE:0.005 };             // ~0.5% per turn: leader and last place swap places
 /* ---- DATA: fixed move/knock amounts (tiles) ------------------------ */
 const MOVE = { SUPPORT:5, WHEEL_NEXT:1, WHEEL_BIG:15, PILEUP_BACK:5 };  // support +5; wheel "next"/+15; chute pile-up knock-back
-const GOLD_RAIN = { COINS:50, DROP_ROWS:2, POP_WAIT_MS:700, FALL_MS:600 };   // wheel 💰: payout, rows hammered straight down, coin-shower pause, fall animation
+const GOLD_RAIN = { COINS:30, DROP_ROWS:2, POP_WAIT_MS:700, FALL_MS:600 };   // wheel 💰: payout, rows hammered straight down, coin-shower pause, fall animation
 const GRAZE = { BACK_MIN:1, BACK_MAX:3, DOWN_CHANCE:0.10, RADIUS:40 }; // clipped by a passing slider: 1-3 back, rarely floored; RADIUS = px from the drawn snake curve
 const SLIDE_CURVE = { SEG_PX:26 };         // px per segment when sampling the wavy snake (drawing + graze checks share it)
 const KILLSTREAK = { MIN:3, LABELS:{ 3:"TRIPLE KILL", 4:"QUAD KILL" } }; // sniper multi-knockdown announcer (double kill retired)
