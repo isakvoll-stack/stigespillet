@@ -3,6 +3,23 @@
 Newest first. One entry per working session; note what shipped and what's next.
 
 ---
+## 2026-07-11 (night) — Isak's 5-point batch: podium, colours, fancy skins, end stats
+
+1. **Podium**: top 3 only on pillars, gold/silver/bronze blending to each
+   player's colour at the top; 4th/5th listed beside it on the left.
+2. **10 extra normal colours** in the picker (`EXTRA_COLORS`).
+3. **18 fancy flowing colours** behind the existing 🌈 RGB setting
+   (`FANCY_COLORS` + boot-generated CSS): all 12 Isak named + 5 own picks
+   (Nordlys, Norge, Toxic, Royal, Sunset) + the old Rainbow. `p.rgb` →
+   `p.fancy` everywhere.
+4. **End-screen stats** with ⭐ best / ⚫ worst per category (`END_STATS`):
+   steps, coins earned, items used, times immobilised, climbed, descended,
+   player interactions. New counters wired through the movement/economy
+   funnels (`noteSkip` 2+ tile jumps, `setBackPos` covers all knockbacks).
+Verified headless Edge **25/25, 0 JS errors** incl. a full bot game with fancy
+skins. Defaults + counting rules logged in QUESTIONS.md. Committed + pushed.
+
+---
 ## 2026-07-11 (evening) — 🏆 KOTH Mario-Party bonus trophies (queued follow-up)
 
 Isak asked for "some edits, token-efficiently"; pulled the oldest buildable

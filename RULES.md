@@ -36,9 +36,20 @@ live in the `GAME_MODES` DATA table):
 Be the **first** player to land **exactly** on the final square (**tile 90**) —
 that player **wins**. By default the game then ends and everyone is ranked: 1st is
 the winner, and the rest are ordered by how far up the board they are. The end screen
-shows a **podium** (1st 🥇 in the centre, 2nd 🥈 and 3rd 🥉 either side, with 4th
-and 5th on the sides when there are enough players) followed by a full
-**leaderboard**. *(In King of the Hill the same podium ranks by trophies instead.)*
+shows a **podium** for the top 3 only (1st 🥇 in the centre on a **gold** pillar, 2nd 🥈
+on **silver**, 3rd 🥉 on **bronze** — each pillar blending into the player's own colour
+at the very top), with **4th and 5th listed beside the podium** on the left, followed by
+a full **leaderboard**. *(In King of the Hill the same podium ranks by trophies instead.)*
+
+**Every leaderboard row shows the player's game stats**, with a **⭐ beside the best**
+and a **⚫ beside the worst** in each category (ties mark everyone tied; a category
+where everyone is equal marks no one): 👣 steps taken (⭐ most) · 🪙 coins earned
+(⭐ most) · 🎒 items used (⭐ most) · 💫 times immobilised — knocked down or frozen
+(⭐ fewest) · 🪜 times climbed — ladders, stars, teleports, any jump of 2+ tiles up
+(⭐ most) · 🐍 times descended — snakes, knockbacks, drops of 2+ tiles (⭐ fewest) ·
+🤝 player interactions — bounces, kicks and items aimed at others (⭐ most).
+*(Walked moves — including backward walks from dizziness or radiation — count as
+steps, not climbs/descents; the registry lives in `END_STATS`, tunables in `STATS`.)*
 
 **The finish line is adjustable** (Advanced settings → 🏁 Game): a slider sets **how
 many players must finish before the game ends** (1 = the classic first-past-the-post).
@@ -555,11 +566,16 @@ table — a new theme is one entry.)*
 
 ## Players &amp; bots
 On the setup screen each seat shows its **colour swatch — click it to pick a colour**
-from the full 11-colour palette. A colour another seat already holds is dimmed and
-can't be taken. With the **🌈 RGB player** setting on (Settings screen), the **11th
-seat naturally gets RGB** — a pawn that flashes through the whole rainbow forever —
-and the rainbow also joins the palette so **any one seat** can claim it instead
-(it counts as a single colour: one RGB player per game).
+from the palette: the 11 seat defaults plus **10 extra colours** (burgundy, navy,
+forest, sky, lilac, brown, mint, coral, magenta, olive). A colour another seat already
+holds is dimmed and can't be taken. With the **🌈 RGB player** setting on (Settings
+screen), the **11th seat naturally gets RGB** — a pawn that flashes through the whole
+rainbow forever — and the whole **fancy-colour family joins the palette**: 18 animated
+skins whose pawns flow through their colours forever (Rainbow, Yin & Yang, Thunder
+Reef, Neon Night, Midas Marble, Blizzard, Inferno, Fire & Water, Sakura, Blood Night,
+Versus, The Void, Candyfloss, Nordlys, Norge, Toxic, Royal, Sunset). Each fancy colour
+counts as a single colour — one holder per game (`FANCY_COLORS` — a new skin is one
+entry).
 
 Each seat also has a **Player / Bot** toggle, so you can mix humans and
 bots in one game — bots take **only their own turns** automatically (a 🤖 marks them in

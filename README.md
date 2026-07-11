@@ -55,7 +55,16 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
-Recently shipped (2026-07-11, latest): **King of the Hill bonus trophies** —
+Recently shipped (2026-07-11, latest): **podium rework + colours + fancy skins +
+end-screen stats** — the podium now seats only the **top 3** on **gold/silver/bronze
+pillars** that blend into each player's colour (4th/5th listed beside it); the colour
+picker gains **10 new normal colours** and — behind the 🌈 RGB setting — **18 animated
+"fancy" colours** (Yin & Yang, Inferno, Blizzard, Norge, Sakura…); and the game-over
+screen now shows **per-player stats** (steps, coins earned, items used, times
+immobilised, climbs, descents, player interactions) with a **⭐ for the best and ⚫ for
+the worst** in each. Verified 25/25 headless, 0 JS errors.
+
+Before that (2026-07-11): **King of the Hill bonus trophies** —
 when the rounds run out, a Mario-Party-style bonus round draws **3 of 5 side
 achievements** (most coins / fish / laps / items used / times floored) and pays
 every tied leader **+2 🏆** before the winner is crowned. Verified 13/13

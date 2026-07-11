@@ -86,6 +86,37 @@ See `LOG.md` for the running session history.
 ---
 
 ## Done
+### 2026-07-11 — Isak's 5-point batch: podium rework + colours + fancy skins + end-screen stats
+- [x] **Podium rework**: pillars for the **top 3 only** — **gold/silver/bronze**
+      bases blending to the player's own colour at the very top (`PODIUM.METALS`
+      + `KEEP:55%`); **4th and 5th listed beside the podium** on the left
+      (`.sideplaces`); 6th+ stay leaderboard-only.
+- [x] **10 extra normal colours** in the picker (`EXTRA_COLORS` — picker-only,
+      never seat defaults, so MAX_PLAYERS is untouched).
+- [x] **18 fancy flowing colours** behind the same 🌈 RGB setting
+      (`FANCY_COLORS` — one entry per skin, CSS generated at boot by
+      `buildFancyStyles`): Rainbow (kept), Yin & Yang, Thunder Reef, Neon Night,
+      Midas Marble, Blizzard, Inferno, Fire & Water, Sakura, Blood Night, Versus,
+      The Void, Candyfloss + own picks Nordlys, Norge, Toxic, Royal, Sunset.
+      `p.rgb` generalised to `p.fancy` (pawn class, swatches, scoreboard, replay,
+      picker all fancy-aware via `paintSwatchEl`/`swatchHtml`); each skin =
+      one colour, one holder.
+- [x] **End-screen stats per player** (`END_STATS` registry): 👣 steps · 🪙 coins
+      earned · 🎒 items used · 💫 times immobilised · 🪜 climbed · 🐍 descended ·
+      🤝 interactions — **⭐ best / ⚫ worst** per category (ties mark all,
+      all-equal marks none). New counters: `p.steps`, `p.coinsEarned`,
+      `p.climbs`/`p.descents` (via `noteSkip`, 2+ tile non-walked jumps —
+      `setBackPos` covers every knockback funnel), `p.interactions` (encounters +
+      `STATS.SOCIAL_ITEMS`).
+- [x] RULES.md synced (podium, stats, palette); defaults + skipped edge cases in
+      QUESTIONS.md.
+- [x] **Verified headless Edge 25/25, 0 JS errors**: statics, generated skin CSS,
+      roster mapping + token classes, every counter funnel (steps, ladder climb,
+      swap both-ways, secret-square knock, social item, encounter), fabricated
+      standings (3 pillars + side list, metal gradient, star/dot/tie/flat rules),
+      5-player side list, full 4-bot game with fancy skins to a winner with the
+      stats strip on the end screen.
+
 ### 2026-07-11 — 🏆 KOTH Mario-Party bonus trophies (queued 2026-07-06 follow-up)
 - [x] **Bonus round at the final whistle** (`KOTH.BONUS {COUNT:3, TROPHIES:2,
       REVEAL_MS:1400}` + `KOTH_BONUS_CATS` registry — a new category is one

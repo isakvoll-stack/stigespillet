@@ -3,6 +3,32 @@
 Standing file: autonomous sessions log clarifications here instead of stopping to ask.
 Answer whenever — each answer gets folded in and the question checked off.
 
+## 2026-07-11 — from the 5-point batch: podium / colours / skins / end stats (defaults picked, say if wrong)
+
+- [ ] **Climb/descent definition**: any non-walked jump of **2+ tiles** counts
+  (`STATS.SKIP_MIN`) — ladders, snakes, stars, teleport swaps, knockbacks, drops,
+  the banana slip. Walked moves (incl. dizzy/radiation backward walks) count as
+  **steps** instead; a 1-tile bounce/kick-shove counts as neither. OK?
+- [ ] **Player interactions counted**: same-square bounces/kicks + using an
+  offensive item (snowball, banana, war horn, bomb, fire egg, singularity).
+  NOT counted: sniper-rifle shots, the orange gun/support, teleporter swaps,
+  mirror deflects. Want any of those in?
+- [ ] **"Times immobilised" = the existing knock/freeze counter** — blocked hits
+  (shield/mirror/stone hide) don't count, re-hitting someone already down doesn't
+  either. OK?
+- [ ] **Coins earned** counts every coin gained (incl. steals and 🔔 bell payouts),
+  spending doesn't subtract. OK?
+- [ ] **My 5 invented skins**: Nordlys (aurora), **Norge** (flag red/white/blue),
+  Toxic (slime), Royal (gold & purple), Sunset. Swap any?
+- [ ] **Pillar gradient** stays metal for the bottom 55% (`PODIUM.KEEP`) then blends
+  to the player's colour. For fancy players the pillar-top/text colour is the skin's
+  flat `base` tone (the pillar itself doesn't animate). Fine?
+- [ ] **6th place and beyond** stay leaderboard-only (only 4th/5th get the side
+  list, as asked). OK?
+- [ ] **Skins animate by flowing through their colours** (whole pawn body cycles
+  smoothly, ~3.2s loop, `FANCY_SPIN_S`); "marbled"/"yin-yang" are approximated by
+  the flow, not a drawn pattern. Want true patterned pawns later (bigger job)?
+
 ## 2026-07-11 — from the KOTH bonus-trophies build (defaults picked, say if wrong)
 
 - [ ] **3 random categories of 5, +2 trophies each** (`KOTH.BONUS`) — Mario-Party

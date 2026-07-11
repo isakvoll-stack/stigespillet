@@ -353,7 +353,10 @@
     padding:28px 34px;text-align:center;box-shadow:0 16px 50px #000;
   }
   .banner h2{margin:0 0 14px;font-family:Georgia,serif;font-size:32px;color:var(--brass)}
-  .banner .box{max-width:560px}
+  .banner .box{max-width:660px}
+  .podwrap{display:flex;align-items:flex-end;justify-content:center;gap:20px}
+  .sideplaces{display:flex;flex-direction:column;gap:6px;text-align:left;margin-bottom:10px}
+  .sprow{font-size:13px;color:var(--cream);font-weight:700}
   .podium{display:flex;align-items:flex-end;justify-content:center;gap:8px;margin:4px 0 16px}
   .pcol{display:flex;flex-direction:column;align-items:center;width:74px}
   .pname{font-size:12px;color:var(--cream);font-weight:700;text-align:center;line-height:1.15;
@@ -362,9 +365,10 @@
     padding-top:5px;border:2px solid rgba(0,0,0,.28);box-shadow:inset 0 -4px rgba(0,0,0,.18)}
   .lbtitle{font-weight:700;color:var(--brass);font-family:Georgia,serif;margin:2px 0 6px}
   .lb{display:flex;flex-direction:column;gap:2px;max-height:32vh;overflow:auto;text-align:left}
-  .lbrow{display:flex;gap:8px;align-items:center;font-size:14px;color:var(--cream);
+  .lbrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:14px;color:var(--cream);
     padding:3px 6px;border-bottom:1px solid rgba(212,166,86,.12)}
-  .lbrow span{width:52px;color:#cdb892;flex:none}
+  .lbrow .place{width:52px;color:#cdb892;flex:none}
+  .lbstats{margin-left:auto;display:flex;gap:7px;flex-wrap:wrap;font-size:12px;color:#cdb892}
   .legend{font-size:12px;color:#cdb892;margin-top:2px;display:flex;gap:14px}
   .legend b{color:var(--cream)}
 
@@ -395,7 +399,7 @@
 
   /* player-colour picker (setup screen) */
   .namerow .swatch.pick{cursor:pointer}
-  .colorpop{position:fixed;z-index:12;display:flex;gap:6px;flex-wrap:wrap;width:236px;
+  .colorpop{position:fixed;z-index:12;display:flex;gap:6px;flex-wrap:wrap;width:320px;
     padding:10px;border-radius:10px;background:rgba(28,20,12,.97);border:2px solid var(--brass);
     box-shadow:0 10px 26px rgba(0,0,0,.5)}
   .colorpop .copt{width:26px;height:26px;border-radius:7px;border:2px solid #241a12;cursor:pointer;padding:0}
@@ -720,12 +724,54 @@ const SNAKE_TAILS = new Set(Object.values(SLIDES));
 const PLAYER_COLORS = ["#e6402f","#2e86c1","#27ae60","#f1c40f","#8e44ad","#e67e22",
                        "#17a2b8","#ff6fb5","#2c3e50","#ecf0f1","#a4c639"]; // supports up to 11
 const MAX_PLAYERS = PLAYER_COLORS.length;
-/* ---- DATA: the RGB player (Settings toggle) --------------------------
+const EXTRA_COLORS = ["#7b1e26","#1b2a6b","#145a32","#7ec8e3","#c39bd3","#8b5a2b",
+                      "#76d7c4","#ff7f50","#b03a91","#4a6f28"]; // picker-only extras (never seat defaults)
+/* ---- DATA: the RGB player + fancy colours (one Settings toggle) ------
    When on, the 11th seat's colour defaults to RGB — a pawn that flashes
-   through the whole rainbow forever. Any seat can pick RGB in the colour
-   picker instead; it counts as ONE colour, so only one player has it. */
+   through the whole rainbow forever — and the WHOLE FANCY_COLORS family
+   joins the colour picker. Each fancy colour counts as ONE colour, so
+   only one player can hold each. A new skin is one FANCY_COLORS entry:
+   `stops` are the colours the pawn flows through, `base` is the flat
+   tone used wherever text/pillars need a single colour. */
 const RGB = { enabled:false, ID:"rgb", BASE:"#ff0040",
               SWATCH:"conic-gradient(#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00)" };
+const FANCY_SPIN_S = 3.2;            // seconds per full colour-flow loop (pawn + swatch)
+const FANCY_COLORS = [
+  { id:"rgb",         name:"Rainbow",      base:"#ff0040", stops:null },
+  { id:"yinyang",     name:"Yin & Yang",   base:"#bfbfbf", stops:["#141414","#f2f2f2"] },
+  { id:"thunderreef", name:"Thunder Reef", base:"#ffd23e", stops:["#ffd23e","#1e6fd9"] },
+  { id:"neonnight",   name:"Neon Night",   base:"#ff4fa3", stops:["#161616","#ff4fa3"] },
+  { id:"midasmarble", name:"Midas Marble", base:"#d4af37", stops:["#151515","#d4af37","#151515","#f3e08e"] },
+  { id:"blizzard",    name:"Blizzard",     base:"#9fd0f5", stops:["#eef7ff","#7db8e8","#ffffff","#9fd0f5"] },
+  { id:"inferno",     name:"Inferno",      base:"#ff6a00", stops:["#ff3d00","#ff9500","#ffd23e","#c62800"] },
+  { id:"steamclash",  name:"Fire & Water", base:"#ff7043", stops:["#ff5722","#ffb066","#2196f3","#67c8ff"] },
+  { id:"sakura",      name:"Sakura",       base:"#ffb7c5", stops:["#ffb7c5","#fff0f5","#e75480"] },
+  { id:"bloodnight",  name:"Blood Night",  base:"#c0110f", stops:["#c0110f","#191919"] },
+  { id:"versus",      name:"Versus",       base:"#d0484a", stops:["#e6402f","#2e86c1"] },
+  { id:"voidshade",   name:"The Void",     base:"#7d3cff", stops:["#7d3cff","#20308f","#0b0b16"] },
+  { id:"candyfloss",  name:"Candyfloss",   base:"#ff9ecb", stops:["#ff9ecb","#ffe066","#ffffff"] },
+  { id:"nordlys",     name:"Nordlys",      base:"#37ff9b", stops:["#37ff9b","#19c8c8","#8a54ff"] },
+  { id:"norge",       name:"Norge",        base:"#ba0c2f", stops:["#ba0c2f","#ffffff","#00205b"] },
+  { id:"toxic",       name:"Toxic",        base:"#a6ff00", stops:["#a6ff00","#3f7d00","#181818"] },
+  { id:"royal",       name:"Royal",        base:"#9646c8", stops:["#ffd23e","#6a0dad"] },
+  { id:"sunset",      name:"Sunset",       base:"#ff7e5f", stops:["#ff7e5f","#feb47b","#ff4e8e"] },
+];
+const FANCY_BY_ID = {};
+FANCY_COLORS.forEach(f => {
+  f.cls = f.id === "rgb" ? "rgbflash" : "skin-" + f.id;
+  f.swatch = f.id === "rgb" ? RGB.SWATCH
+           : `linear-gradient(135deg, ${f.stops.join(",")}, ${f.stops[0]})`;
+  FANCY_BY_ID[f.id] = f;
+});
+/* ---- DATA: end-of-game stats + podium looks -------------------------- */
+const STATS = {
+  SKIP_MIN: 2,                       // a non-walked jump of this many tiles counts as a climb/descent
+  SOCIAL_ITEMS: ["snowball","banana","warhorn","bomb","fireegg","singularity"], // using one = a player interaction
+};
+const PODIUM = {
+  METALS: { 1:"#ffd257", 2:"#c9ced6", 3:"#cd7f32" },   // gold / silver / bronze pillar bases
+  KEEP: 55,                          // % of the pillar that stays metal before blending to the player's colour
+};
 const CELL_PALETTE  = ["#f6d55c","#f6d55c","#f6d55c","#f6d55c","#6fa8dc",
                        "#f6d55c","#f6d55c","#f6d55c"]; // plain tiles: yellow, with the blue tiles kept
 // Tile colours by the link role a tile plays (overrides the festive palette).
@@ -1325,8 +1371,15 @@ function tileBelow(cell){
 // Send a player to a backtracked tile. A target below tile 1 lands them on the
 // hidden secret square (pos 0 + onSecret) instead of clamping to tile 1 — the only
 // way that square is ever discovered. Returns true if they ended up on the secret.
+// Skip-tracking for the end-of-game stats: any jump of STATS.SKIP_MIN+ tiles
+// that wasn't walked step by step counts as a climb (up) or a descent (down).
+function noteSkip(p, from, to){
+  if (to - from >= STATS.SKIP_MIN) p.climbs = (p.climbs||0) + 1;
+  else if (from - to >= STATS.SKIP_MIN) p.descents = (p.descents||0) + 1;
+}
 function setBackPos(pl, rawTarget){
-  if (FEATURES.secretSquare && rawTarget < 1){ pl.pos = SECRET.POS; pl.onSecret = true; pl.marketDue = true; return true; }
+  if (FEATURES.secretSquare && rawTarget < 1){ noteSkip(pl, pl.pos, 0); pl.pos = SECRET.POS; pl.onSecret = true; pl.marketDue = true; return true; }
+  noteSkip(pl, pl.pos, Math.max(1, rawTarget));
   pl.pos = Math.max(1, rawTarget); pl.onSecret = false; pl.marketDue = false; return false;
 }
 
@@ -1585,7 +1638,7 @@ function buildTokens(count){
   for (let i=0;i<count;i++){
     const p = game.players[i];
     const g = makePawn(p.color);
-    if (p.rgb) g.classList.add("rgbflash");
+    if (p.fancy) g.classList.add(FANCY_BY_ID[p.fancy].cls);
     addNameLabel(g, p.name);
     g.style.transition = `transform ${ANIM.STEP}ms ease-in-out`;
     svg.appendChild(g); tokenEls.push(g);
@@ -1725,6 +1778,7 @@ async function sendBackToStart(p){
   await revealRuleOnce("setback");
   log(`🔴 ${p.name} hit the penalty tile — back to tile 1!`);
   SFX.play("chute");
+  noteSkip(p, p.pos, 1);
   p.pos = 1; layoutTokens(); renderScoreboard();
   return true;
 }
@@ -1741,6 +1795,7 @@ async function springTrapdoor(p){
     const e = t*t*(3 - 2*t);
     return { x:A.x+(B.x-A.x)*e, y:A.y+(B.y-A.y)*e - Math.sin(Math.PI*t)*TRAP89.ARC };
   });
+  noteSkip(p, p.pos, 1);
   p.pos = 1; layoutTokens(); renderScoreboard();
   repaintCell(TRAP89.TILE);                                // now paints as the plain tile it has become
   await sleep(400);
@@ -1960,14 +2015,15 @@ function newGame(roster){
   game = {
     players: roster.map((r,i)=>({
       name: r.name || `Player ${i+1}`,
-      color: r.color === RGB.ID ? RGB.BASE : (r.color || PLAYER_COLORS[i]),
-      rgb: r.color === RGB.ID, pos:0, bot: !!r.bot,
+      color: FANCY_BY_ID[r.color] ? FANCY_BY_ID[r.color].base : (r.color || PLAYER_COLORS[i]),
+      fancy: FANCY_BY_ID[r.color] ? r.color : null, pos:0, bot: !!r.bot,
       downed:false, frozen:false, sniper:false, finished:false, shame:0, getupMin: SNIPER.GETUP_MIN, fish:0, fishStreak:0, fishCaught:0, onSecret:false, marketDue:false,
       items:[], passive:null, rollBonus:0, forceSix:false, coins:COIN.START,
       radSick:false, radTurns:0, radLevel:0, radImmune:false, shieldOn:false,
       mirrorOn:false, forceRoll:0, diceCharges:0, curseRolls:0, singeRolls:0, craftNeed:null,
       dizzy:false, curses:[],
       trophies:0, laps:0, downs:0, itemsUsed:0,
+      steps:0, coinsEarned:0, climbs:0, descents:0, interactions:0,
     })),
     current:0, winner:null, over:false, busy:false, round:1, turnCount:0, autonomous: !!(roster[0] && roster[0].bot),
     mode: chosenMode, maxRounds: chosenMode === "koth" ? (chosenRounds || defaultRounds(count)) : 0,
@@ -1993,8 +2049,7 @@ function newGame(roster){
 function refreshHUD(){
   const p = game.players[game.current];
   const ts = document.getElementById("turnSwatch");
-  ts.style.background = p.rgb ? RGB.SWATCH : p.color;
-  ts.classList.toggle("rgbflash", !!p.rgb);
+  paintSwatchEl(ts, p.fancy || p.color);
   document.getElementById("turnName").textContent = `${p.name} ${TXT.turnSuffix}`;
   const sub = document.getElementById("turnSub");
   const hint = document.getElementById("rollHint");
@@ -2045,7 +2100,7 @@ function renderScoreboard(){
                + (p.radSick ? " ☢️"+(p.radLevel||"") : (p.radImmune ? " ☢️+"+RAD.IMMUNE_BONUS : ""));
     const cellTxt = p.finished ? "done" : (p.onSecret ? "secret 🚪" : (p.pos === 0 ? "—" : "tile " + p.pos));
     row.innerHTML =
-      `<span class="swatch${p.rgb ? " rgbflash" : ""}" style="background:${p.rgb ? RGB.SWATCH : p.color}"></span>` +
+      swatchHtml(p) +
       `<span class="name">${p.name}${p.bot ? " 🤖" : ""}${mark}</span>` +
       `<span class="cell">${cellTxt}</span>`;
     box.appendChild(row);
@@ -2151,6 +2206,7 @@ async function moveCurrent(rollValue){
   const from = p.pos === 0 ? 1 : p.pos;        // first move walks from square 1
   const path = backwards ? walkBackPath(p.pos, -steps)
                          : walkPath(p.pos === 0 ? 0 : p.pos, steps);
+  p.steps = (p.steps||0) + path.length;
   if (backwards) log(`↩️ ${p.name} hops ${path.length} backwards!`);
   const landed = path[path.length-1];
   const overshot = path.some(c=>c===BOARD.WIN) && landed !== BOARD.WIN;
@@ -2420,6 +2476,7 @@ async function applyLink(p, idx, depth){       // climb a ladder / slide a chute
   }
   const from = p.pos;
   await sleep(120);
+  noteSkip(p, p.pos, link.to);
   p.pos = link.to;
   if (link.kind === "slide"){
     // ride the drawn snake body head->tail, easing in like gravity took hold
@@ -2453,6 +2510,7 @@ async function resolveEncounters(p){
     const others = game.players.filter(q => q !== p && q.pos === cell && !hasCurse(q, "phantomstep"));
     if (others.length === 0) return;
     await revealRuleOnce("encounter");
+    p.interactions = (p.interactions||0) + 1;
     const choice = await getEncounterChoice(p, others);
     if (choice === "bounce"){
       p.pos = cell + 1;
@@ -2478,6 +2536,7 @@ async function resolveEncounters(p){
         await revealRuleOnce("kickdown");
         const from = victim.pos, below = tileBelow(from);
         if (below !== null){
+          noteSkip(victim, from, below);
           victim.pos = below;
           layoutTokens(); renderScoreboard();
           log(TXT.kicked(victim.name, from, below));
@@ -3526,6 +3585,7 @@ async function runFishing(p){
     const fromTile = p.pos;
     const toTile = 1 + Math.floor(Math.random()*FISH.SPIT_MAX);
     await leviathanFx(fromTile, toTile, p);               // serpent passes by, gulps them, spits them to toTile
+    noteSkip(p, fromTile, toTile);
     p.pos = toTile;
     layoutTokens(); renderScoreboard();
     log(`${p.name} was hit by a leviathan and spat out at tile ${p.pos}! 🌊`);
@@ -3545,7 +3605,8 @@ function teleportSwap(p, forwardBias){
   const target = forwardBias
     ? weightedPick(others, others.map(q => 1 + Math.max(0, q.pos - p.pos)*2))   // bias toward players ahead
     : others[(Math.random()*others.length)|0];
-  const tmp = p.pos; p.pos = target.pos; target.pos = tmp;                       // swap places
+  const tmp = p.pos; noteSkip(p, tmp, target.pos); noteSkip(target, target.pos, tmp);
+  p.pos = target.pos; target.pos = tmp;                                          // swap places
   SFX.play("teleport");
   layoutTokens(); renderScoreboard();
   log(`${p.name} ⇄ ${target.name}`);
@@ -3562,7 +3623,7 @@ async function shuffleAllPositions(){
     const j = (Math.random() * (i + 1)) | 0;
     [positions[i], positions[j]] = [positions[j], positions[i]];
   }
-  active.forEach((q, k) => { q.pos = positions[k]; });
+  active.forEach((q, k) => { noteSkip(q, q.pos, positions[k]); q.pos = positions[k]; });
   SFX.play("teleport"); flashScreen();
   layoutTokens(); renderScoreboard();
   log(`🌀 Teleporter overload — everyone is shuffled!`);
@@ -3784,6 +3845,7 @@ async function starFx(lucky, destCell){
   await sleep(1000);
   const tok = tokenEls[idx], prevT = tok.style.transition;         // scoop + carry together
   tok.style.transition = "transform 2.7s cubic-bezier(.4,0,.3,1)";
+  noteSkip(lucky, lucky.pos, destCell);
   lucky.pos = destCell; moveTokenTo(idx, destCell);
   star.style.transition = "left 2.7s cubic-bezier(.4,0,.3,1), top 2.7s cubic-bezier(.4,0,.3,1)";
   star.style.left = to.x+"px"; star.style.top = to.y+"px";
@@ -3830,7 +3892,8 @@ async function strikeLucky(){                              // the rare event: he
 async function fateSwapPlayers(a, b){
   if (!a || !b || a === b) return;
   SFX.play("teleport"); flashScreen();
-  const tmp = a.pos; a.pos = b.pos; b.pos = tmp;
+  const tmp = a.pos; noteSkip(a, a.pos, b.pos); noteSkip(b, b.pos, tmp);
+  a.pos = b.pos; b.pos = tmp;
   layoutTokens(); renderScoreboard();
   log(`🔃 Reversal of fortune! ${a.name} and ${b.name} swapped places!`);
   await sleep(750);
@@ -3886,6 +3949,7 @@ function awardCoin(p, reason, n, fx){
   const k = n === undefined ? 1 : n;
   if (k < 1) return;
   p.coins = (p.coins||0) + k;
+  p.coinsEarned = (p.coinsEarned||0) + k;
   const f = COIN_FX[fx] || COIN_FX.plain;
   if (f.POPS > 0){
     for (let i = 0; i < f.POPS; i++)
@@ -4041,6 +4105,7 @@ async function resolveLanding(pl, depth, skipTeleport){
 async function advancePlayer(pl, n){
   const idx = idxOf(pl);
   const path = walkPath(pl.pos === 0 ? 0 : pl.pos, n);
+  pl.steps = (pl.steps||0) + path.length;
   let at = pl.pos;
   for (let k = 0; k < path.length; k++){
     const c = path[k];
@@ -4571,6 +4636,7 @@ async function goldRain(p){
     return;
   }
   const from = p.pos;
+  noteSkip(p, from, dest);
   p.pos = dest; SFX.play("chute");
   log(`💰 The weight of the gold hammers ${p.name} straight down — ${from} → ${dest}!`);
   await hopToken(idxOf(p), from, dest, GOLD_RAIN.FALL_MS);
@@ -4584,7 +4650,7 @@ async function goldRain(p){
 async function randomBoardEvent(p){
   const effects = [
     ()=> nukeEveryone("🎲 "),
-    async()=>{ SFX.play("chute"); p.pos = 1; layoutTokens(); renderScoreboard(); log(`🎲 Random: ${p.name} back to start!`); await sleep(600); await resolveLanding(p); },
+    async()=>{ SFX.play("chute"); noteSkip(p, p.pos, 1); p.pos = 1; layoutTokens(); renderScoreboard(); log(`🎲 Random: ${p.name} back to start!`); await sleep(600); await resolveLanding(p); },
     async()=>{ log(`🎲 Random: ${p.name} inches forward.`); await advancePlayer(p, MOVE.WHEEL_NEXT); },
     async()=>{ log(`🎲 Random: ${p.name} leaps 15 spaces!`); await advancePlayer(p, MOVE.WHEEL_BIG); },
     ()=> revolverRoulette(p),
@@ -4652,7 +4718,7 @@ async function randomWheelEffect(p){
   // carries you, the swap trades you with the leader or the trailer, etc.
   const effects = [
     ()=> nukeEveryone("🎲 "),
-    async()=>{ SFX.play("chute"); p.pos = 1; layoutTokens(); renderScoreboard(); log(`🎲 Random: ${p.name} back to start!`); await sleep(600); await resolveLanding(p); },
+    async()=>{ SFX.play("chute"); noteSkip(p, p.pos, 1); p.pos = 1; layoutTokens(); renderScoreboard(); log(`🎲 Random: ${p.name} back to start!`); await sleep(600); await resolveLanding(p); },
     async()=>{ log(`🎲 Random: ${p.name} inches forward.`); await advancePlayer(p, MOVE.WHEEL_NEXT); },
     async()=>{ log(`🎲 Random: ${p.name} leaps 15 spaces!`); await advancePlayer(p, MOVE.WHEEL_BIG); },
     ()=> revolverRoulette(p),
@@ -4673,7 +4739,7 @@ async function spinWheel(p){
   const pick = WHEEL_PICKS[idx];
   await showWheel(idx);
   if (pick === "nuke"){ await nukeEveryone(""); }
-  else if (pick === "start"){ SFX.play("chute"); p.pos = 1; layoutTokens(); renderScoreboard(); log(`🎡 The wheel sends ${p.name} back to the start!`); await sleep(650); await resolveLanding(p); }
+  else if (pick === "start"){ SFX.play("chute"); noteSkip(p, p.pos, 1); p.pos = 1; layoutTokens(); renderScoreboard(); log(`🎡 The wheel sends ${p.name} back to the start!`); await sleep(650); await resolveLanding(p); }
   else if (pick === "next"){ log(`🎡 ${p.name} edges to the next square.`); await advancePlayer(p, MOVE.WHEEL_NEXT); }
   else if (pick === "move15"){ log(`🎡 ${p.name} rockets 15 spaces forward!`); await advancePlayer(p, MOVE.WHEEL_BIG); }
   else if (pick === "random"){ log(`🎲 Random event!`); await randomBoardEvent(p); }
@@ -4903,7 +4969,7 @@ async function springBanana(p, depth){
   if (tr.el) tr.el.remove();
   SFX.play("bounce");
   log(`🍌 ${p.name} steps on ${tr.owner.name}'s banana peel — ${BANANA.SLIP} tiles back!`);
-  const idx = idxOf(p), raw = p.pos - BANANA.SLIP;
+  const idx = idxOf(p), raw = p.pos - BANANA.SLIP, from0 = p.pos;
   let at = p.pos;
   for (const c of walkBackPath(p.pos, BANANA.SLIP)){
     p.pos = c;
@@ -4911,6 +4977,7 @@ async function springBanana(p, depth){
     at = c;
   }
   setBackPos(p, raw);
+  noteSkip(p, from0, p.onSecret ? 0 : p.pos);
   layoutTokens(); renderScoreboard();
   if (p.onSecret){ await arriveAtSecret(p); return true; }
   await resolveLanding(p, (depth||0) + 1);
@@ -4932,6 +4999,7 @@ async function wishMonkeyPaw(p, idx){
   p.items.splice(idx, 1);
   await itemFlourish(p, "🐒");
   SFX.play("teleport"); flashScreen();
+  noteSkip(p, p.pos, tile);
   p.pos = tile; p.onSecret = false; p.marketDue = false;
   layoutTokens(); renderScoreboard();
   log(`🐒 The paw curls a finger — ${p.name} appears on tile ${tile}!`);
@@ -5189,6 +5257,7 @@ async function flyOutFx(q, epi, dest, k){
 async function useItem(p, idx){
   const id = p.items[idx];
   p.itemsUsed = (p.itemsUsed||0) + 1;
+  if (STATS.SOCIAL_ITEMS.includes(id)) p.interactions = (p.interactions||0) + 1;
   if (["coffee","clover","shield","warhorn"].includes(id)) await itemFlourish(p, itemDef(id).ico);
   if (id === "coffee"){
     p.rollBonus = (p.rollBonus || 0) + ITEM.COFFEE_BONUS;
@@ -5560,25 +5629,52 @@ async function runOrange(p){
 }
 
 /* ---- banner / final standings -------------------------------------- */
+// End-screen stat lines: one entry per category. `best` says which end of the
+// scale earns the ⭐ (the other end gets the ⚫); ties mark everyone tied, and
+// a category where everyone is equal marks no one.
+const END_STATS = [
+  { ico:"👣", name:"Steps taken",         stat:p=>p.steps||0,        best:"high" },
+  { ico:"🪙", name:"Coins earned",        stat:p=>p.coinsEarned||0,  best:"high" },
+  { ico:"🎒", name:"Items used",          stat:p=>p.itemsUsed||0,    best:"high" },
+  { ico:"💫", name:"Times immobilised",   stat:p=>p.downs||0,        best:"low"  },
+  { ico:"🪜", name:"Times climbed",       stat:p=>p.climbs||0,       best:"high" },
+  { ico:"🐍", name:"Times descended",     stat:p=>p.descents||0,     best:"low"  },
+  { ico:"🤝", name:"Player interactions", stat:p=>p.interactions||0, best:"high" },
+];
 function showStandings(){
   const s = game.standings;
   const trophies = p => isKoth() ? ` 🏆${p.trophies||0}` : "";
-  const heights = {1:96, 2:74, 3:58, 4:42, 5:42};
-  // podium order across the screen: 4th · 2nd · 1st · 3rd · 5th (sides only if enough)
-  const order = [4,2,1,3,5].filter(pl => s.length >= pl);
-  let pod = '<div class="podium">';
+  const heights = {1:96, 2:74, 3:58};
+  // pillars for the top 3 only (2nd · 1st · 3rd); 4th and 5th are listed beside them
+  const order = [2,1,3].filter(pl => s.length >= pl);
+  let pod = '<div class="podwrap">';
+  if (s.length > 3){
+    pod += '<div class="sideplaces">' + s.slice(3, 5).map((p, k) =>
+      `<div class="sprow">${k+4}. <b style="color:${p.color}">${p.name}</b>${trophies(p)}</div>`).join("") + '</div>';
+  }
+  pod += '<div class="podium">';
   order.forEach(pl => {
-    const p = s[pl-1];
-    pod += `<div class="pcol${pl<=3?" top3":""}">` +
+    const p = s[pl-1], metal = PODIUM.METALS[pl];
+    pod += `<div class="pcol top3">` +
              `<div class="pname">${MEDALS[pl-1]||""} ${p.name}${trophies(p)}</div>` +
-             `<div class="pbar" style="height:${heights[pl]}px;background:${p.color}">${pl}</div>` +
+             `<div class="pbar" style="height:${heights[pl]}px;background:linear-gradient(to top, ${metal} 0%, ${metal} ${PODIUM.KEEP}%, ${p.color} 100%)">${pl}</div>` +
            `</div>`;
   });
-  pod += '</div>';
+  pod += '</div></div>';
+  const marks = END_STATS.map(c => {
+    const vals = s.map(c.stat), hi = Math.max(...vals), lo = Math.min(...vals);
+    return { c, flat: hi === lo, star: c.best === "high" ? hi : lo, dot: c.best === "high" ? lo : hi };
+  });
   let lb = '<div class="lbtitle">Leaderboard</div><div class="lb">';
   s.forEach((p,idx) => {
-    lb += `<div class="lbrow"><span>${idx+1}. ${MEDALS[idx]||""}</span>` +
-          `<b style="color:${p.color}">${p.name}</b>${trophies(p)}</div>`;
+    const stats = marks.map(m => {
+      const v = m.c.stat(p);
+      const mark = m.flat ? "" : v === m.star ? "⭐" : v === m.dot ? "⚫" : "";
+      return `<span class="stat" title="${m.c.name}">${m.c.ico}${v}${mark}</span>`;
+    }).join("");
+    lb += `<div class="lbrow"><span class="place">${idx+1}. ${MEDALS[idx]||""}</span>` +
+          `<b style="color:${p.color}">${p.name}</b>${trophies(p)}` +
+          `<span class="lbstats">${stats}</span></div>`;
   });
   lb += '</div>';
   document.getElementById("bannerText").innerHTML = pod + lb;
@@ -5684,7 +5780,7 @@ function openSetup(){
     chosenSeats = game.players.length;
     setupNames = game.players.map(p=>p.name);
     setupBots  = game.players.map(p=>!!p.bot);
-    setupColors = game.players.map(p=> p.rgb ? RGB.ID : p.color);
+    setupColors = game.players.map(p=> p.fancy || p.color);
   }
   const m = GAME_MODES.find(x => x.id === chosenMode) || GAME_MODES[0];
   document.getElementById("setupSub").textContent = `${m.ico} ${m.name} · name them · set each to Player or Bot`;
@@ -5699,8 +5795,34 @@ function seatColor(i){
   return (RGB.enabled && i === MAX_PLAYERS - 1) ? RGB.ID : PLAYER_COLORS[i];
 }
 function paintSwatchEl(el, color){
-  el.classList.toggle("rgbflash", color === RGB.ID);
-  el.style.background = color === RGB.ID ? RGB.SWATCH : color;
+  const f = FANCY_BY_ID[color];
+  el.classList.toggle("rgbflash", !!f && f.id === "rgb");
+  el.classList.toggle("fancyflow", !!f && f.id !== "rgb");
+  el.style.background = f ? f.swatch : color;
+  el.style.backgroundSize = f && f.id !== "rgb" ? "300% 300%" : "";
+  if (f) el.title = f.name;
+}
+function fancyOf(p){ return p.fancy ? FANCY_BY_ID[p.fancy] : null; }
+function swatchHtml(p){
+  const f = fancyOf(p);
+  if (!f) return `<span class="swatch" style="background:${p.color}"></span>`;
+  if (f.id === "rgb") return `<span class="swatch rgbflash" style="background:${f.swatch}"></span>`;
+  return `<span class="swatch fancyflow" style="background:${f.swatch};background-size:300% 300%"></span>`;
+}
+// The pawns' flowing-skin CSS is generated from FANCY_COLORS, so a new skin
+// is just one DATA entry (the rainbow keeps its own hue-spin rule).
+function buildFancyStyles(){
+  let css = `.fancyflow{animation:fancyflow ${FANCY_SPIN_S}s ease-in-out infinite}` +
+            `@keyframes fancyflow{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}`;
+  FANCY_COLORS.filter(f => f.stops).forEach(f => {
+    const n = f.stops.length;
+    const frames = f.stops.map((c,k) => `${Math.round(k*100/n)}%{fill:${c}}`).join("") + `100%{fill:${f.stops[0]}}`;
+    css += `@keyframes ${f.cls}{${frames}}` +
+           `.${f.cls} .pawnbody path,.${f.cls} .pawnbody circle{animation:${f.cls} ${FANCY_SPIN_S}s linear infinite}`;
+  });
+  const st = document.createElement("style");
+  st.textContent = css;
+  document.head.appendChild(st);
 }
 let colorPopEl = null;
 function closeColorPop(){ if (colorPopEl){ colorPopEl.remove(); colorPopEl = null; } }
@@ -5713,7 +5835,7 @@ function openColorPop(sw, i){
   const pop = document.createElement("div"); pop.className = "colorpop"; pop.dataset.seat = i;
   const taken = [];
   for (let k=0;k<chosenSeats;k++) if (k !== i) taken.push(seatColor(k));
-  const options = [...PLAYER_COLORS, ...(RGB.enabled ? [RGB.ID] : [])];
+  const options = [...PLAYER_COLORS, ...EXTRA_COLORS, ...(RGB.enabled ? FANCY_COLORS.map(f => f.id) : [])];
   options.forEach(col => {
     const b = document.createElement("button"); b.type = "button"; b.className = "copt";
     paintSwatchEl(b, col);
@@ -5723,7 +5845,7 @@ function openColorPop(sw, i){
     pop.appendChild(b);
   });
   const r = sw.getBoundingClientRect();
-  pop.style.left = Math.min(r.left, window.innerWidth - 260) + "px";
+  pop.style.left = Math.min(r.left, window.innerWidth - 344) + "px";
   pop.style.top = (r.bottom + 6) + "px";
   document.body.appendChild(pop);
   colorPopEl = pop;
@@ -5882,11 +6004,12 @@ document.getElementById("seatMinus").addEventListener("click", ()=>{ chosenSeats
 document.getElementById("seatPlus").addEventListener("click", ()=>{ chosenSeats=Math.min(MAX_PLAYERS,chosenSeats+1); buildSetup(); });
 document.getElementById("startBtn").addEventListener("click", startFromSetup);
 document.getElementById("bannerNew").addEventListener("click", ()=>{
-  newGame(game.players.map(p=>({ name:p.name, bot:p.bot, color: p.rgb ? RGB.ID : p.color }))); // replay the same roster
+  newGame(game.players.map(p=>({ name:p.name, bot:p.bot, color: p.fancy || p.color }))); // replay the same roster
   startTurn();
 });
 
 loadSettings();                  // restore remembered toggles BEFORE the checkboxes are built
+buildFancyStyles();              // pawn-skin CSS generated from the FANCY_COLORS table
 applyTheme();
 buildWheel();
 buildModeScreen();
