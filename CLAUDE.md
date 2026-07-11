@@ -107,7 +107,9 @@ Painting and plain-tile detection are automatic — `cellColor` and `isPlainTile
 so the board follows the registry (even through the wheel's 🌀 tile shuffle).
 
 **A new movement modifier** (anything that adds steps to a roll): one entry in `MOVE_BONUSES`
-(`feature`, `amount(p)`, optional `note`).
+(`feature`, `amount(p, roll)`, optional `note`). `roll` is the die face, so a modifier
+can scale with or invert the roll (the tan dizzy tile returns `-2*roll` to walk the
+whole move backwards); a net-negative total makes moveCurrent walk backwards generically.
 
 **A new rare turn-start event**: one entry in `RARE_EVENTS` (`feature`, `chance()`, `run`),
 with its chance tunable in a DATA block. For a **deterministic** turn-start trigger

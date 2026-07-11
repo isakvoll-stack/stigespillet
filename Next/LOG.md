@@ -3,6 +3,33 @@
 Newest first. One entry per working session; note what shipped and what's next.
 
 ---
+## 2026-07-11 (later) — tan dizzy tile + the Broken Gate (Isak's 2-point batch)
+
+1. **The tan dizzy square** (tile 56, `DIZZY_TILES`/`DIZZY_COLOR`) — end a move
+   there (own roll or thrown on) and `p.dizzy` sets; the next move made FROM the
+   square walks **backwards** via a new `MOVE_BONUSES` entry returning `-2*roll`.
+   The registry's `amount()` now receives the die face — `amount(p, roll)` — and
+   moveCurrent's backwards log is now cause-neutral (the bonus notes carry the
+   flavor; radiation keeps its own note). Knocked off the square → dizziness fades;
+   landing on a 6 skips it (house tile rule); scramble/shuffle carry the tile.
+2. **The black market got two sections** — tabs between the dealer's stall and the
+   **Broken Gate** (`FEATURES.brokenGate`): ONE free cursed pact offered per visit
+   (never one you hold), take it or leave it. First-ever market visitor is always
+   gated; then 50/50 (`GATE`). Ten pacts in `CURSED` + numbers in `CURSE`:
+   Stormstride Boots, Serpent Pact, Midas Purse, Everburning Heart, Stone Hide,
+   Phantom Step, Vampire Fangs, Gravedigger's Bell, Blood Dice, Toll Keeper's
+   Ledger — each a strong permanent gift with a permanent price, wired through
+   the existing hooks (MOVE_BONUSES, RARE_EVENTS `when(p)`, downPlayer/freezePlayer,
+   stealCoin, applyLink, buyItem/priceFor, strikeLightning marked pool). Pacts show
+   on the scoreboard (⛓️+icons), in the bag panel, and have their own Advanced
+   settings group + localStorage persistence.
+
+Verified headless (Edge `--headless --virtual-time-budget`, rAF stubbed): 22/22
+unit checks on every new mechanic + 6/6 three-bot games to completion, 0 JS errors;
+dizzy fired organically in 4 games. RULES.md (two new sections), README Next,
+CLAUDE.md recipe (`amount(p, roll)`) synced. Open defaults in QUESTIONS.md.
+
+---
 ## 2026-07-11 — kick etiquette + purse (Isak's 3-point batch)
 
 1. **Bots almost never kick a downed man** — `BOT.KICK_DOWNED_PENALTY` 8 → 40

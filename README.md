@@ -55,7 +55,16 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
-Recently shipped (2026-07-11, latest): **kick etiquette + purse** — bots now
+Recently shipped (2026-07-11, latest): **the tan dizzy tile + the Broken Gate** —
+a new **tan square** (56): end your move there and you turn **very dizzy**, and your
+next move from that square walks **backwards**; and the black market now has **two
+sections** with tabs — the dealer's stall and the **Broken Gate**, which offers ONE
+free **cursed pact** per visit, take it or leave it (ten pacts, each a great gift
+bound to a permanent price; the first-ever market visitor always meets the gate,
+after that it's a coin flip). Verified 22/22 unit checks + 6/6 headless bot games,
+0 JS errors.
+
+Before that (2026-07-11): **kick etiquette + purse** — bots now
 **almost never kick a downed man** (the shame isn't worth it — 0/60 in measured
 trials), **kicking a frozen player is shameless**: the ice block **glides 3 tiles
 back** in one smooth slide (still frozen; tile effects fire where it stops) and

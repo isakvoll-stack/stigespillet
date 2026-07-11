@@ -3,6 +3,24 @@
 Standing file: autonomous sessions log clarifications here instead of stopping to ask.
 Answer whenever — each answer gets folded in and the question checked off.
 
+## 2026-07-11 — from the dizzy tile + Broken Gate batch (defaults picked, say if wrong)
+
+- [ ] **Sealing a pact closes the whole market** — the moment feels final, so you
+  don't get to browse the dealer's stall in the same visit (leaving the gate open
+  to tab over IS allowed before you seal). Prefer the stall to stay open after?
+- [ ] **A gate-greeted visit still counts toward the dealer's markup** — every
+  secret-square audience bumps `marketVisits`, whichever section you use. Should
+  gate-only visits leave his prices alone?
+- [ ] **Landing on the tan square with a 6 skips the dizziness** — house rule: tiles
+  only fire on the square you END your turn on, and a 6 means you're rolling again.
+  Want the ride to catch 6-landers too?
+- [ ] **Dizzy backwards = the whole net move** (roll + bonuses, so Stormstride/coffee
+  soften it and a big roll hurts). Alternative: exactly the die face, bonuses ignored?
+- [ ] **Pact numbers unplaytested** — all ten live in the `CURSE` DATA block for easy
+  tuning; a balance sweep like B1–B5 can follow once you've felt them in play.
+- [ ] **Bots seal an offered pact 50% blind** (`GATE.BOT_TAKE`) — they don't weigh
+  which pact or their position. Worth a smarter bot rule later?
+
 ## 2026-07-11 — from the kick-etiquette batch (defaults picked, say if wrong)
 
 - [ ] **"Almost never" = a −31 score penalty** — a bot only kicks a downed man when

@@ -701,6 +701,8 @@ const FEATURES = {
   shopPassby:    true,   // walking PAST a gold square pauses the move to browse the shop, then the move carries on
   coins:         true,   // players earn coins: rolling a 6, or landing on a plain BLUE tile
   setback:       true,   // one dark-red tile near the start sends you back to tile 1
+  dizzy:         true,   // the tan tile: stop there and your next move from it walks backwards
+  brokenGate:    true,   // the black market's second section: free cursed pacts — great gifts, heavy prices
   botThoughts:   true,   // bots pause to show the decision they're weighing (slower, watchable bot turns)
   sound:         true,   // sound effects
 };
@@ -741,6 +743,8 @@ const SHOP_TILES    = [6, 28, 52, 75];                    // gold shop squares (
 const SHOP_COLOR    = "#d4a656";                          // warm gold — same as --brass
 const SETBACK_TILES = [7];                               // dark-red "back to start" square
 const SETBACK_COLOR = "#8b1a1a";                         // deep red — clearly a penalty tile
+const DIZZY_TILES   = [56];                              // tan "dizzy" square — stop here and your feet betray you
+const DIZZY_COLOR   = "#d2b48c";                         // tan
 /* ---- DATA: switchback arrows (where the path turns up a row: 9→10, 18→19 …) ---- */
 const SWITCHBACK = { LEN:54, HEAD_W:30, HEAD_H:19, SHAFT_W:9,   // arrow size (px): total length, head, shaft
   FILL:"rgba(255,255,255,.8)", EDGE:"rgba(31,63,90,.55)" };
@@ -809,6 +813,44 @@ const EXOTICS = [
   { id:"soulcandle", ico:"🕯️", name:"Soul Candle", kind:"passive",    cost:9,  enabled:true, exotic:true,
     desc:"Passive: +2 to every roll, forever. It can never be snuffed out — and the sky takes notice." },
 ];
+/* ---- DATA: the Broken Gate — cursed pacts ----------------------------
+   The black market's second section. A pact costs no coins and seals the
+   moment it's taken: a great gift bound to a heavy price, permanent, and
+   it never occupies a bag or passive slot. One offer per visit, drawn
+   from the pacts the visitor doesn't already carry. */
+const CURSED = [
+  { id:"stormstride",  ico:"🥾", name:"Stormstride Boots",   cursed:true, cost:0, enabled:true,
+    desc:"Pact: +2 to every roll, forever — but every storm in the sky knows exactly where you are." },
+  { id:"serpentpact",  ico:"🐍", name:"Serpent Pact",        cursed:true, cost:0, enabled:true,
+    desc:"Pact: no snake will ever swallow you again — but no ladder will carry a traitor." },
+  { id:"midaspurse",   ico:"💰", name:"Midas Purse",         cursed:true, cost:0, enabled:true,
+    desc:"Pact: coins flow to you every turn you take — but one knockdown spills your whole purse, gone." },
+  { id:"emberheart",   ico:"🔥", name:"Everburning Heart",   cursed:true, cost:0, enabled:true,
+    desc:"Pact: the cold can never touch you again — but the flame eats your luck: you will never roll a 6." },
+  { id:"stonehide",    ico:"🗿", name:"Stone Hide",          cursed:true, cost:0, enabled:true,
+    desc:"Pact: no blow can ever knock you flat — but stone is heavy: −1 to every roll, forever." },
+  { id:"phantomstep",  ico:"👻", name:"Phantom Step",        cursed:true, cost:0, enabled:true,
+    desc:"Pact: rivals pass through you like smoke — no bounce, no kick can touch you. But smoke shoves no one." },
+  { id:"vampirefangs", ico:"🧛", name:"Vampire Fangs",       cursed:true, cost:0, enabled:true,
+    desc:"Pact: every rival you brush past bleeds 3 coins to you — but start a turn in the lead and the sun burns you back." },
+  { id:"gravebell",    ico:"🔔", name:"Gravedigger's Bell",  cursed:true, cost:0, enabled:true,
+    desc:"Pact: the bell pays you 2 coins whenever a rival is knocked flat — but when YOU fall, it tolls: rising takes a 5." },
+  { id:"blooddice",    ico:"🎲", name:"Blood Dice",          cursed:true, cost:0, enabled:true,
+    desc:"Pact: your dice never land below 3 — but every throw drinks a coin, and a dry purse drinks your stride instead." },
+  { id:"tollledger",   ico:"📒", name:"Toll Keeper's Ledger", cursed:true, cost:0, enabled:true,
+    desc:"Pact: a coin from every purchase a rival makes lands in your pocket — but every price YOU pay is doubled." },
+];
+const GATE  = { RANDOM_GATE:0.5, BOT_TAKE:0.5 };  // after the first-ever visit: odds the gate greets you first; a bot's odds of sealing an offered pact
+const CURSE = { STRIDE:2,        // Stormstride Boots: permanent roll bonus
+                STONE_SLOW:1,    // Stone Hide: permanent roll malus
+                MIDAS_COINS:2,   // Midas Purse: coins at each of the holder's turn starts
+                FANG_STEAL:3,    // Vampire Fangs: coins drained per kick/bounce
+                SUN_BACK:3,      // Vampire Fangs: tiles the sun scorches a leading vampire back
+                BELL_COINS:2,    // Gravedigger's Bell: payout per rival knocked flat
+                BELL_GETUP:5,    // Gravedigger's Bell: the holder's harder get-up roll
+                DICE_MIN:3,      // Blood Dice: lowest face the dice will land
+                DICE_MAX:5,      // Everburning Heart: highest face the dice will land
+                BLOOD_SLOW:2 };  // Blood Dice: stride drunk per throw when the purse is empty
 /* ---- DATA: new-item tunables ---------------------------------------- */
 const SNOWBALL = { RANGE:8 };                    // hits a rival within this many tiles (either direction)
 const BANANA   = { RANGE:6, SLIP:5 };            // peel goes on a plain tile up to RANGE ahead; victims slip SLIP back
@@ -1022,6 +1064,16 @@ const RULE_INFO = {
     ico: "🌫️",
     name: "The gray square",
     text: "Some squares are best not lingered on. Wake up on the gray one and the world may not be quite the way you left it.",
+  },
+  dizzy: {
+    ico: "😵‍💫",
+    name: "Very dizzy",
+    text: "Stop on the tan square and the world starts to spin — you turn very dizzy, and your next steps can't be trusted to carry you the right way.",
+  },
+  gate: {
+    ico: "⛓️",
+    name: "The Broken Gate",
+    text: "Behind the dealer's stall hangs a gate that no longer locks. What's offered through its bars costs no coin — the price is something else, and it is always paid.",
   },
 };
 
@@ -1618,6 +1670,9 @@ const TILE_RULES = {
   radioactive: { feature:"radioactive", tiles:RAD_TILES, color:RAD_COLOR,
     onLand: irradiate, offLand: irradiate },
 
+  dizzy: { feature:"dizzy", tiles:DIZZY_TILES, color:DIZZY_COLOR,
+    onLand: makeDizzy, offLand: makeDizzy },
+
   trap89: { feature:"trapdoor", tiles:TRAP89_TILES, color:TRAP89_COLOR,
     onLand: springTrapdoor, offLand: springTrapdoor },
 
@@ -1631,8 +1686,8 @@ const TILE_RULES = {
 /* Who gets the landing first, per path. On your own roll the freeze check
    runs last (only if no tile fired); off-turn the frost beats the teleporter. */
 const LANDING_ORDER = {
-  turn:    ["fishing", "teleport", "orange", "shop", "setback", "trap89", "radioactive", "freeze"],
-  offTurn: ["setback", "trap89", "radioactive", "freeze", "teleport"],
+  turn:    ["fishing", "teleport", "orange", "shop", "setback", "trap89", "radioactive", "dizzy", "freeze"],
+  offTurn: ["setback", "trap89", "radioactive", "freeze", "dizzy", "teleport"],
 };
 
 function specialTileColor(cell){
@@ -1653,6 +1708,16 @@ async function runTileRules(p, ctx){
     if (land && await land(p, ctx)) return id;
   }
   return null;
+}
+
+async function makeDizzy(p){
+  await revealRuleOnce("dizzy");
+  p.dizzy = true;
+  SFX.play("bounce");
+  iconPopup(p, "😵‍💫");
+  log(`😵‍💫 ${p.name} stops on the tan square and turns very dizzy…`);
+  renderScoreboard();
+  return true;
 }
 
 async function sendBackToStart(p){
@@ -1725,8 +1790,9 @@ function falloutFromNuke(){
 }
 
 /* MOVE_BONUSES: everything that adds steps on top of the die face.
-   Each entry: feature flag + amount(p) (0 = inactive this roll) + an
-   optional log note. moveCurrent sums them — new bonus = one entry. */
+   Each entry: feature flag + amount(p, roll) (0 = inactive this roll;
+   `roll` is the die face) + an optional log note. moveCurrent sums
+   them — new bonus = one entry. */
 const MOVE_BONUSES = [
   { id:"fish",   feature:"fishPowers",                    // every few fish grant +1 movement
     amount: p => Math.floor((p.fish||0) / FISH.MOVE_PER_FISH),
@@ -1745,13 +1811,35 @@ const MOVE_BONUSES = [
     note: (p,n) => n < 0 ? `☢️ Radiation saps ${p.name}'s stride (${n}).` : null },
   { id:"radImmune", feature:"radioactive",                // survived the sickness: permanent +1
     amount: p => p.radImmune ? RAD.IMMUNE_BONUS : 0 },
+  { id:"dizzy", feature:"dizzy",                          // the tan square: your next move from it runs backwards
+    amount: (p, roll) => {
+      if (!p.dizzy) return 0;
+      p.dizzy = false;
+      return DIZZY_TILES.includes(p.pos) ? -2*roll : 0;   // knocked off the square = the spinning fades
+    },
+    note: p => `😵‍💫 ${p.name} is so dizzy the world runs the wrong way!` },
+  { id:"stormstride", feature:"blackMarket",              // Stormstride pact: permanent stride
+    amount: p => hasCurse(p, "stormstride") ? CURSE.STRIDE : 0 },
+  { id:"stonehide", feature:"blackMarket",                // Stone Hide pact: stone is heavy
+    amount: p => hasCurse(p, "stonehide") ? -CURSE.STONE_SLOW : 0 },
+  { id:"blooddice", feature:"blackMarket",                // Blood Dice pact: every throw drinks a coin — or your stride
+    amount: p => {
+      if (!hasCurse(p, "blooddice")) return 0;
+      if ((p.coins||0) > 0){
+        p.coins--; renderScoreboard();
+        log(`🎲🩸 The Blood Dice drink one of ${p.name}'s coins. (${p.coins} left)`);
+        return 0;
+      }
+      return -CURSE.BLOOD_SLOW;
+    },
+    note: p => `🎲🩸 ${p.name}'s purse is dry — the Blood Dice drink their stride instead!` },
 ];
 
-function moveBonusTotal(p){
+function moveBonusTotal(p, roll){
   let total = 0;
   for (const b of MOVE_BONUSES){
     if (!FEATURES[b.feature]) continue;
-    const n = b.amount(p);
+    const n = b.amount(p, roll);
     if (!n) continue;
     total += n;
     if (b.note){ const msg = b.note(p, n); if (msg) log(msg); }
@@ -1767,6 +1855,13 @@ const RARE_EVENTS = [
   { id:"luckyStar", feature:"luckyStar", chance:()=>LUCKY.CHANCE,     run:()=>strikeLucky() },
   { id:"fateSwap",  feature:"fateSwap",  chance:()=>FATE.CHANCE,      run:()=>strikeFate() },
   { id:"warp",      feature:"warp",      when:p=>warpDue(p),          run:()=>runWarp() },
+  { id:"midasPurse", feature:"blackMarket",                          // the pact's gift: coins every turn start
+    when:p=>hasCurse(p, "midaspurse") && !p.finished,
+    run:async()=>awardCoin(game.players[game.current], "💰 The Midas Purse fills", CURSE.MIDAS_COINS, "plain") },
+  { id:"vampireSun", feature:"blackMarket",                          // the fangs' price: daylight hates a leading vampire
+    when:p=>hasCurse(p, "vampirefangs") && p.pos > 0 && !p.downed
+         && game.players.every(q => q === p || q.finished || q.pos < p.pos),
+    run:()=>sunScorch(game.players[game.current]) },
 ];
 
 // A jagged screen-space lightning-bolt path from (x1,y1) to (x2,y2).
@@ -1870,6 +1965,7 @@ function newGame(roster){
       items:[], passive:null, rollBonus:0, forceSix:false, coins:COIN.START,
       radSick:false, radTurns:0, radLevel:0, radImmune:false, shieldOn:false,
       mirrorOn:false, forceRoll:0, diceCharges:0, curseRolls:0, singeRolls:0, craftNeed:null,
+      dizzy:false, curses:[],
       trophies:0, laps:0,
     })),
     current:0, winner:null, over:false, busy:false, round:1, turnCount:0, autonomous: !!(roster[0] && roster[0].bot),
@@ -1938,10 +2034,12 @@ function renderScoreboard(){
     const bagMark  = (p.items||[]).map(id=>itemDef(id).ico).join("");
     const passMark = p.passive ? itemDef(p.passive).ico : "";
     const shopMark = (bagMark || passMark) ? " " + bagMark + passMark : "";
+    const pactMark = (p.curses||[]).length ? " ⛓️" + p.curses.map(id=>itemDef(id).ico).join("") : "";
     const mark = (isKoth() && (p.trophies||0) > 0 ? " 🏆"+p.trophies : "")
                + (p.finished ? " "+medal : "") + (p.downed ? (p.frozen ? " 🧊" : " 🤕") : "")
                + (p.sniper ? " 🎯" : "") + (p.shame>0 ? " 😳" : "")
-               + (p.fish>0 ? " 🐟"+(p.fish>1?p.fish:"") : "") + shopMark + (p.mirrorOn ? " 🪞" : "")
+               + (p.fish>0 ? " 🐟"+(p.fish>1?p.fish:"") : "") + shopMark + pactMark
+               + (p.mirrorOn ? " 🪞" : "") + (p.dizzy ? " 😵‍💫" : "")
                + (p.coins>0 ? " 🪙"+p.coins : "")
                + (p.radSick ? " ☢️"+(p.radLevel||"") : (p.radImmune ? " ☢️+"+RAD.IMMUNE_BONUS : ""));
     const cellTxt = p.finished ? "done" : (p.onSecret ? "secret 🚪" : (p.pos === 0 ? "—" : "tile " + p.pos));
@@ -2030,6 +2128,7 @@ async function roll(){
     cur.curseRolls--; value = 1;
     log(`🎲 The dice remember ${cur.name}'s cheating — a cursed 1! (${cur.curseRolls} more)`);
   }
+  value = pactAdjustRoll(cur, value);                       // Blood Dice / Everburning Heart bend the face
   setDie(value);
   if (value === RULES.DICE_SIDES && FEATURES.sixRollsAgain) sixEffect();
   await sleep(160);
@@ -2041,17 +2140,17 @@ async function moveCurrent(rollValue){
   const p = game.players[game.current];
   const i = game.current;
   p.onSecret = false; p.marketDue = false;     // leaving the secret square (if they were on it)
-  const steps = rollValue + moveBonusTotal(p); // die face + every active MOVE_BONUSES entry
-  const backwards = steps < 0 && p.pos > 1;    // radiation beyond the roll drags you back
-  if (steps < 1 && !backwards){                // radiation can sap a roll to nothing
-    log(`☢️ ${p.name} is too weak to move!`);
+  const steps = rollValue + moveBonusTotal(p, rollValue); // die face + every active MOVE_BONUSES entry
+  const backwards = steps < 0 && p.pos > 1;    // a bonus deficit beyond the roll drags you back
+  if (steps < 1 && !backwards){                // sapped to nothing (the bonus notes said why)
+    log(`😮‍💨 ${p.name} is too weak to move!`);
     await sleep(500);
     await endTurn(); return;
   }
   const from = p.pos === 0 ? 1 : p.pos;        // first move walks from square 1
   const path = backwards ? walkBackPath(p.pos, -steps)
                          : walkPath(p.pos === 0 ? 0 : p.pos, steps);
-  if (backwards) log(`☢️ Radiation overwhelms ${p.name} — they hop ${path.length} backwards!`);
+  if (backwards) log(`↩️ ${p.name} hops ${path.length} backwards!`);
   const landed = path[path.length-1];
   const overshot = path.some(c=>c===BOARD.WIN) && landed !== BOARD.WIN;
 
@@ -2277,6 +2376,12 @@ function finishKoth(){
 async function applyLink(p, idx, depth){       // climb a ladder / slide a chute at p's square
   const link = linkAt(p.pos);
   if (!link) return false;
+  if (hasCurse(p, "serpentpact")){             // the pact: snakes spare their kin, ladders refuse a traitor
+    if (link.kind === "slide"){ log(`🐍 The snake bows to ${p.name} — kin do not bite kin.`); return false; }
+    SFX.play("chute");
+    log(`🐍 The ladder shudders and refuses ${p.name} — traitors climb alone.`);
+    return false;
+  }
   // fish power quirk: a fishy grip slips off a ladder now and then
   if (link.kind === "ladder" && FEATURES.fishPowers && (p.fish||0) >= FISH.SLIP_FISH
       && Math.random() < FISH.SLIP_CHANCE){
@@ -2312,7 +2417,12 @@ async function resolveEncounters(p){
     if (++guard > 400) return;          // safety net against pathological chains
     const cell = p.pos;
     if (cell <= RULES.SAFE_TILES || cell === BOARD.WIN) return;
-    const others = game.players.filter(q => q !== p && q.pos === cell);
+    if (hasCurse(p, "phantomstep")){                       // smoke shoves no one — they share the square
+      if (game.players.some(q => q !== p && q.pos === cell))
+        log(`👻 ${p.name} drifts through the crowd like smoke.`);
+      return;
+    }
+    const others = game.players.filter(q => q !== p && q.pos === cell && !hasCurse(q, "phantomstep"));
     if (others.length === 0) return;
     await revealRuleOnce("encounter");
     const choice = await getEncounterChoice(p, others);
@@ -3605,14 +3715,16 @@ async function lightningStrike(victim){
   await sleep(500);
   await resolveLanding(victim);                            // the new tile fires too
 }
-async function strikeLightning(){                          // the rare event: hits the leader — unless a Soul Candle calls it
+async function strikeLightning(){                          // the rare event: hits the leader — unless a Soul Candle or Stormstride pact calls it
   await revealRuleOnce("lightning");
   const active = game.players.filter(p => !p.finished && p.pos > 0);
   if (!active.length) return;
-  const marked = FEATURES.shop ? active.filter(p => p.passive === "soulcandle") : [];
+  const marked = active.filter(p => (FEATURES.shop && p.passive === "soulcandle") || hasCurse(p, "stormstride"));
   if (marked.length){
     const m = marked[(Math.random()*marked.length)|0];
-    log(`🕯️ The storm smells ${m.name}'s candle burning…`);
+    log(FEATURES.shop && m.passive === "soulcandle"
+      ? `🕯️ The storm smells ${m.name}'s candle burning…`
+      : `🥾 The storm never lost track of ${m.name}'s boots…`);
     await lightningStrike(m);
     return;
   }
@@ -3755,12 +3867,19 @@ function awardCoin(p, reason, n, fx){
   renderScoreboard();
 }
 
-// Thieves' Gloves: brushing past a player (kick or bounce) lifts one coin.
+// Brushing past a player (kick or bounce) lifts coins: Thieves' Gloves take
+// one, Vampire Fangs drain more — both if you carry both.
 function stealCoin(thief, victim){
-  if (!FEATURES.shop || thief.passive !== "gloves" || (victim.coins||0) < 1) return;
-  victim.coins--; thief.coins = (thief.coins||0) + 1;
+  let take = 0;
+  if (FEATURES.shop && thief.passive === "gloves") take += 1;
+  if (hasCurse(thief, "vampirefangs")) take += CURSE.FANG_STEAL;
+  take = Math.min(take, victim.coins||0);
+  if (take < 1) return;
+  victim.coins -= take; thief.coins = (thief.coins||0) + take;
   SFX.play("coin"); coinPopup(thief, 1);
-  log(`🧤 ${thief.name} picked ${victim.name}'s pocket — 🪙1 stolen!`);
+  log(hasCurse(thief, "vampirefangs")
+    ? `🧛 ${thief.name} sinks the fangs into ${victim.name}'s purse — 🪙${take} drained!`
+    : `🧤 ${thief.name} picked ${victim.name}'s pocket — 🪙1 stolen!`);
   renderScoreboard();
 }
 
@@ -3789,9 +3908,18 @@ function downPlayer(pl){
   const m = deflectHit(pl, "hit");
   if (m){ downPlayer(m); return; }
   if (consumeShield(pl)){ log(`🛡️ ${pl.name}'s Shield blocked the hit!`); return; }
+  if (hasCurse(pl, "stonehide")){ log(`🗿 ${pl.name}'s Stone Hide shrugs off the blow!`); return; }
   pl.downed = true; pl.getupMin = SNIPER.GETUP_MIN; updateDowned(idxOf(pl));
+  if (hasCurse(pl, "gravebell")){
+    pl.getupMin = Math.max(pl.getupMin, CURSE.BELL_GETUP);
+    log(`🔔 ${pl.name}'s own bell tolls — rising takes a ${pl.getupMin}+.`);
+  }
+  if (hasCurse(pl, "midaspurse")) spillPurse(pl);
+  game.players.filter(q => q !== pl && !q.finished && hasCurse(q, "gravebell"))
+    .forEach(q => awardCoin(q, `🔔 The bell tolls for ${pl.name}`, CURSE.BELL_COINS, "plain"));
 }
 function freezePlayer(pl){
+  if (hasCurse(pl, "emberheart")){ log(`🔥 The cold can't touch ${pl.name} — the Everburning Heart melts it away!`); return; }
   const m = deflectHit(pl, "freeze");
   if (m){ freezePlayer(m); return; }
   if (consumeShield(pl)){ log(`🛡️ ${pl.name}'s Shield blocked the freeze!`); return; }
@@ -4447,7 +4575,7 @@ async function randomBoardEvent(p){
 // Used by the wheel's 🌀 slot mid-game and by the Scrambled-board setup option.
 const DEFAULT_SPECIALS = { tp:[...TELEPORTERS], or:[...ORANGE_TILES], fz:[...FREEZE_TILES],
                            sh:[...SHOP_TILES],  fi:[...FISH.TILES],   sb:[...SETBACK_TILES],
-                           wp:[...WARP_TILES] };
+                           wp:[...WARP_TILES],  dz:[...DIZZY_TILES] };
 function scrambledLayout(){
   const pool = [];
   for (let i = 2; i < BOARD.WIN; i++){
@@ -4461,7 +4589,8 @@ function scrambledLayout(){
            sh: pool.slice(off, off += SHOP_TILES.length),
            fi: pool.slice(off, off += FISH.TILES.length),
            sb: pool.slice(off, off += SETBACK_TILES.length),     // the dark-red tile wanders too — high up, it's devastating
-           wp: pool.slice(off, off += WARP_TILES.length) };
+           wp: pool.slice(off, off += WARP_TILES.length),
+           dz: pool.slice(off, off += DIZZY_TILES.length) };
 }
 // Update the role arrays in-place: TILE_RULES holds live references to these same
 // arrays, so logic checks AND tile colours (cellColor -> specialTileColor) follow along.
@@ -4473,14 +4602,15 @@ function setSpecialTiles(lay){
   FISH.TILES.splice(0, Infinity, ...lay.fi);
   SETBACK_TILES.splice(0, Infinity, ...lay.sb);
   WARP_TILES.splice(0, Infinity, ...lay.wp);
+  DIZZY_TILES.splice(0, Infinity, ...lay.dz);
 }
 // Tile shuffle (🌀 slot): every special tile moves to a new random spot mid-game.
 async function shuffleTiles(msg){
-  const oldPositions = [...TELEPORTERS, ...ORANGE_TILES, ...FREEZE_TILES, ...SHOP_TILES, ...FISH.TILES, ...SETBACK_TILES, ...WARP_TILES];
+  const oldPositions = [...TELEPORTERS, ...ORANGE_TILES, ...FREEZE_TILES, ...SHOP_TILES, ...FISH.TILES, ...SETBACK_TILES, ...WARP_TILES, ...DIZZY_TILES];
   const lay = scrambledLayout();
   setSpecialTiles(lay);
   // Repaint every affected cell (old positions cleared + new positions lit).
-  new Set([...oldPositions, ...lay.tp, ...lay.or, ...lay.fz, ...lay.sh, ...lay.fi, ...lay.sb, ...lay.wp]).forEach(n => repaintCell(n));
+  new Set([...oldPositions, ...lay.tp, ...lay.or, ...lay.fz, ...lay.sh, ...lay.fi, ...lay.sb, ...lay.wp, ...lay.dz]).forEach(n => repaintCell(n));
   SFX.play("teleport"); flashScreen();
   renderScoreboard();
   log(msg || `🌀 The wheel reshuffled the board — all special tiles moved to new positions!`);
@@ -4538,11 +4668,12 @@ async function runSupport(p, allowBack){
 /* ---- items: bag (3 consumables) + 1 passive ------------------------- */
 function itemDef(id){
   return SHOP_CATALOG.find(i => i.id === id) || EXOTICS.find(i => i.id === id)
+      || CURSED.find(i => i.id === id)
       || {ico:"", name:id, desc:"", kind:"consumable", cost:0};
 }
 // Can this player buy this item right now? (enough coins, and room/sense for its kind)
 function canBuy(p, item){
-  if (p.coins < item.cost) return false;
+  if (p.coins < priceFor(p, item)) return false;
   if (item.id === "loadeddice" && p.items.includes("loadeddice")) return false;  // one set of dice at a time
   if (item.kind === "passive"){
     if (p.passive === "soulcandle") return false;                // the candle never lets go
@@ -4597,10 +4728,13 @@ function checkCrafting(p){
 }
 function buyItem(p, item){
   if (!canBuy(p, item)) return false;
-  p.coins -= item.cost;
+  const cost = priceFor(p, item);
+  p.coins -= cost;
   giveItem(p, item.id);
   SFX.play("sparkle");
-  log(`🛒 ${p.name} bought ${item.ico} ${item.name} for 🪙${item.cost}.`);
+  log(`🛒 ${p.name} bought ${item.ico} ${item.name} for 🪙${cost}${cost > item.cost ? " — the Ledger doubled the bill" : ""}.`);
+  game.players.filter(q => q !== p && !q.finished && hasCurse(q, "tollledger"))
+    .forEach(q => awardCoin(q, `📒 The Ledger skims ${p.name}'s purchase`, 1, "plain"));
   refreshBadges(); renderScoreboard();
   return true;
 }
@@ -5142,6 +5276,14 @@ function renderInventory(){
                         : `<span style="opacity:.6">No passive equipped</span>`;
   list.appendChild(prow);
 
+  (p.curses||[]).forEach(id => {
+    const d = itemDef(id);
+    const crow = document.createElement("div");
+    crow.style.cssText = "padding:8px 10px;border:1px dashed #a06ad0;border-radius:10px;color:var(--cream);font-size:14px;text-align:left";
+    crow.innerHTML = `⛓️${d.ico} <b>${d.name}</b> — ${d.desc}`;
+    list.appendChild(crow);
+  });
+
   if (!p.items.length){
     const e = document.createElement("div");
     e.style.cssText = "opacity:.6;color:var(--cream);font-size:14px;padding:4px 2px;text-align:left";
@@ -5196,21 +5338,22 @@ async function runShop(p){
     document.getElementById("picker").classList.add("show");
   });
 }
-function renderShop(p, close, stock, bought, market){
+function renderShop(p, close, stock, bought, market, offer){
   document.getElementById("pickerTitle").textContent = market
     ? `🕯️ Black market — ${p.name} has 🪙${p.coins}`
     : `🏪 Shop — ${p.name} has 🪙${p.coins}`;
   const list = document.getElementById("pickerList"); list.innerHTML = "";
+  if (market && offer) marketTabs(p, list, "stall", close, offer, stock, bought);
   stock.forEach(item => {
     const sold = bought.has(item.id);
     const can = !sold && canBuy(p, item);
     const tag = (item.kind === "passive" ? " · passive" : "") + (item.exotic ? " · exotic" : "");
     const b = document.createElement("button");
     b.className = "btn" + (item.exotic ? " exotic" : item.kind === "passive" ? " passive" : "");
-    b.innerHTML = `${item.ico} <b>${item.name}</b> — ${item.desc} <span style="opacity:.85">(${sold ? "sold out" : `🪙${item.cost}${tag}`})</span>`;
+    b.innerHTML = `${item.ico} <b>${item.name}</b> — ${item.desc} <span style="opacity:.85">(${sold ? "sold out" : `🪙${priceFor(p, item)}${tag}`})</span>`;
     b.style.textAlign = "left"; b.style.boxShadow = "none";
     b.disabled = !can; b.style.opacity = can ? "1" : ".45";
-    b.onclick = () => { if (buyItem(p, item)){ bought.add(item.id); renderShop(p, close, stock, bought, market); } };
+    b.onclick = () => { if (buyItem(p, item)){ bought.add(item.id); renderShop(p, close, stock, bought, market, offer); } };
     list.appendChild(b);
   });
   const leave = document.createElement("button");
@@ -5218,6 +5361,58 @@ function renderShop(p, close, stock, bought, market){
   leave.onclick = close;
   list.appendChild(leave);
 }
+
+/* ---- the Broken Gate: cursed pacts ---------------------------------- */
+function hasCurse(p, id){ return FEATURES.blackMarket && FEATURES.brokenGate && !!(p.curses && p.curses.includes(id)); }
+// Blood Dice never land below their floor; the Everburning Heart snuffs the top face.
+function pactAdjustRoll(p, value){
+  if (hasCurse(p, "blooddice") && value < CURSE.DICE_MIN){
+    log(`🎲🩸 ${p.name}'s Blood Dice refuse to land low — a ${CURSE.DICE_MIN}.`);
+    value = CURSE.DICE_MIN;
+  }
+  if (hasCurse(p, "emberheart") && value > CURSE.DICE_MAX){
+    log(`🔥 The fire inside ${p.name} snuffs the ${value} — a ${CURSE.DICE_MAX}.`);
+    value = CURSE.DICE_MAX;
+  }
+  return value;
+}
+// The Vampire Fangs' price: the sun finds whoever leads the pack at their turn start.
+async function sunScorch(p){
+  SFX.play("chute");
+  const from = p.pos;
+  const onSecret = setBackPos(p, p.pos - CURSE.SUN_BACK);
+  layoutTokens(); renderScoreboard();
+  log(onSecret
+    ? `☀️🧛 The sun catches ${p.name} out in front — scorched clear off the board!`
+    : `☀️🧛 The sun catches ${p.name} out in front — scorched back ${from} → ${p.pos}!`);
+  await sleep(600);
+  if (!p.onSecret) await resolveLanding(p);
+}
+// The Midas Purse's price: one knockdown and every coin scatters, gone.
+function spillPurse(pl){
+  const k = pl.coins||0;
+  if (k < 1) return;
+  pl.coins = 0;
+  SFX.play("coin");
+  for (let i = 0; i < Math.min(k, 8); i++) setTimeout(()=> coinPopup(pl, 1), i*90);
+  log(`💰 ${pl.name}'s Midas Purse bursts open — 🪙${k} scatter across the board, gone!`);
+  renderScoreboard();
+}
+// One pact on offer per visit — never one the visitor already carries.
+function gateOffer(p){
+  if (!FEATURES.brokenGate) return null;
+  const pool = CURSED.filter(i => i.enabled && !(p.curses||[]).includes(i.id));
+  return pool.length ? pool[(Math.random()*pool.length)|0] : null;
+}
+function sealPact(p, item){
+  p.curses = p.curses || [];
+  p.curses.push(item.id);
+  SFX.play("leviathan"); flashScreen(); iconPopup(p, item.ico);
+  log(`⛓️ ${p.name} reaches through the Broken Gate — the ${item.name} pact is sealed, forever. ${item.ico}`, "win");
+  renderScoreboard();
+}
+// The Toll Keeper's Ledger doubles every price its holder pays.
+function priceFor(p, item){ return item.cost * (hasCurse(p, "tollledger") ? 2 : 1); }
 
 /* ---- the black market (lives on the secret square) ------------------ */
 async function visitSecret(pl){
@@ -5242,6 +5437,9 @@ function marketPrice(p, item){
   return Math.max(1, item.cost - discount
     + Math.floor(game.marketVisits * MARKET.VISIT_MARKUP * BALANCE.REF_PLAYERS / game.players.length));
 }
+// The market has two sections: the dealer's stall and the Broken Gate.
+// The FIRST visitor ever is always shown the gate; after that the section
+// that greets you is random — tabs let a human switch freely either way.
 async function runBlackMarket(p){
   log(`🕯️ ${p.name} finds a shady dealer under the board… (🪙${p.coins})`);
   SFX.play("leviathan");
@@ -5251,9 +5449,19 @@ async function runBlackMarket(p){
   for (let i = pool.length - 1; i > 0; i--){ const j = (Math.random()*(i+1))|0; [pool[i],pool[j]] = [pool[j],pool[i]]; }
   const stock = [...pool.slice(0, MARKET.EXOTIC_STOCK),
                  ...shopStock().slice(0, MARKET.NORMAL_STOCK).map(i => ({...i, cost: marketPrice(p, i)}))];
+  const firstVisit = game.marketVisits === 0;
   game.marketVisits++;
+  const offer = gateOffer(p);
+  if (offer) await revealRuleOnce("gate");
+  const gateFirst = !!offer && (firstVisit || Math.random() < GATE.RANDOM_GATE);
   const bought = new Set();
   if (game.autonomous || p.bot){
+    if (gateFirst && Math.random() < GATE.BOT_TAKE){
+      await botThink(p, "stares through the broken gate");
+      sealPact(p, offer);
+      await botDecide(p, `seals a dark pact — ${offer.ico} ${offer.name}!`);
+      return;
+    }
     await botThink(p, "haggles in the shadows");
     const haul = botShopSpree(p, stock, bought);
     await botDecide(p, haul.length ? `slinks off with ${haul.join(" + ")} 🕯️` : "gets waved away by the dealer…");
@@ -5262,9 +5470,46 @@ async function runBlackMarket(p){
   await new Promise(res => {
     const close = () => { document.getElementById("picker").classList.remove("show"); pickResolve = null; res(); };
     pickResolve = close;
-    renderShop(p, close, stock, bought, true);
+    if (gateFirst) renderGate(p, close, offer, stock, bought);
+    else renderShop(p, close, stock, bought, true, offer);
     document.getElementById("picker").classList.add("show");
   });
+}
+// The section switcher at the top of the market picker.
+function marketTabs(p, list, active, close, offer, stock, bought){
+  const row = document.createElement("div");
+  row.style.cssText = "display:flex;gap:8px";
+  const mk = (label, on, fn) => {
+    const b = document.createElement("button");
+    b.className = "btn" + (on ? " exotic" : " ghost");
+    b.style.flex = "1"; b.style.boxShadow = "none";
+    b.textContent = label; b.disabled = on;
+    if (on) b.style.opacity = "1";
+    b.onclick = fn;
+    row.appendChild(b);
+  };
+  mk("🕯️ The stall", active === "stall", () => renderShop(p, close, stock, bought, true, offer));
+  mk("⛓️ Broken Gate", active === "gate", () => renderGate(p, close, offer, stock, bought));
+  list.appendChild(row);
+}
+// The Broken Gate: ONE pact on offer — seal it or walk away.
+function renderGate(p, close, offer, stock, bought){
+  document.getElementById("pickerTitle").textContent = `⛓️ The Broken Gate — ${p.name}`;
+  const list = document.getElementById("pickerList"); list.innerHTML = "";
+  marketTabs(p, list, "gate", close, offer, stock, bought);
+  const card = document.createElement("div");
+  card.style.cssText = "max-width:340px;padding:10px 12px;border:1px dashed #a06ad0;border-radius:10px;color:var(--cream);font-size:14px;text-align:left";
+  card.innerHTML = `Something waits behind the bars, offered freely:<br><br>${offer.ico} <b>${offer.name}</b> — ${offer.desc}`;
+  list.appendChild(card);
+  const take = document.createElement("button");
+  take.className = "btn exotic";
+  take.textContent = `${offer.ico} Seal the pact`;
+  take.onclick = () => { sealPact(p, offer); close(); };
+  list.appendChild(take);
+  const leave = document.createElement("button");
+  leave.className = "btn ghost"; leave.textContent = "Leave it"; leave.style.marginTop = "4px";
+  leave.onclick = close;
+  list.appendChild(leave);
 }
 
 async function runOrange(p){
@@ -5354,6 +5599,7 @@ const ADV_SECTIONS = [
   { id:"game", title:"🏁 Game", build: list => buildFinishRow(list) },
   { id:"items", title:"🛒 Items", entries: SHOP_CATALOG.filter(i => !i.craftOnly) },   // craft-only pieces stay a secret
   { id:"exotics", title:"🕯️ Black market", entries: EXOTICS },
+  { id:"cursed", title:"⛓️ Broken Gate", entries: CURSED },
   { id:"board", title:"🗺️ Board", entries: BOARD_OPTIONS },
 ];
 function buildToggleRows(list, entries){
@@ -5505,7 +5751,7 @@ function saveSettings(){
       rgb: RGB.enabled,
       theme: THEMES[THEME.current].id,
       finishNeed: FINISH.NEED,
-      items: Object.fromEntries([...SHOP_CATALOG, ...EXOTICS].map(i => [i.id, i.enabled])),
+      items: Object.fromEntries([...SHOP_CATALOG, ...EXOTICS, ...CURSED].map(i => [i.id, i.enabled])),
       board: Object.fromEntries(BOARD_OPTIONS.map(b => [b.key, b.enabled])),
     }));
   } catch(e){}
@@ -5521,7 +5767,7 @@ function loadSettings(){
     if (typeof s.finishNeed === "number") FINISH.NEED = Math.max(1, Math.min(MAX_PLAYERS, s.finishNeed));
     const ti = THEMES.findIndex(t => t.id === s.theme);
     if (ti >= 0) THEME.current = ti;
-    [...SHOP_CATALOG, ...EXOTICS].forEach(i => { if (s.items && typeof s.items[i.id] === "boolean") i.enabled = s.items[i.id]; });
+    [...SHOP_CATALOG, ...EXOTICS, ...CURSED].forEach(i => { if (s.items && typeof s.items[i.id] === "boolean") i.enabled = s.items[i.id]; });
     BOARD_OPTIONS.forEach(b => { if (s.board && typeof s.board[b.key] === "boolean") b.enabled = s.board[b.key]; });
   } catch(e){}
 }

@@ -216,6 +216,19 @@ begins (unless they, too, woke up on the gray square).
 
 *Toggle: `FEATURES.warp`. Tile in `WARP_TILES` (44), angles/spin timing in `WARP`.*
 
+### The tan dizzy square (hidden rule)
+One **tan square** (tile 56) spins like a fairground ride. **End your movement there**
+(your own roll, or thrown onto it by a kick, swap, star, pile-up …) and you turn
+**very dizzy**: the **next move you make from that square goes BACKWARDS** — the full
+roll, bonuses included (a big roll suddenly isn't a blessing). The walk back stops at
+tile 1 at worst; slides, ladders and tile effects apply where you stagger to a halt.
+The spinning is a property of the square: get **knocked off it** before your turn and
+the dizziness **fades** — you move normally. Land there on a **6** and you're moving
+straight on, so the ride never gets you. Frozen solid ON the square? The dizziness
+patiently waits for the move you eventually make.
+
+*Toggle: `FEATURES.dizzy`. Tile in `DIZZY_TILES` (56), colour in `DIZZY_COLOR`.*
+
 ### Radioactive fallout (hidden rule)
 A **nuke** leaves scars: after the blast, **two plain tiles turn radioactive green**.
 Land on one (or get thrown onto one) and you become **radioactive**: your rolls take
@@ -336,6 +349,51 @@ deals are exactly what they say.
 *Toggles: `FEATURES.secretSquare`, `FEATURES.blackMarket`. Shelf + pricing in `MARKET`
 (`EXOTIC_STOCK`, `NORMAL_STOCK`, `BEHIND_PER`, `MAX_DISCOUNT`, `VISIT_MARKUP`); the
 exotics live in the `EXOTICS` DATA block (own toggle group in Advanced settings).*
+
+### The Broken Gate — cursed pacts (hidden rule)
+The black market has **two sections**, with tabs to switch freely between them: the
+**dealer's stall** (the market above) and the **Broken Gate** — a gate behind the
+stall that no longer locks. The **first player ever to reach the secret square is
+always greeted by the gate**; after that, which section greets an arriving visitor
+is a **coin flip** (`GATE.RANDOM_GATE`). Bots offered the gate first seal the pact
+about half the time (`GATE.BOT_TAKE`).
+
+Through the bars, **ONE pact is offered per visit** — drawn at random from the pacts
+you don't already carry — and it costs **no coins**: take it or leave it. A sealed
+pact is **permanent**: it never occupies a bag or passive slot, can never be removed,
+and its price is always paid. All ten (numbers in the `CURSE` DATA block):
+
+- **🥾 Stormstride Boots** — **+2 to every roll, forever.** But lightning **only ever
+  strikes a marked player** while one is in play — and your boots mark you exactly
+  like a Soul Candle does.
+- **🐍 Serpent Pact** — **snake heads never swallow you**; stand on them like plain
+  ground. But **ladders refuse to carry you** — you climb nothing, ever again.
+- **💰 Midas Purse** — **+2 coins at the start of every one of your turns.** But get
+  **knocked down once** and the purse bursts: **every coin you own scatters, gone.**
+- **🔥 Everburning Heart** — **you can never be frozen** (icy tiles, frost auras,
+  snowballs — nothing). But the flame eats your luck: **every 6 you roll becomes
+  a 5** — no more bonus rolls, ever.
+- **🗿 Stone Hide** — **no blow can knock you down** (kicks, horns, bombs, snipers,
+  pile-ups — all shrugged off; lightning and shame still floor you). But stone is
+  heavy: **−1 to every roll, forever.**
+- **👻 Phantom Step** — **nobody can bounce on or kick you** — landing rivals drift
+  straight through you, and you through them. But **you can't kick or bounce anyone
+  either**: you share squares like smoke, and never collect kick coins.
+- **🧛 Vampire Fangs** — every kick or bounce you land **drains 3 coins** from the
+  victim (on top of Thieves' Gloves). But **start a turn in sole first place** and
+  the sun **scorches you 3 tiles back** — every single leading turn.
+- **🔔 Gravedigger's Bell** — **+2 coins every time any rival is knocked flat** by a
+  blow. But when **you** fall, the bell tolls for you: **you need a 5+ to get up.**
+- **🎲 Blood Dice** — **your dice never land below 3** (get-up rolls included). But
+  **every movement roll drinks 1 coin** — and when your purse is dry, the dice
+  drink **2 tiles of stride** instead.
+- **📒 Toll Keeper's Ledger** — **1 coin lands in your pocket every time a rival buys
+  anything** (shop or market). But **every price YOU pay is doubled** — the dealer's
+  too.
+
+*Toggles: `FEATURES.brokenGate` (whole gate), per-pact in the `CURSED` DATA block
+(own "⛓️ Broken Gate" group in Advanced settings, saved like the other toggles).
+Gate odds in `GATE`, all pact numbers in `CURSE`.*
 
 ### The Shop, inventory &amp; items (hidden rule)
 Four **gold squares** are cabin shops (tiles **6, 28, 52, 75**). Land on one and you
