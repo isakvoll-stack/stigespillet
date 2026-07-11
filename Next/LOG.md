@@ -3,6 +3,27 @@
 Newest first. One entry per working session; note what shipped and what's next.
 
 ---
+## 2026-07-11 (evening) — 🏆 KOTH Mario-Party bonus trophies (queued follow-up)
+
+Isak asked for "some edits, token-efficiently"; pulled the oldest buildable
+backlog item (the two Active items are design-with-Isak-first). When a King of
+the Hill game hits the final whistle, a **bonus round** now fires before the
+crowning: **3 categories drawn from 5** (🪙 most coins · 🐟 most fish · 🏔️ most
+laps · 🎒 most items used · 💀 most times floored), every tied leader collects
+**+2 🏆** with a staggered log + pop reveal, and THEN most trophies takes the
+hill. Categories nobody scored in never enter the draw.
+
+Plumbing: `KOTH.BONUS` tunables + a `KOTH_BONUS_CATS` registry (a new category =
+one entry); new `p.downs` / `p.itemsUsed` counters (blocked hits and re-hits on
+a downed man don't count); `finishKoth` went async. RULES.md synced; skipped
+candidate categories (kicks dealt, tiles travelled) + defaults in QUESTIONS.md.
+Verified headless Edge **13/13, 0 JS errors** incl. a full 8-round 4-bot KOTH
+game ending through the bonus round. Committed + pushed.
+
+Next: the Active design tasks (Boss battle mode, Skins) need Isak at the table;
+otherwise pull from SUGGESTIONS.md.
+
+---
 ## 2026-07-11 (later) — tan dizzy tile + the Broken Gate (Isak's 2-point batch)
 
 1. **The tan dizzy square** (tile 56, `DIZZY_TILES`/`DIZZY_COLOR`) — end a move

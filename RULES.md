@@ -21,7 +21,13 @@ live in the `GAME_MODES` DATA table):
   - **+8** for reaching **tile 90** — you celebrate a *lap* and walk back to
     the **start lane**. The game rolls on; landing there on a rolled 6 still
     grants the extra roll.
-  - When the rounds run out, **most trophies takes the hill**. A tie is broken
+  - When the rounds run out, a **Mario-Party-style bonus round** fires first:
+    **3 categories** are drawn at random from 5 — 🪙 Fattest purse (most coins),
+    🐟 Master angler (most fish), 🏔️ Peak bagger (most laps), 🎒 Gadget lover
+    (most items used), 💀 Hardest knocks (knocked down/frozen the most) — and
+    every leader of a drawn category earns **+2 trophies** (ties pay everyone
+    tied; a category nobody scored in is never drawn).
+  - Then **most trophies takes the hill**. A tie is broken
     by whoever is **furthest up the board**. The podium and leaderboard show
     everyone's 🏆 count, and the HUD shows *Round X of Y* all game.
   *(All payouts + the rounds formula are tunables in the `KOTH` DATA block.)*

@@ -55,7 +55,13 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
-Recently shipped (2026-07-11, latest): **the tan dizzy tile + the Broken Gate** —
+Recently shipped (2026-07-11, latest): **King of the Hill bonus trophies** —
+when the rounds run out, a Mario-Party-style bonus round draws **3 of 5 side
+achievements** (most coins / fish / laps / items used / times floored) and pays
+every tied leader **+2 🏆** before the winner is crowned. Verified 13/13
+headless, 0 JS errors.
+
+Before that (2026-07-11): **the tan dizzy tile + the Broken Gate** —
 a new **tan square** (56): end your move there and you turn **very dizzy**, and your
 next move from that square walks **backwards**; and the black market now has **two
 sections** with tabs — the dealer's stall and the **Broken Gate**, which offers ONE

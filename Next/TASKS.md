@@ -86,6 +86,25 @@ See `LOG.md` for the running session history.
 ---
 
 ## Done
+### 2026-07-11 — 🏆 KOTH Mario-Party bonus trophies (queued 2026-07-06 follow-up)
+- [x] **Bonus round at the final whistle** (`KOTH.BONUS {COUNT:3, TROPHIES:2,
+      REVEAL_MS:1400}` + `KOTH_BONUS_CATS` registry — a new category is one
+      entry): 3 categories drawn at random from 5 — 🪙 most coins, 🐟 most fish,
+      🏔️ most laps, 🎒 most items used, 💀 most times floored — every tied
+      leader gets +2 🏆 (staggered log + pop reveal), THEN most trophies takes
+      the hill. Zero-score categories never enter the draw.
+- [x] **New per-player counters**: `p.downs` (ticks once in `downPlayer` +
+      `freezePlayer` on a real floor — shield/mirror/stonehide blocks don't
+      count, re-hitting a downed man doesn't either) and `p.itemsUsed`
+      (`useItem` entry). Coins/fish/laps reuse existing stats.
+- [x] `finishKoth` now async (awaits the bonus round); sole call site awaited.
+- [x] RULES.md synced; skipped categories + defaults logged in QUESTIONS.md.
+- [x] **Verified headless Edge 13/13, 0 JS errors**: tunables + registry statics,
+      counters (down-once guard, shield no-count, freeze counts, useItem),
+      deterministic 3-category payout incl. a tie paying both, all-zero pool
+      pays nothing, full 8-round 4-bot KOTH game ends at the whistle with the
+      bonus round fired and the trophy sort crowning the winner.
+
 ### 2026-07-11 — kick etiquette + purse (Isak's 3-point batch)
 - [x] **Bots almost never kick a downed man**: `BOT.KICK_DOWNED_PENALTY` 8 → 40
       (net −31 per downed share) — only a catastrophic bounce option changes their
@@ -449,12 +468,9 @@ See `LOG.md` for the running session history.
       Game mode → Choose players; `GAME_MODES` DATA table).
 - [x] **Design new game mode — King of the Hill**: built 2026-07-06 to Isak's full
       spec (see the Done entry below).
-- [ ] **KOTH: Mario-Party-style bonus trophies at the end** (Isak, 2026-07-06):
-      when the rounds run out, hand out bonus trophies for side achievements
-      before crowning the winner (à la Mario Party's bonus stars). Needs a list of
-      bonus categories — candidates: most coins, most fish, most kicks/knockdowns,
-      most laps, most tiles travelled, most items used, unluckiest (most knocked
-      down). Design + build in a later session.
+- [x] **KOTH: Mario-Party-style bonus trophies at the end** — built 2026-07-11
+      (see the Done entry). Skipped categories (kicks dealt, tiles travelled)
+      logged in QUESTIONS.md.
 - [ ] **Design game mode — «Family mode»** (Isak, 2026-07-06): a calmer, less
       chaotic mode. ⚠ NOT an autonomous task: Isak wants to walk through the rule
       list together and say which rules are on/off (and possibly add new ones).

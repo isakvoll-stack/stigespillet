@@ -3,6 +3,24 @@
 Standing file: autonomous sessions log clarifications here instead of stopping to ask.
 Answer whenever — each answer gets folded in and the question checked off.
 
+## 2026-07-11 — from the KOTH bonus-trophies build (defaults picked, say if wrong)
+
+- [ ] **3 random categories of 5, +2 trophies each** (`KOTH.BONUS`) — Mario-Party
+  style suspense over "always all 5". Prefer all categories to always pay, or a
+  different trophy amount?
+- [ ] **Categories built: coins / fish / laps / items used / times floored.**
+  "Most kicks dealt" from your candidate list was SKIPPED — the knockdown funnel
+  doesn't know who dealt the hit; wiring an attacker through every kick/bounce/
+  bomb/horn path is a bigger change. Want it badly enough to build?
+- [ ] **"Tiles travelled" also skipped** (would need a counter in every movement
+  path). Fish and laps double-dip with their in-game trophies — Mario Party does
+  the same, so it stayed. OK?
+- [ ] **The reveal is log-lines + 🏆 pops, ~1.4s apart** (`BONUS.REVEAL_MS`) — no
+  big banner/cutscene yet. Worth a dramatic full-screen reveal pass later?
+- [ ] **A cancelled targeted item may still count as "used"** for 🎒 Gadget lover
+  (the counter ticks when the item is activated, before target pick). Edge case,
+  flag if it bothers you.
+
 ## 2026-07-11 — from the dizzy tile + Broken Gate batch (defaults picked, say if wrong)
 
 - [ ] **Sealing a pact closes the whole market** — the moment feels final, so you

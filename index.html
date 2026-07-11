@@ -928,6 +928,7 @@ const KOTH = {
   TROPHY_WIN:8,       // reaching tile 90 — the runner then walks back to the start
   LAP_PAUSE_MS:900, LAP_CONFETTI:45,                 // summit celebration before the walk of fame back down
   FX_MAX_POPS:5, FX_GAP_MS:110, FX_SCALE:1.4,        // 🏆 pops per award (a 10-trophy haul shows 5 pops)
+  BONUS:{ COUNT:3, TROPHIES:2, REVEAL_MS:1400 },     // end-of-game bonus categories drawn / trophies each / reveal pacing
 };
 const defaultRounds = n => {
   const base = KOTH.ROUNDS_BY_PLAYERS[n] || KOTH.ROUNDS_BY_PLAYERS[6] + Math.max(0, n - 6) * KOTH.ROUNDS_EXTRA;
@@ -1966,7 +1967,7 @@ function newGame(roster){
       radSick:false, radTurns:0, radLevel:0, radImmune:false, shieldOn:false,
       mirrorOn:false, forceRoll:0, diceCharges:0, curseRolls:0, singeRolls:0, craftNeed:null,
       dizzy:false, curses:[],
-      trophies:0, laps:0,
+      trophies:0, laps:0, downs:0, itemsUsed:0,
     })),
     current:0, winner:null, over:false, busy:false, round:1, turnCount:0, autonomous: !!(roster[0] && roster[0].bot),
     mode: chosenMode, maxRounds: chosenMode === "koth" ? (chosenRounds || defaultRounds(count)) : 0,
@@ -2359,9 +2360,36 @@ async function afterKothLap(p, rollValue){
   }
 }
 
+// Mario-Party-style bonus round: when time is up, a few side achievements pay
+// out extra trophies before the winner is crowned. Categories with no activity
+// never pay; ties pay every leader.
+const KOTH_BONUS_CATS = [
+  { id:"rich",    ico:"🪙", name:"Fattest purse",  stat:p => p.coins||0 },
+  { id:"angler",  ico:"🐟", name:"Master angler",  stat:p => p.fishCaught||0 },
+  { id:"climber", ico:"🏔️", name:"Peak bagger",    stat:p => p.laps||0 },
+  { id:"gadget",  ico:"🎒", name:"Gadget lover",   stat:p => p.itemsUsed||0 },
+  { id:"unlucky", ico:"💀", name:"Hardest knocks", stat:p => p.downs||0 },
+];
+async function awardKothBonuses(){
+  const B = KOTH.BONUS;
+  const pool = KOTH_BONUS_CATS.filter(c => Math.max(...game.players.map(c.stat)) > 0);
+  for (let i = pool.length - 1; i > 0; i--){ const j = (Math.random()*(i+1))|0; [pool[i], pool[j]] = [pool[j], pool[i]]; }
+  const picks = pool.slice(0, B.COUNT);
+  if (!picks.length) return;
+  log(`🎁 Time! But first — bonus trophies…`);
+  await sleep(B.REVEAL_MS);
+  for (const c of picks){
+    const best = Math.max(...game.players.map(c.stat));
+    game.players.filter(p => c.stat(p) === best)
+      .forEach(w => awardTrophy(w, `${c.ico} ${c.name} (${best})`, B.TROPHIES));
+    await sleep(B.REVEAL_MS);
+  }
+}
+
 // Time is up: most trophies takes the hill (ties go to whoever is furthest up
 // the board), and everyone is ranked the same way for the podium.
-function finishKoth(){
+async function finishKoth(){
+  await awardKothBonuses();
   game.over = true;
   const s = [...game.players].sort((a,b) => ((b.trophies||0) - (a.trophies||0)) || (b.pos - a.pos));
   game.winner = s[0];
@@ -2928,7 +2956,7 @@ async function endTurn(){
   game.autonomous = !!game.players[c].bot;                 // auto-drive this turn only if it's a bot
   if (c <= prev){                                          // wrapped past the end -> new round
     game.round++;
-    if (isKoth() && game.round > game.maxRounds){ finishKoth(); return; }   // the final whistle
+    if (isKoth() && game.round > game.maxRounds){ await finishKoth(); return; }   // the final whistle
   }
   grantSniperIfDue();
   game.busy = false; refreshHUD();
@@ -3909,6 +3937,7 @@ function downPlayer(pl){
   if (m){ downPlayer(m); return; }
   if (consumeShield(pl)){ log(`🛡️ ${pl.name}'s Shield blocked the hit!`); return; }
   if (hasCurse(pl, "stonehide")){ log(`🗿 ${pl.name}'s Stone Hide shrugs off the blow!`); return; }
+  if (!pl.downed) pl.downs = (pl.downs||0) + 1;
   pl.downed = true; pl.getupMin = SNIPER.GETUP_MIN; updateDowned(idxOf(pl));
   if (hasCurse(pl, "gravebell")){
     pl.getupMin = Math.max(pl.getupMin, CURSE.BELL_GETUP);
@@ -3923,6 +3952,7 @@ function freezePlayer(pl){
   const m = deflectHit(pl, "freeze");
   if (m){ freezePlayer(m); return; }
   if (consumeShield(pl)){ log(`🛡️ ${pl.name}'s Shield blocked the freeze!`); return; }
+  if (!pl.downed) pl.downs = (pl.downs||0) + 1;
   pl.downed = true; pl.frozen = true; pl.getupMin = FREEZE.GETUP_MIN;
   const i = idxOf(pl); updateDowned(i); updateFrozen(i);
 }
@@ -5158,6 +5188,7 @@ async function flyOutFx(q, epi, dest, k){
 
 async function useItem(p, idx){
   const id = p.items[idx];
+  p.itemsUsed = (p.itemsUsed||0) + 1;
   if (["coffee","clover","shield","warhorn"].includes(id)) await itemFlourish(p, itemDef(id).ico);
   if (id === "coffee"){
     p.rollBonus = (p.rollBonus || 0) + ITEM.COFFEE_BONUS;
