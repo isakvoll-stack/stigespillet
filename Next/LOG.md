@@ -3,6 +3,27 @@
 Newest first. One entry per working session; note what shipped and what's next.
 
 ---
+## 2026-07-12 — canvas particle FX engine (trails, bursts, real confetti)
+
+Isak asked for an "engine for great visuals and animations"; the browser IS the
+engine, so SS2 got a proper FX layer instead of an external dependency (free,
+zero-install, stays one self-contained file). One `<canvas id="fxc">` (z13) +
+one self-stopping rAF loop draws every particle; all recipes are tunables in
+the new `FX` DATA block (counts, colours, speeds px/s, life s, gravity).
+Building blocks: `fxBurst(x,y,recipe)` radial burst, `fxFollow(el,ms,recipe)`
+trail that reads the element's LIVE screen rect each frame (tracks CSS
+transitions and JS tweens alike). Wired in: ladder climbs = rising golden
+twinkles, snake rides = falling slime droplets, six-roll = star burst off the
+die, win confetti = tumbling/swaying paper on canvas (old DOM `.confetti` divs
++ keyframes removed; `confettiBurst(n)` keeps its signature). DPR-scaled,
+420-particle cap for the integrated GPU, trails respect ⏩ fast-forward via
+`ffms`. Verified headless Edge **8/8, 0 JS errors**, incl. a full 3-bot game
+finishing through the new code. Committed + pushed.
+
+Next idea (not built): more FX recipes are now one DATA entry + one call —
+e.g. coin pickups, explosion sparks through the canvas, landing dust.
+
+---
 ## 2026-07-11 (late night) — skins rework to the visions + sniper interactions
 
 Isak's follow-up: sniper shots now count as player interactions, and the fancy

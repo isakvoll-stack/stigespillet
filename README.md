@@ -55,7 +55,16 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
-Recently shipped (2026-07-11, latest): **fancy skins now match their visions** —
+Recently shipped (2026-07-12, latest): **canvas particle FX engine** — one
+screen-space `<canvas>` + a single self-stopping loop now draws every particle;
+recipes live in the `FX` DATA block. Ladder climbs trail rising golden sparkles,
+snake rides shake loose falling slime droplets, rolling a six bursts stars off
+the die, and win confetti is real tumbling/swaying paper (replaces the old DOM
+confetti divs). New building blocks for future effects: `fxBurst(x,y,recipe)`
+and `fxFollow(element,ms,recipe)`. Verified 8/8 headless incl. a full bot game,
+0 JS errors.
+
+Before that (2026-07-11): **fancy skins now match their visions** —
 every animated colour is drawn to its theme (Yin & Yang swirls, Midas Marble's gold
 veins crawl, Inferno burns with a light heart and flickering tips, The Void twinkles
 with stars…), with each skin's canonical description saved in the DATA; sniper shots

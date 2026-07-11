@@ -214,9 +214,7 @@
   .board-wrap.shake{animation:shakefx .5s}
   @keyframes shakefx{0%,100%{transform:translate(0,0)}20%{transform:translate(-7px,4px)}
     40%{transform:translate(6px,-5px)}60%{transform:translate(-5px,-4px)}80%{transform:translate(5px,5px)}}
-  .confetti{position:fixed;top:-14px;width:9px;height:14px;border-radius:2px;z-index:9;
-    pointer-events:none;animation:conffall linear forwards}
-  @keyframes conffall{to{transform:translateY(106vh) rotate(900deg)}}
+  #fxc{position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:13}
 
   /* explosion */
   .boom{position:fixed;transform:translate(-50%,-50%);font-size:96px;z-index:10;pointer-events:none;animation:boompop .75s ease-out}
@@ -623,6 +621,7 @@
   <div class="sixfx" id="sixfx">6 · ROLL AGAIN!</div>
   <div id="flash"></div>
   <div id="storm"></div>
+  <canvas id="fxc"></canvas>
   <div id="whiteout"></div>
 
   <div class="modal fish" id="fish">
@@ -1200,6 +1199,21 @@ const RULE_INFO = {
 /* ---- ANIMATION timing (ms) ----------------------------------------- */
 const ANIM = { STEP:210, SLIDE:600, DICE:560, HANDOFF:350, AUTO:650,
                HOP:26 };   // walking-hop arc height (px); each step is a little jump + landing squash
+/* ---- DATA: canvas particle FX (bursts, trails, confetti) -------------
+   One screen-space <canvas> draws every particle; the loop only runs
+   while something is alive, so an idle board costs nothing. Each entry
+   below is one effect's full recipe — speeds are px/s, life is seconds. */
+const FX = {
+  MAX: 420,                                    // particle cap (integrated-GPU safety)
+  GRAVITY: 340,                                // default px/s² pull on burst sparks
+  CONFETTI: { COUNT:130, SIZE:[6,11], FALL:[150,300], GRAV:26, SWAY:[30,80], SPIN:4, LIFE:7 },
+  LADDER: { rate:60, colors:["#ffd23e","#fff3b0","#ffffff"], speed:[6,40], up:46, grav:-70,
+            life:.9, size:[1.5,3.2], twinkle:true },        // rising golden sparkles
+  SNAKE:  { rate:45, colors:["#8fd14f","#4c8c1e","#d6f5a3"], speed:[15,70], up:-6, grav:430,
+            life:.65, size:[1.8,3.6] },                     // slime droplets shaken loose
+  SIX:    { count:15, colors:["#ffd23e","#fff3b0","#ff9500"], speed:[120,300], up:60,
+            life:.75, size:[3,6], shape:"star" },           // star burst off the die
+};
 /* ---- DATA: sound + pacing (Settings screen) ------------------------- */
 const SOUND = { VOLUME:1 };                      // master volume 0..1 (0 = mute)
 const SPEED = { FF_DIV:3, fastForward:false };   // ⏩ bot-turn pacing divided by FF_DIV when on
@@ -2556,9 +2570,11 @@ async function applyLink(p, idx, depth){       // climb a ladder / slide a chute
   if (link.kind === "slide"){
     // ride the drawn snake body head->tail, easing in like gravity took hold
     const A = cellCenter(from), B = cellCenter(link.to);
+    fxFollow(tokenEls[idx], ffms(ANIM.SLIDE), FX.SNAKE);
     await tweenToken(idx, ANIM.SLIDE, t => snakePoint(A, B, t*t));
     layoutTokens();
   } else {
+    fxFollow(tokenEls[idx], ffms(ANIM.SLIDE), FX.LADDER);
     tokenEls[idx].style.transition = `transform ${ANIM.SLIDE}ms ease-in-out`;
     layoutTokens();
     await sleep(ANIM.SLIDE);
@@ -3137,26 +3153,127 @@ function maybeAuto(){
 }
 
 // Celebratory flash when a 6 is rolled (and the roll-again rule is on).
+/* =====================================================================
+   FX ENGINE — one canvas, one loop, every particle. Recipes live in FX.
+   ===================================================================== */
+const fxc = document.getElementById("fxc"), fxg = fxc.getContext("2d");
+let fxParts = [], fxRunning = false, fxLast = 0;
+function fxResize(){
+  const d = window.devicePixelRatio || 1;
+  fxc.width = innerWidth * d; fxc.height = innerHeight * d;
+  fxg.setTransform(d, 0, 0, d, 0, 0);
+}
+window.addEventListener("resize", fxResize);
+fxResize();
+
+const fxRand = (a, b) => a + Math.random() * (b - a);
+const fxPick = arr => arr[(Math.random() * arr.length) | 0];
+
+function fxAdd(p){
+  if (fxParts.length >= FX.MAX) return;
+  p.age = 0; p.rot = p.rot || 0; p.seed = Math.random() * 7;
+  fxParts.push(p);
+  if (!fxRunning){ fxRunning = true; fxLast = performance.now(); requestAnimationFrame(fxTick); }
+}
+
+function fxStarPath(x, y, r, rot){
+  fxg.beginPath();
+  for (let k = 0; k < 10; k++){
+    const rr = k % 2 ? r * 0.45 : r, a = rot + Math.PI * k / 5 - Math.PI / 2;
+    fxg[k ? "lineTo" : "moveTo"](x + Math.cos(a) * rr, y + Math.sin(a) * rr);
+  }
+  fxg.closePath(); fxg.fill();
+}
+
+function fxTick(now){
+  const dt = Math.min(0.05, (now - fxLast) / 1000); fxLast = now;
+  fxg.clearRect(0, 0, innerWidth, innerHeight);
+  fxParts = fxParts.filter(p => {
+    p.age += dt;
+    if (p.age >= p.life || p.y > innerHeight + 24) return false;
+    p.vy += (p.grav != null ? p.grav : 0) * dt;
+    p.x += p.vx * dt + (p.sway ? Math.cos(p.age * p.swayHz + p.seed) * p.sway * dt : 0);
+    p.y += p.vy * dt;
+    p.rot += (p.spin || 0) * dt;
+    const u = p.age / p.life;
+    fxg.globalAlpha = p.fade === false ? 1
+      : p.twinkle ? Math.max(0, (0.35 + 0.65 * Math.abs(Math.sin(p.age * 10 + p.seed))) * (1 - u))
+      : 1 - u * u;
+    fxg.fillStyle = p.color;
+    if (p.shape === "rect"){
+      fxg.save(); fxg.translate(p.x, p.y); fxg.rotate(p.rot);
+      fxg.scale(1, Math.max(0.25, Math.abs(Math.cos(p.age * p.tumble + p.seed))));
+      fxg.fillRect(-p.size / 2, -p.size * 0.7, p.size, p.size * 1.4);
+      fxg.restore();
+    } else if (p.shape === "star"){
+      fxStarPath(p.x, p.y, p.size * (1 - u * 0.5), p.rot);
+    } else {
+      fxg.beginPath(); fxg.arc(p.x, p.y, p.size * (1 - u * 0.6), 0, Math.PI * 2); fxg.fill();
+    }
+    return true;
+  });
+  fxg.globalAlpha = 1;
+  if (fxParts.length) requestAnimationFrame(fxTick);
+  else { fxRunning = false; fxg.clearRect(0, 0, innerWidth, innerHeight); }
+}
+
+// A radial burst at a screen point, from one FX recipe.
+function fxBurst(x, y, o){
+  for (let i = 0; i < o.count; i++){
+    const a = Math.random() * Math.PI * 2, sp = fxRand(o.speed[0], o.speed[1]);
+    fxAdd({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - (o.up || 0),
+            grav: o.grav != null ? o.grav : FX.GRAVITY,
+            life: fxRand(o.life * 0.6, o.life),
+            size: fxRand(o.size[0], o.size[1]), color: fxPick(o.colors),
+            shape: o.shape || "dot", spin: fxRand(-6, 6), twinkle: !!o.twinkle });
+  }
+}
+
+// A trail that follows an element's LIVE on-screen position for ms — reads
+// the rendered rect each frame, so it tracks CSS transitions and JS tweens alike.
+function fxFollow(el, ms, o){
+  let last = performance.now(), carry = 0;
+  const end = last + ms;
+  (function frame(now){
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    const r = el.getBoundingClientRect();
+    const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    carry += o.rate * dt;
+    while (carry >= 1){
+      carry--;
+      const a = Math.random() * Math.PI * 2, sp = fxRand(o.speed[0], o.speed[1]);
+      fxAdd({ x: cx + fxRand(-8, 8), y: cy + fxRand(-6, 10),
+              vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - (o.up || 0),
+              grav: o.grav != null ? o.grav : 0,
+              life: fxRand(o.life * 0.6, o.life),
+              size: fxRand(o.size[0], o.size[1]), color: fxPick(o.colors),
+              shape: o.shape || "dot", twinkle: !!o.twinkle });
+    }
+    if (now < end) requestAnimationFrame(frame);
+  })(last);
+}
+
 function sixEffect(){
   SFX.play("six");
   const fx = document.getElementById("sixfx");
   fx.classList.remove("go"); void fx.offsetWidth; fx.classList.add("go");
   die.classList.remove("six"); void die.offsetWidth; die.classList.add("six");
   setTimeout(()=>die.classList.remove("six"), 600);
+  const r = die.getBoundingClientRect();
+  fxBurst(r.left + r.width / 2, r.top + r.height / 2, FX.SIX);
 }
 
-// A burst of confetti for the win.
+// A burst of confetti for the win — paper that tumbles, sways and drifts.
 function confettiBurst(n){
-  for (let i=0;i<(n||90);i++){
-    const d = document.createElement("div");
-    d.className = "confetti";
-    d.style.left = (Math.random()*100) + "vw";
-    d.style.background = PLAYER_COLORS[i % PLAYER_COLORS.length];
-    const dur = 2.2 + Math.random()*2.2;
-    d.style.animationDuration = dur + "s";
-    d.style.animationDelay = (Math.random()*0.6) + "s";
-    document.body.appendChild(d);
-    setTimeout(()=> d.remove(), (dur+1)*1000);
+  const C = FX.CONFETTI;
+  for (let i = 0; i < (n || C.COUNT); i++){
+    fxAdd({ x: Math.random() * innerWidth, y: -fxRand(14, innerHeight * 0.3),
+            vx: 0, vy: fxRand(C.FALL[0], C.FALL[1]), grav: C.GRAV,
+            sway: fxRand(C.SWAY[0], C.SWAY[1]), swayHz: fxRand(1.5, 3.5),
+            life: C.LIFE, fade: false,
+            size: fxRand(C.SIZE[0], C.SIZE[1]),
+            color: PLAYER_COLORS[i % PLAYER_COLORS.length],
+            shape: "rect", spin: fxRand(-C.SPIN, C.SPIN), tumble: fxRand(3, 7) });
   }
 }
 
