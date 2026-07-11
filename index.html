@@ -1096,7 +1096,8 @@ const TELEPORTERS  = [22, 66];             // teal teleporter squares (between t
 const TELEPORT_COLOR = "#17b5a3";          // teal
 const FREEZE_TILES = [29, 63];             // icy squares — land here and you freeze solid
 const FREEZE_COLOR = "#bfe9ff";            // pale icy blue
-const FREEZE = { GETUP_MIN: 4, ADJ: 1 };   // need 4+ to break free; LANDING within ADJ grid-tiles of a frozen player freezes you (1 = the 8 around them, diagonals included)
+const FREEZE = { GETUP_MIN: 4, ADJ: 1,     // need 4+ to break free; LANDING within ADJ grid-tiles of a frozen player freezes you (1 = the 8 around them, diagonals included)
+  KICK_GLIDE: 3, GLIDE_MS: 600 };          // kick a FROZEN player and the ice block glides this many tiles back (no shame) in one smooth slide
 /* ---- DATA: the gray warp square ---------------------------------------
    START your turn standing on it and the whole board flips (90/180/270°)
    with every colour inverted — and you play your turn like that. The
@@ -1108,7 +1109,7 @@ const WARP = { ANGLES:[90, 180, 270], SPIN_MS:800, active:0 };
 const RAD_TILES = [];                      // fallout tiles — empty until a nuke converts plain tiles
 const RAD_COLOR = "#58c81b";               // radioactive green
 const RAD = { PER_NUKE:2, GROW_TURNS:5, IMMUNE_BONUS:1 };  // tiles per nuke; sickness worsens 5 turns (to -5) then recovers; survive = permanent +1
-const COIN = { PLAIN:1, BLUE:3, START:5 }; // coins per plain-tile landing (yellow pays quietly, blue pays big) + the opening purse
+const COIN = { PLAIN:1, BLUE:3, START:10 }; // coins per plain-tile landing (yellow pays quietly, blue pays big) + the opening purse
 const COIN_FX = {                          // how each coin source announces itself
   six:   { SOUND:false, POPS:0 },                          // rolled-6 bonus: silent — you only see it on the scoreboard
   plain: { SOUND:true,  POPS:0 },                          // yellow tile: the ping only, no icon
@@ -1159,7 +1160,8 @@ const BOT = {
   SUPPORT_TRAP_CHANCE:0.7,                      // odds a supporting bot springs an available trap (else genuine random)
   JITTER:1.5,                                   // ± random noise on option scores
   KICK_BASE:1, KICK_LATE_PER_TILE:0.03,         // kick appeal: base + per-tile (denying a rival matters more up the board)
-  KICK_DOWNED_GAIN:9, KICK_DOWNED_PENALTY:8,    // a downed victim drops a whole row — but the shame collapse costs the kicker too
+  KICK_DOWNED_GAIN:9, KICK_DOWNED_PENALTY:40,   // net -31: bots almost never stoop to kicking a downed man (Isak, 2026-07-11)
+  KICK_FROZEN_BONUS:12,                         // booting a frozen block is shameless, knocks it 3 back AND clears the frost off your square
   AIM_WOBBLE:10,                                // px of scatter on a bot's sniper aim
   SHIELD_LEAD_MARGIN:6,                         // leading by this many tiles = expect incoming fire, arm the shield
   COFFEE_MAX_POS:80,                            // hold coffee near the finish (a +4 overshoot bounces you back)
@@ -2329,7 +2331,11 @@ async function resolveEncounters(p){
       const victim = others[(Math.random()*others.length)|0];   // kick ONE random occupant
       SFX.play("kick");
       stealCoin(p, victim);
-      if (victim.downed && FEATURES.kickWhileDown){
+      if (victim.frozen && FEATURES.freeze){
+        // a FROZEN victim is furniture, not a man — booting the ice block carries
+        // no shame, and it GLIDES a few tiles back in one smooth slide
+        await glideFrozen(p, victim);
+      } else if (victim.downed && FEATURES.kickWhileDown){
         // KICK A MAN WHILE HE'S DOWN: drop them straight down a row, shame the kicker
         await revealRuleOnce("kickdown");
         const from = victim.pos, below = tileBelow(from);
@@ -2365,6 +2371,22 @@ async function kickBack(t){
     // else that occupant auto-kicks them another step back
   }
   log(TXT.kicked(t.name, start, t.pos));
+}
+
+// A kicked FROZEN player: the ice block glides KICK_GLIDE tiles back in one
+// smooth slide (still frozen; below tile 1 = onto the secret square).
+async function glideFrozen(kicker, v){
+  const idx = idxOf(v), from = v.pos;
+  const onSecret = setBackPos(v, v.pos - FREEZE.KICK_GLIDE);
+  SFX.play("chute");
+  tokenEls[idx].style.transition = `transform ${ffms(FREEZE.GLIDE_MS)}ms ease-out`;
+  layoutTokens(); renderScoreboard();
+  await sleep(FREEZE.GLIDE_MS);
+  tokenEls[idx].style.transition = `transform ${ANIM.STEP}ms ease-in-out`;
+  log(onSecret
+    ? `🧊🦵 ${kicker.name} boots the frozen ${v.name} — the ice block glides clean off the board, onto the secret square!`
+    : `🧊🦵 ${kicker.name} boots the frozen ${v.name} — the ice block glides ${from} → ${v.pos}!`);
+  if (!v.onSecret) await resolveLanding(v);
 }
 
 function getEncounterChoice(p, others){
@@ -2524,12 +2546,15 @@ async function botEncounterChoice(p, others){
   await botThink(p, "sizes up the pile-up");
   const ahead = linkAt(p.pos + 1);
   const bounce = landingScore(p.pos, 1, p) + botRand();
-  const downedShare = FEATURES.kickWhileDown ? others.filter(q => q.downed).length / others.length : 0;
+  const downedShare = FEATURES.kickWhileDown ? others.filter(q => q.downed && !q.frozen).length / others.length : 0;
+  const frozenShare = FEATURES.freeze ? others.filter(q => q.frozen).length / others.length : 0;
   let kick = tileScore(p.pos, p) + BOT.KICK_BASE + p.pos * BOT.KICK_LATE_PER_TILE + botRand();
-  kick += downedShare * (BOT.KICK_DOWNED_GAIN - BOT.KICK_DOWNED_PENALTY);
+  kick += downedShare * (BOT.KICK_DOWNED_GAIN - BOT.KICK_DOWNED_PENALTY);   // shame isn't worth it — almost never
+  kick += frozenShare * BOT.KICK_FROZEN_BONUS;                              // shameless, and clears the frost away
   const choice = kick > bounce ? "kick" : "bounce";
   await botDecide(p, choice === "kick"
-    ? (downedShare === 1 ? "kicks them while they're down! 😈" : "plants a kick — this square is taken! 🦵")
+    ? (frozenShare === 1 ? "punts the ice block down the board! 🧊🦵"
+       : downedShare === 1 ? "kicks them while they're down! 😈" : "plants a kick — this square is taken! 🦵")
     : (ahead && ahead.kind === "ladder" ? "bounces onward — a ladder is right there! 🪜" : "bounces onward! ⤴️"));
   return choice;
 }

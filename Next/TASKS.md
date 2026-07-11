@@ -86,6 +86,24 @@ See `LOG.md` for the running session history.
 ---
 
 ## Done
+### 2026-07-11 — kick etiquette + purse (Isak's 3-point batch)
+- [x] **Bots almost never kick a downed man**: `BOT.KICK_DOWNED_PENALTY` 8 → 40
+      (net −31 per downed share) — only a catastrophic bounce option changes their
+      mind. Downed-share now counts `downed && !frozen` only.
+- [x] **Kicking a FROZEN player is shameless + a glide**: new branch before the
+      kick-while-down path — the ice block **glides `FREEZE.KICK_GLIDE:3` tiles
+      back** in one smooth slide (`glideFrozen`, still frozen, secret-square
+      routing via `setBackPos`, landing tile resolves), **no shame** for the
+      kicker. Bots value it: new `BOT.KICK_FROZEN_BONUS:12` (shameless + slides
+      the frost off their own square before `tryFreeze` runs).
+- [x] **Opening purse 5 → 10 coins** (`COIN.START`).
+- [x] RULES.md synced (kick-while-down exception, deep-freeze glide, purse, bot
+      brain bullet).
+- [x] **Verified headless Edge 12/12, 0 JS errors**: purse 10; frozen kick glides
+      46→43 / 13→10 still-frozen no-shame kicker-keeps-square; glide below tile 1
+      → secret square; downed kick still row-drops + shames; bot stats over 60
+      trials each — downed 0/60 kicked, frozen 60/60 punted, plain 52/60 (unchanged).
+
 ### 2026-07-10 — Isak's 8-point batch: finish line, gun RNG, colours/RGB, themes, gray warp tile
 - [x] **🏁 Adjustable finish line** (`FINISH.NEED`, new ⚙️ Advanced → 🏁 Game slider,
       persisted): Classic ends after N finishers (1 = classic). Finishers bank a

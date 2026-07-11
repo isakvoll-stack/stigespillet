@@ -134,7 +134,14 @@ If, on a **kick**, the player you kick is **already lying down**:
   turns**, and then **you collapse** too — and getting up now needs **4 or more**
   (instead of 3).
 
-*Toggle: `FEATURES.kickWhileDown`.*
+**Exception — a frozen victim is furniture, not a man.** Kicking someone who is
+**frozen solid** carries **no shame**: the ice block **glides 3 tiles back** in one
+smooth slide (still frozen; tile effects fire where it stops, and a slide below
+tile 1 lands it on the secret square). Booting the block away also clears the
+frost off your square before the freeze check runs.
+
+*Toggle: `FEATURES.kickWhileDown`; the frozen glide rides `FEATURES.freeze`
+(`FREEZE.KICK_GLIDE`).*
 
 ### Fishing (hidden rule)
 Land on the **dark-blue square** and you play a quick **fishing minigame**. Like
@@ -184,10 +191,12 @@ Land on an **icy square** and you **freeze solid** — you can't move until you 
 on any of the **8 tiles around them** (orthogonal **and diagonal**) — by a roll, a
 kick, a swap, anything that moves you there — and you freeze too. Players **already
 standing** next to someone when they freeze are safe; only a **new landing** catches
-the frost. A **Shield** absorbs a freeze.
+the frost. A **Shield** absorbs a freeze. **Kick a frozen player** and the ice block
+**glides 3 tiles back** — shamelessly (see *Kick a man while he's down*).
 
 *Toggle: `FEATURES.freeze`. Icy tiles = `FREEZE_TILES` (29 & 63). Reach of the frost
-= `FREEZE.ADJ` (1 grid-tile = the 8 neighbours); break-free roll = `FREEZE.GETUP_MIN`.*
+= `FREEZE.ADJ` (1 grid-tile = the 8 neighbours); break-free roll = `FREEZE.GETUP_MIN`;
+kicked-glide distance = `FREEZE.KICK_GLIDE`.*
 
 ### The rotten plank (hidden rule)
 Tile **89** — one square from the finish — looks like any plain tile, but the **first**
@@ -330,7 +339,7 @@ exotics live in the `EXOTICS` DATA block (own toggle group in Advanced settings)
 
 ### The Shop, inventory &amp; items (hidden rule)
 Four **gold squares** are cabin shops (tiles **6, 28, 52, 75**). Land on one and you
-**spend your coins** on items — everyone starts the game with a **5-coin purse**
+**spend your coins** on items — everyone starts the game with a **10-coin purse**
 (`COIN.START`). The shelf shows **3 items drawn at random** from the
 full catalog each visit, and each item can be **bought only once per visit** (it shows
 as *sold out* after). You carry a small inventory: **up to 3 consumables plus 1
@@ -500,7 +509,9 @@ tile you settle on is), with a dash of random jitter so they stay beatable:
 
 - **Bounce or kick** — a bot bounces when the next square looks better (a ladder foot!)
   and kicks to deny a rival and keep a good square; kicking grows more tempting later
-  in the race, and kicking a downed player is weighed against the shame collapse.
+  in the race. Bots **almost never kick a downed player** — the shame collapse isn't
+  worth it (only a truly catastrophic bounce changes their mind) — but they **gladly
+  punt a frozen one**: it's shameless and slides the frost safely away.
 - **Orange square** — fixed odds: **wheel 4/7, support 2/7, gun 1/7**
   (`BOT.ORANGE_WEIGHTS`). When a bot supports, it usually **springs a trap** if one
   exists — a rival whose +5 would dump them on a freeze, the setback, fallout or a

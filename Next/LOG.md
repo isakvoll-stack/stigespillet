@@ -3,6 +3,28 @@
 Newest first. One entry per working session; note what shipped and what's next.
 
 ---
+## 2026-07-11 — kick etiquette + purse (Isak's 3-point batch)
+
+1. **Bots almost never kick a downed man** — `BOT.KICK_DOWNED_PENALTY` 8 → 40
+   (net −31 per downed share; the escape hatch survives only for catastrophic
+   bounce alternatives). Downed-share now counts `downed && !frozen`.
+2. **Kicking a frozen player: no shame, and it GLIDES** — new branch ahead of the
+   kick-while-down path: the ice block slides `FREEZE.KICK_GLIDE:3` tiles back in
+   one smooth `glideFrozen` slide (still frozen; secret-square routing below
+   tile 1; the landing tile resolves — a chute head means the block rides the
+   snake). Kicker keeps the square, and since the encounter resolves before tile
+   rules, punting the block away also saves the kicker from the freeze check.
+   New `BOT.KICK_FROZEN_BONUS:12` — bots punt eagerly.
+3. **Opening purse 5 → 10 coins** (`COIN.START`).
+
+RULES.md synced (kick-while-down exception, deep-freeze glide, purse, bot-brain
+bullet). **Verified headless Edge 12/12, 0 JS errors**: purse; glides 46→43 and
+13→10 (still frozen, no shame, kicker keeps square); below-1 → secret square;
+downed kick still row-drops + shames; bot trials ×60 — downed 0/60, frozen
+60/60, plain 52/60. Open defaults in QUESTIONS.md (penalty size, glide
+direction/chute interaction, bot punt eagerness).
+
+---
 ## 2026-07-10 (fifth push today) — Isak's 8-point batch: finish line · gun RNG · colour picker · RGB · themes · gray warp tile
 
 Six features built + two design tasks logged, all in one pass:

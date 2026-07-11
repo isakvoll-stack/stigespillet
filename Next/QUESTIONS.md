@@ -3,6 +3,22 @@
 Standing file: autonomous sessions log clarifications here instead of stopping to ask.
 Answer whenever — each answer gets folded in and the question checked off.
 
+## 2026-07-11 — from the kick-etiquette batch (defaults picked, say if wrong)
+
+- [ ] **"Almost never" = a −31 score penalty** — a bot only kicks a downed man when
+  bouncing would be catastrophic (e.g. the bounce lands on the late-game setback
+  square). In 60 measured trials it happened 0 times. Want it literally NEVER
+  (drop the escape hatch), or a small % chance instead?
+- [ ] **The frozen glide is a straight 3 back** — path-wise (toward tile 1), in one
+  smooth slide; the block stays frozen, tile effects fire where it stops (a chute
+  head sends the ice block riding down the snake!), below tile 1 it lands on the
+  secret square, and it can share a tile with whoever stands there. Any of that
+  different — e.g. glide FORWARD, or shatter the ice on a chute ride?
+- [ ] **Bots now love punting frozen players** (`BOT.KICK_FROZEN_BONUS:12`) — it's
+  shameless, knocks the block 3 back, and slides the frost off the bot's own
+  square before the freeze check runs (same trick works for humans: kick the
+  block away and you don't freeze). 60/60 in trials. Too eager?
+
 ## 2026-07-10 — from the 8-point batch (defaults picked, say if wrong)
 
 - [ ] **Finish-line details** — a finisher gets NO bonus roll on a 6 (their race is

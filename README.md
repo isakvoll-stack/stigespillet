@@ -55,7 +55,14 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
-Recently shipped (2026-07-10, latest): **Isak's 8-point batch** — an **adjustable
+Recently shipped (2026-07-11, latest): **kick etiquette + purse** — bots now
+**almost never kick a downed man** (the shame isn't worth it — 0/60 in measured
+trials), **kicking a frozen player is shameless**: the ice block **glides 3 tiles
+back** in one smooth slide (still frozen; tile effects fire where it stops) and
+booting it away even saves you from freezing; and everyone starts with a
+**10-coin purse**. Verified 12/12 headless, 0 JS errors.
+
+Before that (2026-07-10): **Isak's 8-point batch** — an **adjustable
 finish line** (Advanced settings: the game ends after N finishers; finishers bank
 medals while the rest race on), **randomised gun chambers** (each roulette draws
 its 6 slots around the 3 blank / 2 live / 1 self odds — the cylinder display shows
