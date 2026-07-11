@@ -55,7 +55,13 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
-Recently shipped (2026-07-11, latest): **podium rework + colours + fancy skins +
+Recently shipped (2026-07-11, latest): **fancy skins now match their visions** —
+every animated colour is drawn to its theme (Yin & Yang swirls, Midas Marble's gold
+veins crawl, Inferno burns with a light heart and flickering tips, The Void twinkles
+with stars…), with each skin's canonical description saved in the DATA; sniper shots
+now count as player interactions. Verified 7/7 headless + screenshot, 0 JS errors.
+
+Before that (2026-07-11): **podium rework + colours + fancy skins +
 end-screen stats** — the podium now seats only the **top 3** on **gold/silver/bronze
 pillars** that blend into each player's colour (4th/5th listed beside it); the colour
 picker gains **10 new normal colours** and — behind the 🌈 RGB setting — **18 animated

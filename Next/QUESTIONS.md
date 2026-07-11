@@ -10,9 +10,10 @@ Answer whenever — each answer gets folded in and the question checked off.
   the banana slip. Walked moves (incl. dizzy/radiation backward walks) count as
   **steps** instead; a 1-tile bounce/kick-shove counts as neither. OK?
 - [ ] **Player interactions counted**: same-square bounces/kicks + using an
-  offensive item (snowball, banana, war horn, bomb, fire egg, singularity).
-  NOT counted: sniper-rifle shots, the orange gun/support, teleporter swaps,
-  mirror deflects. Want any of those in?
+  offensive item (snowball, banana, war horn, bomb, fire egg, singularity)
+  + **sniper-rifle shots (added later the same day, per Isak)**. Still NOT
+  counted: the orange gun/support, teleporter swaps, mirror deflects. Want
+  any of those in too?
 - [ ] **"Times immobilised" = the existing knock/freeze counter** — blocked hits
   (shield/mirror/stone hide) don't count, re-hitting someone already down doesn't
   either. OK?
@@ -25,9 +26,15 @@ Answer whenever — each answer gets folded in and the question checked off.
   flat `base` tone (the pillar itself doesn't animate). Fine?
 - [ ] **6th place and beyond** stay leaderboard-only (only 4th/5th get the side
   list, as asked). OK?
-- [ ] **Skins animate by flowing through their colours** (whole pawn body cycles
-  smoothly, ~3.2s loop, `FANCY_SPIN_S`); "marbled"/"yin-yang" are approximated by
-  the flow, not a drawn pattern. Want true patterned pawns later (bigger job)?
+- [x] ~~Skins animate by flowing through their colours~~ **RESOLVED same day**:
+  Isak asked for real per-skin looks — rebuilt as animated SVG gradients (yin-yang
+  swirls, gold is marbled veins, fire stable-bottom/light-heart/flickering-top,
+  void twinkles with stars, etc.). Each skin's vision is saved as a `desc` field
+  in `FANCY_COLORS` (⚠ KEEP FOREVER block).
+- [ ] **New-look details picked without asking** (say if wrong): Norge is a static
+  banded flag (no animation); Blizzard/Sakura/Toxic got twinkle-deco (snow /
+  petals / bubbles) like the Void's stars; the swatch CHIPS in the picker still
+  use the simple flowing-gradient look (the real look shows on the pawn).
 
 ## 2026-07-11 — from the KOTH bonus-trophies build (defaults picked, say if wrong)
 

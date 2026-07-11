@@ -86,6 +86,28 @@ See `LOG.md` for the running session history.
 ---
 
 ## Done
+### 2026-07-11 — skins rework to Isak's visions + sniper interactions (follow-up)
+- [x] **Sniper shots count as player interactions** (`fireSniper` hook).
+- [x] **Fancy skins rebuilt as per-theme animated SVG gradients** (was uniform
+      colour-cycling): `FANCY_COLORS[].look` = declarative gradient (stops with
+      optional offset-flicker `wob`, `spin` rotation, `drift` for moving bands/
+      veins, `deco` twinkle dots); `buildFancyDefs` generates one SMIL-animated
+      `<linearGradient>` per skin into a hidden svg (board rebuilds can't wipe
+      it); pawns fill with `url(#fancy-id)`. **Yin & Yang swirls** (rotating hard
+      split), **Midas Marble has crawling gold veins**, **Inferno is stable at
+      the base with a light heart + flickering top**, **The Void twinkles with
+      stars**, Fire & Water sloshes a steam line, Versus trembles on its clash
+      line, Blizzard/Sakura/Toxic get snow/petals/bubbles, Norge is a proper
+      banded flag, aurora/sheen/dusk treatments for the rest.
+- [x] **⚠ KEEP FOREVER: each skin's canonical vision saved as `desc`** in the
+      FANCY_COLORS table (Isak's words) — skins must look like their desc.
+- [x] **Verified headless Edge 7/7, 0 JS errors**: table statics (light heart at
+      the bottom stop, swirl spin, marble reflect-drift, 6 void stars), 17
+      generated gradients w/ flicker/rotate/translate SMIL nodes, pawn fill
+      urls + deco counts + rgb class intact, sniper interaction hook, full
+      4-bot game with the new skins. Screenshot eyeballed: marble veins, flame
+      gradient, swirl split and void fade all read correctly.
+
 ### 2026-07-11 — Isak's 5-point batch: podium rework + colours + fancy skins + end-screen stats
 - [x] **Podium rework**: pillars for the **top 3 only** — **gold/silver/bronze**
       bases blending to the player's own colour at the very top (`PODIUM.METALS`

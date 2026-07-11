@@ -571,11 +571,13 @@ forest, sky, lilac, brown, mint, coral, magenta, olive). A colour another seat a
 holds is dimmed and can't be taken. With the **🌈 RGB player** setting on (Settings
 screen), the **11th seat naturally gets RGB** — a pawn that flashes through the whole
 rainbow forever — and the whole **fancy-colour family joins the palette**: 18 animated
-skins whose pawns flow through their colours forever (Rainbow, Yin & Yang, Thunder
-Reef, Neon Night, Midas Marble, Blizzard, Inferno, Fire & Water, Sakura, Blood Night,
-Versus, The Void, Candyfloss, Nordlys, Norge, Toxic, Royal, Sunset). Each fancy colour
-counts as a single colour — one holder per game (`FANCY_COLORS` — a new skin is one
-entry).
+skins, **each drawn to its own theme** rather than just cycling colours — Yin & Yang
+swirls, Midas Marble crawls with gold veins, Inferno burns stable at the base with a
+light heart and flickering tips, The Void twinkles with hints of stars, Blizzard whips
+snow past, Norge flies the flag (plus Rainbow, Thunder Reef, Neon Night, Fire & Water,
+Sakura, Blood Night, Versus, Candyfloss, Nordlys, Toxic, Royal, Sunset). Each fancy
+colour counts as a single colour — one holder per game (`FANCY_COLORS` — a new skin is
+one `look` entry; each skin's canonical description lives in its `desc`).
 
 Each seat also has a **Player / Bot** toggle, so you can mix humans and
 bots in one game — bots take **only their own turns** automatically (a 🤖 marks them in

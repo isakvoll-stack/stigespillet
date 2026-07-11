@@ -3,6 +3,20 @@
 Newest first. One entry per working session; note what shipped and what's next.
 
 ---
+## 2026-07-11 (late night) — skins rework to the visions + sniper interactions
+
+Isak's follow-up: sniper shots now count as player interactions, and the fancy
+skins were rebuilt from uniform colour-cycling into **per-theme animated SVG
+gradients** — yin-yang swirls, gold marbled with crawling veins, fire stable at
+the bottom with a lighter heart and flickering tips, the Void twinkling with
+star hints, steam line sloshing between fire and water, snow/petals/bubbles
+deco, Norge a proper banded flag. Every skin's canonical vision is saved in its
+`desc` field (⚠ KEEP FOREVER) so the look is never reduced to colour-shifting
+again. A new skin = one `look` entry; `buildFancyDefs` generates the SMIL
+gradients. Verified headless Edge **7/7, 0 JS errors** + screenshot eyeballed.
+Committed + pushed.
+
+---
 ## 2026-07-11 (night) — Isak's 5-point batch: podium, colours, fancy skins, end stats
 
 1. **Podium**: top 3 only on pillars, gold/silver/bronze blending to each

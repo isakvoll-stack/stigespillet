@@ -735,32 +735,105 @@ const EXTRA_COLORS = ["#7b1e26","#1b2a6b","#145a32","#7ec8e3","#c39bd3","#8b5a2b
    tone used wherever text/pillars need a single colour. */
 const RGB = { enabled:false, ID:"rgb", BASE:"#ff0040",
               SWATCH:"conic-gradient(#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00)" };
-const FANCY_SPIN_S = 3.2;            // seconds per full colour-flow loop (pawn + swatch)
+const FANCY_SPIN_S = 3.2;            // seconds per swatch-chip flow loop
+/* ⚠ KEEP FOREVER — each skin's `desc` is Isak's canonical vision (2026-07-11):
+   a skin must LOOK like its description, not just shift back and forth
+   between its colours. Don't delete the descs even after they're built.
+   The `look` block is the declarative gradient that paints the pawn
+   (userSpaceOnUse over the pawn's own coordinates, y −21 = head tip,
+   y 21 = base): `stops` are {o(ffset), c(olour), wob:[min,max,secs]} where
+   wob makes that stop's offset flicker; `spin` rotates the whole gradient
+   (a swirl); `drift:[dx,dy,s]` slides it (moving bands/veins — pair with
+   spread repeat/reflect); `deco` sprinkles twinkling dots (stars, snow,
+   petals, bubbles) over the body. The rainbow keeps its hue-spin. */
 const FANCY_COLORS = [
-  { id:"rgb",         name:"Rainbow",      base:"#ff0040", stops:null },
-  { id:"yinyang",     name:"Yin & Yang",   base:"#bfbfbf", stops:["#141414","#f2f2f2"] },
-  { id:"thunderreef", name:"Thunder Reef", base:"#ffd23e", stops:["#ffd23e","#1e6fd9"] },
-  { id:"neonnight",   name:"Neon Night",   base:"#ff4fa3", stops:["#161616","#ff4fa3"] },
-  { id:"midasmarble", name:"Midas Marble", base:"#d4af37", stops:["#151515","#d4af37","#151515","#f3e08e"] },
-  { id:"blizzard",    name:"Blizzard",     base:"#9fd0f5", stops:["#eef7ff","#7db8e8","#ffffff","#9fd0f5"] },
-  { id:"inferno",     name:"Inferno",      base:"#ff6a00", stops:["#ff3d00","#ff9500","#ffd23e","#c62800"] },
-  { id:"steamclash",  name:"Fire & Water", base:"#ff7043", stops:["#ff5722","#ffb066","#2196f3","#67c8ff"] },
-  { id:"sakura",      name:"Sakura",       base:"#ffb7c5", stops:["#ffb7c5","#fff0f5","#e75480"] },
-  { id:"bloodnight",  name:"Blood Night",  base:"#c0110f", stops:["#c0110f","#191919"] },
-  { id:"versus",      name:"Versus",       base:"#d0484a", stops:["#e6402f","#2e86c1"] },
-  { id:"voidshade",   name:"The Void",     base:"#7d3cff", stops:["#7d3cff","#20308f","#0b0b16"] },
-  { id:"candyfloss",  name:"Candyfloss",   base:"#ff9ecb", stops:["#ff9ecb","#ffe066","#ffffff"] },
-  { id:"nordlys",     name:"Nordlys",      base:"#37ff9b", stops:["#37ff9b","#19c8c8","#8a54ff"] },
-  { id:"norge",       name:"Norge",        base:"#ba0c2f", stops:["#ba0c2f","#ffffff","#00205b"] },
-  { id:"toxic",       name:"Toxic",        base:"#a6ff00", stops:["#a6ff00","#3f7d00","#181818"] },
-  { id:"royal",       name:"Royal",        base:"#9646c8", stops:["#ffd23e","#6a0dad"] },
-  { id:"sunset",      name:"Sunset",       base:"#ff7e5f", stops:["#ff7e5f","#feb47b","#ff4e8e"] },
+  { id:"rgb",         name:"Rainbow",      base:"#ff0040",
+    desc:"flashes through the whole rainbow forever", look:null },
+  { id:"yinyang",     name:"Yin & Yang",   base:"#bfbfbf",
+    desc:"yin-yang type flowing monochrome — it should SWIRL",
+    look:{ x1:-12,y1:0,x2:12,y2:0, spin:5,
+           stops:[{o:0,c:"#141414"},{o:.5,c:"#141414"},{o:.5,c:"#f2f2f2"},{o:1,c:"#f2f2f2"}] } },
+  { id:"thunderreef", name:"Thunder Reef", base:"#ffd23e",
+    desc:"a yellow and blue one — storm bands rolling over the reef",
+    look:{ x1:0,y1:-21,x2:9,y2:-9, spread:"repeat", drift:[9,12,3.5],
+           stops:[{o:0,c:"#ffd23e"},{o:.35,c:"#ffd23e"},{o:.5,c:"#1e6fd9"},{o:.85,c:"#1e6fd9"},{o:1,c:"#ffd23e"}] } },
+  { id:"neonnight",   name:"Neon Night",   base:"#ff4fa3",
+    desc:"a black and pink — a neon glow sweeping through the dark",
+    look:{ x1:0,y1:-21,x2:0,y2:-7, spread:"repeat", drift:[0,14,3],
+           stops:[{o:0,c:"#161616"},{o:.35,c:"#161616"},{o:.5,c:"#ff4fa3"},{o:.65,c:"#161616"},{o:1,c:"#161616"}] } },
+  { id:"midasmarble", name:"Midas Marble", base:"#d4af37",
+    desc:"a black marbled with gold — thin gold veins crawling through black stone",
+    look:{ x1:-12,y1:-21,x2:0,y2:-7, spread:"reflect", drift:[6,7,8],
+           stops:[{o:0,c:"#151515"},{o:.4,c:"#151515"},{o:.46,c:"#d4af37"},{o:.5,c:"#f3e08e"},
+                  {o:.54,c:"#d4af37"},{o:.6,c:"#151515"},{o:.78,c:"#151515"},{o:.83,c:"#8a6d1f"},
+                  {o:.88,c:"#151515"},{o:1,c:"#151515"}] } },
+  { id:"blizzard",    name:"Blizzard",     base:"#9fd0f5",
+    desc:"a blizzardy one — ice sheen with snow whipping past",
+    look:{ x1:0,y1:-21,x2:0,y2:21,
+           stops:[{o:0,c:"#ffffff"},{o:.45,c:"#cfe9fb",wob:[.35,.55,4]},{o:1,c:"#7db8e8"}],
+           deco:{ c:"#ffffff", dur:2.2, dots:[[-4,-14,.9],[5,-10,.7],[-7,7,.8],[6,12,1],[0,2,.7],[9,17,.8]] } } },
+  { id:"inferno",     name:"Inferno",      base:"#ff6a00",
+    desc:"a fiery one — more stable at the bottom than the top, the heart of the fire lighter",
+    look:{ x1:0,y1:21,x2:0,y2:-21,
+           stops:[{o:0,c:"#fff3b0"},{o:.18,c:"#ffe27a"},{o:.38,c:"#ffd23e",wob:[.33,.45,1.1]},
+                  {o:.6,c:"#ff9500",wob:[.52,.68,.9]},{o:.82,c:"#ff3d00",wob:[.74,.9,.7]},{o:1,c:"#b32300"}] } },
+  { id:"steamclash",  name:"Fire & Water", base:"#ff7043",
+    desc:"a fire and water one — flame above, sea below, a steam line sloshing where they meet",
+    look:{ x1:0,y1:-21,x2:0,y2:21,
+           stops:[{o:0,c:"#ffd23e"},{o:.2,c:"#ff5722"},{o:.44,c:"#ff5722",wob:[.4,.5,2.2]},
+                  {o:.5,c:"#ffffff",wob:[.45,.55,2.2]},{o:.56,c:"#2196f3",wob:[.5,.62,2.2]},
+                  {o:.85,c:"#2196f3"},{o:1,c:"#67c8ff"}] } },
+  { id:"sakura",      name:"Sakura",       base:"#ffb7c5",
+    desc:"a sakura one — soft blossom blush with petals drifting by",
+    look:{ x1:0,y1:-21,x2:0,y2:21,
+           stops:[{o:0,c:"#fff0f5"},{o:.5,c:"#ffb7c5",wob:[.4,.62,5]},{o:1,c:"#e75480"}],
+           deco:{ c:"#fff0f5", dur:3.4, dots:[[-4,-12,1.1],[5,-15,.9],[-6,9,1],[6,14,1.1]] } } },
+  { id:"bloodnight",  name:"Blood Night",  base:"#c0110f",
+    desc:"a red and black — a slow seam of red gliding through the dark",
+    look:{ x1:0,y1:-21,x2:7,y2:-10, spread:"repeat", drift:[7,11,5.5],
+           stops:[{o:0,c:"#191919"},{o:.4,c:"#191919"},{o:.55,c:"#c0110f"},{o:.7,c:"#191919"},{o:1,c:"#191919"}] } },
+  { id:"versus",      name:"Versus",       base:"#d0484a",
+    desc:"red and blue — two halves clashing on a trembling white line",
+    look:{ x1:-12,y1:0,x2:12,y2:0,
+           stops:[{o:0,c:"#e6402f"},{o:.46,c:"#e6402f",wob:[.43,.49,1.6]},{o:.5,c:"#ffffff"},
+                  {o:.54,c:"#2e86c1",wob:[.51,.57,1.6]},{o:1,c:"#2e86c1"}] } },
+  { id:"voidshade",   name:"The Void",     base:"#7d3cff",
+    desc:"a purple and deep blue and black — with a bit of twinkling, the hint of stars in a cosmos",
+    look:{ x1:0,y1:-21,x2:0,y2:21,
+           stops:[{o:0,c:"#7d3cff"},{o:.45,c:"#20308f",wob:[.35,.55,7]},{o:1,c:"#0b0b16"}],
+           deco:{ c:"#e8e4ff", dur:3, dots:[[-3,-14,.8],[4,-11,.6],[-6,8,.7],[5,13,.9],[0,3,.5],[8,17,.7]] } } },
+  { id:"candyfloss",  name:"Candyfloss",   base:"#ff9ecb",
+    desc:"a pink and yellow and white — soft sugar slowly folding over itself",
+    look:{ x1:-12,y1:0,x2:12,y2:0, spin:8,
+           stops:[{o:0,c:"#ff9ecb"},{o:.4,c:"#ffe066"},{o:.6,c:"#ffffff"},{o:1,c:"#ff9ecb"}] } },
+  { id:"nordlys",     name:"Nordlys",      base:"#37ff9b",
+    desc:"(Claude's pick) aurora curtains — green, teal and violet shimmering sideways",
+    look:{ x1:-12,y1:0,x2:-2,y2:0, spread:"repeat", drift:[10,0,6],
+           stops:[{o:0,c:"#37ff9b"},{o:.4,c:"#19c8c8"},{o:.7,c:"#8a54ff"},{o:1,c:"#37ff9b"}] } },
+  { id:"norge",       name:"Norge",        base:"#ba0c2f",
+    desc:"(Claude's pick) the flag — red, white and blue in proper bands",
+    look:{ x1:-12,y1:0,x2:12,y2:0,
+           stops:[{o:0,c:"#ba0c2f"},{o:.3,c:"#ba0c2f"},{o:.3,c:"#ffffff"},{o:.4,c:"#ffffff"},
+                  {o:.4,c:"#00205b"},{o:.6,c:"#00205b"},{o:.6,c:"#ffffff"},{o:.7,c:"#ffffff"},
+                  {o:.7,c:"#ba0c2f"},{o:1,c:"#ba0c2f"}] } },
+  { id:"toxic",       name:"Toxic",        base:"#a6ff00",
+    desc:"(Claude's pick) slime — acid green sinking into murk, bubbles rising",
+    look:{ x1:0,y1:-21,x2:0,y2:21,
+           stops:[{o:0,c:"#a6ff00"},{o:.55,c:"#3f7d00",wob:[.45,.65,3.2]},{o:1,c:"#181818"}],
+           deco:{ c:"#d9ff8a", dur:2.8, dots:[[-4,15,.8],[3,9,.7],[-2,1,.6],[6,-9,.7],[-5,-13,.8]] } } },
+  { id:"royal",       name:"Royal",        base:"#9646c8",
+    desc:"(Claude's pick) royalty — purple velvet with a gold sheen sweeping across",
+    look:{ x1:-12,y1:-21,x2:-2,y2:-11, spread:"reflect", drift:[5,5,4.5],
+           stops:[{o:0,c:"#6a0dad"},{o:.42,c:"#6a0dad"},{o:.5,c:"#ffd23e"},{o:.58,c:"#6a0dad"},{o:1,c:"#6a0dad"}] } },
+  { id:"sunset",      name:"Sunset",       base:"#ff7e5f",
+    desc:"(Claude's pick) dusk — pink sky breathing slowly into a warm horizon",
+    look:{ x1:0,y1:-21,x2:0,y2:21,
+           stops:[{o:0,c:"#ff4e8e"},{o:.45,c:"#feb47b",wob:[.38,.55,8]},{o:1,c:"#ff7e5f"}] } },
 ];
 const FANCY_BY_ID = {};
 FANCY_COLORS.forEach(f => {
-  f.cls = f.id === "rgb" ? "rgbflash" : "skin-" + f.id;
   f.swatch = f.id === "rgb" ? RGB.SWATCH
-           : `linear-gradient(135deg, ${f.stops.join(",")}, ${f.stops[0]})`;
+           : `linear-gradient(135deg, ${f.look.stops.map(s=>s.c).join(",")}, ${f.look.stops[0].c})`;
   FANCY_BY_ID[f.id] = f;
 });
 /* ---- DATA: end-of-game stats + podium looks -------------------------- */
@@ -1637,8 +1710,10 @@ function buildTokens(count){
   tokenEls.forEach(t=>t.remove()); tokenEls = [];
   for (let i=0;i<count;i++){
     const p = game.players[i];
-    const g = makePawn(p.color);
-    if (p.fancy) g.classList.add(FANCY_BY_ID[p.fancy].cls);
+    const f = fancyOf(p);
+    const g = makePawn(f && f.look ? `url(#fancy-${f.id})` : p.color);
+    if (f && f.id === "rgb") g.classList.add("rgbflash");
+    if (f && f.look && f.look.deco) addPawnDeco(g, f);
     addNameLabel(g, p.name);
     g.style.transition = `transform ${ANIM.STEP}ms ease-in-out`;
     svg.appendChild(g); tokenEls.push(g);
@@ -2823,6 +2898,7 @@ async function useSniper(shooter){
 }
 
 async function fireSniper(shooter, tx, ty){
+  shooter.interactions = (shooter.interactions||0) + 1;
   const from = cellCenter(shooter.pos);
   const dx = tx-from.x, dy = ty-from.y, len = Math.hypot(dx,dy)||1, ux = dx/len, uy = dy/len;
   updateBeam(tx, ty);
@@ -5809,20 +5885,51 @@ function swatchHtml(p){
   if (f.id === "rgb") return `<span class="swatch rgbflash" style="background:${f.swatch}"></span>`;
   return `<span class="swatch fancyflow" style="background:${f.swatch};background-size:300% 300%"></span>`;
 }
-// The pawns' flowing-skin CSS is generated from FANCY_COLORS, so a new skin
-// is just one DATA entry (the rainbow keeps its own hue-spin rule).
+// The flowing swatch chips share one generated rule; the pawns themselves are
+// painted by SVG gradients built from each skin's `look` (see buildFancyDefs).
 function buildFancyStyles(){
-  let css = `.fancyflow{animation:fancyflow ${FANCY_SPIN_S}s ease-in-out infinite}` +
-            `@keyframes fancyflow{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}`;
-  FANCY_COLORS.filter(f => f.stops).forEach(f => {
-    const n = f.stops.length;
-    const frames = f.stops.map((c,k) => `${Math.round(k*100/n)}%{fill:${c}}`).join("") + `100%{fill:${f.stops[0]}}`;
-    css += `@keyframes ${f.cls}{${frames}}` +
-           `.${f.cls} .pawnbody path,.${f.cls} .pawnbody circle{animation:${f.cls} ${FANCY_SPIN_S}s linear infinite}`;
-  });
   const st = document.createElement("style");
-  st.textContent = css;
+  st.textContent = `.fancyflow{animation:fancyflow ${FANCY_SPIN_S}s ease-in-out infinite}` +
+    `@keyframes fancyflow{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}`;
   document.head.appendChild(st);
+}
+// One animated <linearGradient> per skin, generated from its `look` DATA and
+// parked in a hidden svg (board rebuilds can't wipe it). Pawns fill with
+// url(#fancy-<id>); SMIL drives the spin/drift/flicker without any JS.
+function buildFancyDefs(){
+  const holder = el("svg", { width:0, height:0, style:"position:absolute" });
+  const defs = el("defs", {});
+  FANCY_COLORS.filter(f => f.look).forEach(f => {
+    const L = f.look;
+    const gr = el("linearGradient", { id:"fancy-"+f.id, gradientUnits:"userSpaceOnUse",
+      x1:L.x1, y1:L.y1, x2:L.x2, y2:L.y2, spreadMethod:L.spread||"pad" });
+    L.stops.forEach(s => {
+      const st = el("stop", { offset:s.o, "stop-color":s.c });
+      if (s.wob) st.appendChild(el("animate", { attributeName:"offset",
+        values:`${s.o};${s.wob[0]};${s.o};${s.wob[1]};${s.o}`, dur:s.wob[2]+"s", repeatCount:"indefinite" }));
+      gr.appendChild(st);
+    });
+    if (L.spin) gr.appendChild(el("animateTransform", { attributeName:"gradientTransform",
+      type:"rotate", from:"0 0 0", to:"360 0 0", dur:L.spin+"s", repeatCount:"indefinite", additive:"sum" }));
+    if (L.drift) gr.appendChild(el("animateTransform", { attributeName:"gradientTransform",
+      type:"translate", from:"0 0", to:`${L.drift[0]} ${L.drift[1]}`, dur:L.drift[2]+"s",
+      repeatCount:"indefinite", additive:"sum" }));
+    defs.appendChild(gr);
+  });
+  holder.appendChild(defs);
+  document.body.appendChild(holder);
+}
+// Twinkling deco dots (stars, snow, petals, bubbles) inside the pawn body so
+// they tip over with it; negative begins phase the twinkles apart.
+function addPawnDeco(g, f){
+  const body = g.querySelector(".pawnbody");
+  const D = f.look.deco;
+  D.dots.forEach((d, k) => {
+    const c = el("circle", { cx:d[0], cy:d[1], r:d[2], fill:D.c, opacity:0 });
+    c.appendChild(el("animate", { attributeName:"opacity", values:"0;1;0", dur:D.dur+"s",
+      begin:(-k * D.dur / D.dots.length)+"s", repeatCount:"indefinite" }));
+    body.appendChild(c);
+  });
 }
 let colorPopEl = null;
 function closeColorPop(){ if (colorPopEl){ colorPopEl.remove(); colorPopEl = null; } }
@@ -6009,7 +6116,8 @@ document.getElementById("bannerNew").addEventListener("click", ()=>{
 });
 
 loadSettings();                  // restore remembered toggles BEFORE the checkboxes are built
-buildFancyStyles();              // pawn-skin CSS generated from the FANCY_COLORS table
+buildFancyStyles();              // swatch-chip CSS for the fancy colours
+buildFancyDefs();                // animated pawn-skin gradients from the FANCY_COLORS table
 applyTheme();
 buildWheel();
 buildModeScreen();
