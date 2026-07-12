@@ -3,6 +3,39 @@
 Newest first. One entry per working session; note what shipped and what's next.
 
 ---
+## 2026-07-12 (later) — Minecraft tile textures + turbulence-reworked skins
+
+Isak's two tasks, with "use the better solution, not the half-hearted one":
+
+**1. Minecraft theme tiles.** On the ⛏️ page theme every board tile now paints
+with a generated 16×16 pixel-block texture instead of its flat colour. `MC`
+DATA block: `BLOCKS` maps each tile colour → block pixel palette (sand, water,
+grass, lime moss, netherrack, cherry planks, amethyst, deep water, pumpkin,
+gold block, crimson, birch, warped nylium, packed ice, stone, slime); unknown
+colours get a generic block from `SHADES` of themselves, so future rules work
+untouched. Textures are canvas-generated clumpy noise (`CLUMP` tunable),
+data-URI'd into lazy SVG patterns; grid lines darken via `MC.GRID`. Repaints
+on theme switch (`repaintBoard` in `applyTheme`), and `repaintCell`/wheel
+shuffle go through the same `cellFill`. No Mojang assets — all procedural, so
+nothing copyrighted is embedded.
+
+**2. Skins.** The better solution was SVG `feTurbulence` + `feDisplacementMap`
+(the browser's built-in turbulence engine) layered onto the SMIL gradients —
+new `turb:{freq,oct,scale,pulse}` field in the `look` schema. Midas Marble:
+veins now genuinely wander like marble. Inferno: displaced flame tongues +
+pulsing displacement = flicker. Fire & Water: churning turbulent steam line,
+wider/faster sloshing stops. Versus: jagged battle front, whole front sweeps
+side to side (in-phase slow wobs) = ground gained/lost. Pawn silhouettes stay
+crisp: displaced paint rides an overlay clipped to a shared `#pawnclip`, with
+the outline re-stroked on top. Descs for steamclash/versus updated to Isak's
+2026-07-12 vision wording. Colour-picker chips + scoreboard/HUD swatches are
+now mini-SVGs reusing the exact pawn gradient+filter (old `.fancyflow` CSS
+chip animation removed as dead code).
+
+Verified headless Edge **12/12, 0 JS errors** incl. full bot game; screenshots
+of the Minecraft board and all four reworked skins eyeballed. Committed+pushed.
+
+---
 ## 2026-07-12 — canvas particle FX engine (trails, bursts, real confetti)
 
 Isak asked for an "engine for great visuals and animations"; the browser IS the

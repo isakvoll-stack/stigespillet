@@ -734,7 +734,6 @@ const EXTRA_COLORS = ["#7b1e26","#1b2a6b","#145a32","#7ec8e3","#c39bd3","#8b5a2b
    tone used wherever text/pillars need a single colour. */
 const RGB = { enabled:false, ID:"rgb", BASE:"#ff0040",
               SWATCH:"conic-gradient(#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00)" };
-const FANCY_SPIN_S = 3.2;            // seconds per swatch-chip flow loop
 /* ⚠ KEEP FOREVER — each skin's `desc` is Isak's canonical vision (2026-07-11):
    a skin must LOOK like its description, not just shift back and forth
    between its colours. Don't delete the descs even after they're built.
@@ -744,7 +743,11 @@ const FANCY_SPIN_S = 3.2;            // seconds per swatch-chip flow loop
    wob makes that stop's offset flicker; `spin` rotates the whole gradient
    (a swirl); `drift:[dx,dy,s]` slides it (moving bands/veins — pair with
    spread repeat/reflect); `deco` sprinkles twinkling dots (stars, snow,
-   petals, bubbles) over the body. The rainbow keeps its hue-spin. */
+   petals, bubbles) over the body; `turb:{freq:[fx,fy],oct,scale,pulse:
+   [min,max,s]}` pushes the paint through an feTurbulence displacement —
+   REAL marbling/flames/churn (freq = noise size, scale = how far paint
+   is shoved in px, pulse animates that shove). The rainbow keeps its
+   hue-spin. */
 const FANCY_COLORS = [
   { id:"rgb",         name:"Rainbow",      base:"#ff0040",
     desc:"flashes through the whole rainbow forever", look:null },
@@ -763,6 +766,7 @@ const FANCY_COLORS = [
   { id:"midasmarble", name:"Midas Marble", base:"#d4af37",
     desc:"a black marbled with gold — thin gold veins crawling through black stone",
     look:{ x1:-12,y1:-21,x2:0,y2:-7, spread:"reflect", drift:[6,7,8],
+           turb:{ freq:[.05,.05], oct:3, scale:13 },
            stops:[{o:0,c:"#151515"},{o:.4,c:"#151515"},{o:.46,c:"#d4af37"},{o:.5,c:"#f3e08e"},
                   {o:.54,c:"#d4af37"},{o:.6,c:"#151515"},{o:.78,c:"#151515"},{o:.83,c:"#8a6d1f"},
                   {o:.88,c:"#151515"},{o:1,c:"#151515"}] } },
@@ -774,13 +778,15 @@ const FANCY_COLORS = [
   { id:"inferno",     name:"Inferno",      base:"#ff6a00",
     desc:"a fiery one — more stable at the bottom than the top, the heart of the fire lighter",
     look:{ x1:0,y1:21,x2:0,y2:-21,
+           turb:{ freq:[.09,.025], oct:3, scale:10, pulse:[5,15,.75] },
            stops:[{o:0,c:"#fff3b0"},{o:.18,c:"#ffe27a"},{o:.38,c:"#ffd23e",wob:[.33,.45,1.1]},
                   {o:.6,c:"#ff9500",wob:[.52,.68,.9]},{o:.82,c:"#ff3d00",wob:[.74,.9,.7]},{o:1,c:"#b32300"}] } },
   { id:"steamclash",  name:"Fire & Water", base:"#ff7043",
-    desc:"a fire and water one — flame above, sea below, a steam line sloshing where they meet",
+    desc:"a fire and water one — flame above, sea below, a steam line sloshing where they meet, turbulent and swirling where the forces fight",
     look:{ x1:0,y1:-21,x2:0,y2:21,
-           stops:[{o:0,c:"#ffd23e"},{o:.2,c:"#ff5722"},{o:.44,c:"#ff5722",wob:[.4,.5,2.2]},
-                  {o:.5,c:"#ffffff",wob:[.45,.55,2.2]},{o:.56,c:"#2196f3",wob:[.5,.62,2.2]},
+           turb:{ freq:[.06,.06], oct:2, scale:14, pulse:[9,18,2.2] },
+           stops:[{o:0,c:"#ffd23e"},{o:.2,c:"#ff5722"},{o:.44,c:"#ff5722",wob:[.32,.56,2.1]},
+                  {o:.5,c:"#ffffff",wob:[.38,.62,1.6]},{o:.56,c:"#2196f3",wob:[.44,.68,1.9]},
                   {o:.85,c:"#2196f3"},{o:1,c:"#67c8ff"}] } },
   { id:"sakura",      name:"Sakura",       base:"#ffb7c5",
     desc:"a sakura one — soft blossom blush with petals drifting by",
@@ -792,10 +798,11 @@ const FANCY_COLORS = [
     look:{ x1:0,y1:-21,x2:7,y2:-10, spread:"repeat", drift:[7,11,5.5],
            stops:[{o:0,c:"#191919"},{o:.4,c:"#191919"},{o:.55,c:"#c0110f"},{o:.7,c:"#191919"},{o:1,c:"#191919"}] } },
   { id:"versus",      name:"Versus",       base:"#d0484a",
-    desc:"red and blue — two halves clashing on a trembling white line",
+    desc:"red and blue — two forces fighting for ground, the jagged front line pushed back and forth",
     look:{ x1:-12,y1:0,x2:12,y2:0,
-           stops:[{o:0,c:"#e6402f"},{o:.46,c:"#e6402f",wob:[.43,.49,1.6]},{o:.5,c:"#ffffff"},
-                  {o:.54,c:"#2e86c1",wob:[.51,.57,1.6]},{o:1,c:"#2e86c1"}] } },
+           turb:{ freq:[.12,.05], oct:2, scale:7, pulse:[3,10,1.2] },
+           stops:[{o:0,c:"#e6402f"},{o:.46,c:"#e6402f",wob:[.3,.62,3.4]},{o:.5,c:"#ffffff",wob:[.34,.66,3.4]},
+                  {o:.54,c:"#2e86c1",wob:[.38,.7,3.4]},{o:1,c:"#2e86c1"}] } },
   { id:"voidshade",   name:"The Void",     base:"#7d3cff",
     desc:"a purple and deep blue and black — with a bit of twinkling, the hint of stars in a cosmos",
     look:{ x1:0,y1:-21,x2:0,y2:21,
@@ -863,6 +870,37 @@ const SETBACK_TILES = [7];                               // dark-red "back to st
 const SETBACK_COLOR = "#8b1a1a";                         // deep red — clearly a penalty tile
 const DIZZY_TILES   = [56];                              // tan "dizzy" square — stop here and your feet betray you
 const DIZZY_COLOR   = "#d2b48c";                         // tan
+const CELL_STROKE   = "#1f6fb0";                         // the board's grid-line blue
+/* ---- DATA: Minecraft-theme tile textures ------------------------------
+   On the ⛏️ Minecraft page theme every board tile is painted with a
+   generated 16×16 pixel-block texture instead of its flat colour. BLOCKS
+   maps each tile colour to its block's pixel palette; any colour not
+   listed gets a generic block made from SHADES of itself, so new rule
+   colours keep working untouched. CLUMP is how strongly pixels copy a
+   neighbour (0-100; higher = chunkier grain). */
+const MC = {
+  PX: 16, CLUMP: 38,
+  GRID: "rgba(0,0,0,.42)",
+  SHADES: [1, .88, 1.08, .8, 1.02],
+  BLOCKS: {
+    "#f6d55c": ["#dcd3a0","#d7cd94","#e0d8ac","#cfc486","#e6dfb5"],   // sand (plain yellow)
+    "#6fa8dc": ["#3f76e4","#3a6fd8","#4a80ea","#3568c9","#4479e4"],   // water (plain blue)
+    "#3fb45a": ["#7cbd6b","#6faf5d","#89c878","#63a251","#82c271"],   // grass (ladder foot)
+    "#b8e6b0": ["#a8d999","#9ccf8b","#b5e2a7","#8fc47d","#afdca0"],   // lime moss (ladder top)
+    "#e0453b": ["#6e3533","#7c3b38","#8a4340","#612d2b","#963f36"],   // netherrack (snake head)
+    "#f4aaa4": ["#dfa29b","#d4958e","#eab1aa","#c98880","#e5aba4"],   // cherry planks (snake tail)
+    "#d3b8ec": ["#8d64c0","#7b53ae","#9f77d1","#6c4699","#9169c4"],   // amethyst (two roles)
+    "#16306e": ["#1a2f6b","#16295e","#20387c","#122350","#1d3373"],   // deep water (fishing)
+    "#e67e22": ["#c67618","#b96c13","#d48122","#ab620f","#cc7b1d"],   // pumpkin (wheel/support/gun)
+    "#d4a656": ["#f8d33e","#eec72e","#fcdf5b","#dbb62a","#f6d84e"],   // gold block (shop)
+    "#8b1a1a": ["#6e1010","#5c0d0d","#821616","#4a0a0a","#91221a"],   // crimson (back to start)
+    "#d2b48c": ["#c6b177","#bca76d","#d0bb81","#b29d63","#cbb67c"],   // birch planks (dizzy)
+    "#17b5a3": ["#14a392","#0f8a7b","#1fc4b0","#0b7568","#18b7a4"],   // warped nylium (teleport)
+    "#bfe9ff": ["#8db3e6","#7fa6dc","#9cc0ec","#74a0d6","#96bbe9"],   // packed ice (freeze)
+    "#9aa0a6": ["#7f7f7f","#747474","#8a8a8a","#696969","#858585"],   // stone (warp)
+    "#58c81b": ["#63cf2a","#58bd1f","#71da38","#4dae14","#69d430"],   // slime block (fallout)
+  },
+};
 /* ---- DATA: switchback arrows (where the path turns up a row: 9→10, 18→19 …) ---- */
 const SWITCHBACK = { LEN:54, HEAD_W:30, HEAD_H:19, SHAFT_W:9,   // arrow size (px): total length, head, shaft
   FILL:"rgba(255,255,255,.8)", EDGE:"rgba(31,63,90,.55)" };
@@ -1497,6 +1535,59 @@ function cellColor(cell){
   return CELL_PALETTE[h % CELL_PALETTE.length];
 }
 
+/* On the Minecraft theme every tile colour becomes a pixel-block texture:
+   a 16×16 canvas of clumpy palette noise, wrapped in an SVG pattern. One
+   pattern per colour, built lazily and kept in a hidden defs svg. */
+let mcDefs = null;
+const mcPatterns = {};
+function mcShadesOf(hex){
+  const n = parseInt(hex.slice(1), 16), r = n>>16, g = (n>>8)&255, b = n&255;
+  return MC.SHADES.map(m => "#" + [r,g,b].map(v =>
+    Math.min(255, Math.round(v*m)).toString(16).padStart(2,"0")).join(""));
+}
+function mcTextureURL(pal){
+  const cv = document.createElement("canvas"); cv.width = cv.height = MC.PX;
+  const g2 = cv.getContext("2d");
+  let s = 0;
+  for (const ch of pal.join("")) s = (s*31 + ch.charCodeAt(0)) >>> 0;
+  const grid = [];
+  for (let y=0; y<MC.PX; y++){
+    grid.push([]);
+    for (let x=0; x<MC.PX; x++){
+      s = (s*1664525 + 1013904223) >>> 0;
+      let c;
+      if (x > 0 && s % 100 < MC.CLUMP) c = grid[y][x-1];
+      else if (y > 0 && (s>>>7) % 100 < MC.CLUMP) c = grid[y-1][x];
+      else c = pal[(s>>>13) % pal.length];
+      grid[y].push(c);
+      g2.fillStyle = c; g2.fillRect(x, y, 1, 1);
+    }
+  }
+  return cv.toDataURL();
+}
+function mcPatternFill(hex){
+  if (!(hex in mcPatterns)){
+    if (!mcDefs){
+      const holder = el("svg", { width:0, height:0, style:"position:absolute" });
+      mcDefs = el("defs", {});
+      holder.appendChild(mcDefs);
+      document.body.appendChild(holder);
+    }
+    const id = "mcpat" + Object.keys(mcPatterns).length;
+    const pat = el("pattern", { id, width:BOARD.CELL, height:BOARD.CELL, patternUnits:"userSpaceOnUse" });
+    const img = el("image", { href:mcTextureURL(MC.BLOCKS[hex] || mcShadesOf(hex)),
+                              width:BOARD.CELL, height:BOARD.CELL, preserveAspectRatio:"none" });
+    img.style.imageRendering = "pixelated";
+    pat.appendChild(img);
+    mcDefs.appendChild(pat);
+    mcPatterns[hex] = id;
+  }
+  return `url(#${mcPatterns[hex]})`;
+}
+const mcThemeOn = () => THEMES[THEME.current].id === "minecraft";
+function cellFill(cell){ const c = cellColor(cell); return mcThemeOn() ? mcPatternFill(c) : c; }
+function cellStroke(){ return mcThemeOn() ? MC.GRID : CELL_STROKE; }
+
 function drawLadder(x1,y1,x2,y2){
   const dx=x2-x1, dy=y2-y1, len=Math.hypot(dx,dy);
   const ux=dx/len, uy=dy/len, px=-uy, py=ux, half=11;
@@ -1576,7 +1667,7 @@ function buildBoard(){
   for (let cell=1; cell<=BOARD.COUNT; cell++){
     const {x,y} = cellCenter(cell);
     const gx = x - C/2, gy = y - C/2;
-    svg.appendChild(el("rect",{"data-cell":cell,x:gx+1,y:gy+1,width:C-2,height:C-2,fill:cellColor(cell),stroke:"#1f6fb0","stroke-width":"1.5"}));
+    svg.appendChild(el("rect",{"data-cell":cell,x:gx+1,y:gy+1,width:C-2,height:C-2,fill:cellFill(cell),stroke:cellStroke(),"stroke-width":"1.5"}));
     svg.appendChild(el("rect",{x:gx+5,y:gy+5,width:26,height:18,rx:4,fill:"rgba(255,255,255,.78)"}));
     const t = el("text",{x:gx+18,y:gy+19,"text-anchor":"middle","font-size":"14","font-weight":"700",fill:"#2a2018","font-family":"Segoe UI, sans-serif"});
     t.textContent = cell;
@@ -1601,7 +1692,13 @@ function buildBoard(){
   svg.appendChild(lab);
 }
 
-function repaintCell(n){ const r = svg.querySelector(`[data-cell="${n}"]`); if (r) r.setAttribute("fill", cellColor(n)); }
+function repaintCell(n){ const r = svg.querySelector(`[data-cell="${n}"]`); if (r) r.setAttribute("fill", cellFill(n)); }
+function repaintBoard(){
+  svg.querySelectorAll("[data-cell]").forEach(r => {
+    r.setAttribute("fill", cellFill(+r.getAttribute("data-cell")));
+    r.setAttribute("stroke", cellStroke());
+  });
+}
 
 function slotOffset(k, n){
   // symmetric placement of the k-th of n tokens that share ONE tile; alone = centre
@@ -1693,15 +1790,27 @@ function layoutTokens(){
 // A classic boardgame pawn: cone body + sphere head. The body sits in an inner
 // group so it can tip over (rotate) when the pawn is shot down, independent of
 // the outer translate that moves it around the board.
-function makePawn(color){
+const PAWN_D = "M0,-5 C8,-5 9,4 12,16 Q13,21 6,21 L-6,21 Q-13,21 -12,16 C-9,4 -8,-5 0,-5 Z";
+function makePawn(color, fancy){
   const g = el("g", {});
   const size = el("g", {transform:`scale(${TOKEN.SCALE})`});   // pawn size lives in TOKEN.SCALE
   const dark = "#241a12";
   size.appendChild(el("ellipse",{cx:0,cy:21,rx:12,ry:3.3,fill:"rgba(0,0,0,.28)"}));         // ground shadow (stays)
   const body = el("g", {"class":"pawnbody"});
-  body.appendChild(el("path",{d:"M0,-5 C8,-5 9,4 12,16 Q13,21 6,21 L-6,21 Q-13,21 -12,16 C-9,4 -8,-5 0,-5 Z",
-                           fill:color,stroke:dark,"stroke-width":2.4,"stroke-linejoin":"round"})); // cone body
-  body.appendChild(el("circle",{cx:0,cy:-12,r:8.5,fill:color,stroke:dark,"stroke-width":2.4}));  // sphere head
+  const turb = fancy && fancy.look && fancy.look.turb;
+  const under = turb ? fancy.base : color;                     // turbulent paint rides an overlay; base fills any gap
+  body.appendChild(el("path",{d:PAWN_D,
+                           fill:under,stroke:dark,"stroke-width":2.4,"stroke-linejoin":"round"})); // cone body
+  body.appendChild(el("circle",{cx:0,cy:-12,r:8.5,fill:under,stroke:dark,"stroke-width":2.4}));  // sphere head
+  if (turb){
+    // the displaced (marbled/flaming) paint, clipped to the pawn so the
+    // silhouette stays crisp — then the outline is drawn back on top
+    const ov = el("g", {"clip-path":"url(#pawnclip)"});
+    ov.appendChild(el("rect",{x:-34,y:-44,width:68,height:88,fill:color,filter:`url(#fancyf-${fancy.id})`}));
+    body.appendChild(ov);
+    body.appendChild(el("path",{d:PAWN_D,fill:"none",stroke:dark,"stroke-width":2.4,"stroke-linejoin":"round"}));
+    body.appendChild(el("circle",{cx:0,cy:-12,r:8.5,fill:"none",stroke:dark,"stroke-width":2.4}));
+  }
   body.appendChild(el("ellipse",{cx:-3,cy:-14.5,rx:2.5,ry:3.2,fill:"rgba(255,255,255,.5)"}));    // head glint
   size.appendChild(body);
   g.appendChild(size);
@@ -1725,7 +1834,7 @@ function buildTokens(count){
   for (let i=0;i<count;i++){
     const p = game.players[i];
     const f = fancyOf(p);
-    const g = makePawn(f && f.look ? `url(#fancy-${f.id})` : p.color);
+    const g = makePawn(f && f.look ? `url(#fancy-${f.id})` : p.color, f);
     if (f && f.id === "rgb") g.classList.add("rgbflash");
     if (f && f.look && f.look.deco) addPawnDeco(g, f);
     addNameLabel(g, p.name);
@@ -2240,6 +2349,7 @@ function applyTheme(){
   r.setProperty("--glow", t.glow);
   makeSnow(t.flakes, t.glyphs);
   makeClouds(t.clouds);
+  repaintBoard();
   document.getElementById("titleSub").textContent = t.sub;
   document.getElementById("themeBtn").textContent = `🎨 Theme: ${t.ico} ${t.name}`;
 }
@@ -5987,12 +6097,19 @@ function seatColor(i){
   if (setupColors[i]) return setupColors[i];
   return (RGB.enabled && i === MAX_PLAYERS - 1) ? RGB.ID : PLAYER_COLORS[i];
 }
+// A fancy chip is a mini-svg painted with the SAME gradient + turbulence
+// filter as the pawn itself, so the picker shows exactly what you'll get.
+function fancyChipSvg(f){
+  const filt = f.look.turb ? ` filter="url(#fancyf-${f.id})"` : "";
+  return `<svg viewBox="-12 -21 24 42" preserveAspectRatio="none" style="display:block;width:100%;height:100%">` +
+         `<rect x="-24" y="-36" width="48" height="72" fill="url(#fancy-${f.id})"${filt}/></svg>`;
+}
 function paintSwatchEl(el, color){
   const f = FANCY_BY_ID[color];
   el.classList.toggle("rgbflash", !!f && f.id === "rgb");
-  el.classList.toggle("fancyflow", !!f && f.id !== "rgb");
-  el.style.background = f ? f.swatch : color;
-  el.style.backgroundSize = f && f.id !== "rgb" ? "300% 300%" : "";
+  el.style.overflow = "hidden";
+  if (f && f.look){ el.style.background = "none"; el.innerHTML = fancyChipSvg(f); }
+  else { el.innerHTML = ""; el.style.background = f ? f.swatch : color; }
   if (f) el.title = f.name;
 }
 function fancyOf(p){ return p.fancy ? FANCY_BY_ID[p.fancy] : null; }
@@ -6000,23 +6117,34 @@ function swatchHtml(p){
   const f = fancyOf(p);
   if (!f) return `<span class="swatch" style="background:${p.color}"></span>`;
   if (f.id === "rgb") return `<span class="swatch rgbflash" style="background:${f.swatch}"></span>`;
-  return `<span class="swatch fancyflow" style="background:${f.swatch};background-size:300% 300%"></span>`;
+  return `<span class="swatch" style="overflow:hidden">${fancyChipSvg(f)}</span>`;
 }
 // The flowing swatch chips share one generated rule; the pawns themselves are
 // painted by SVG gradients built from each skin's `look` (see buildFancyDefs).
-function buildFancyStyles(){
-  const st = document.createElement("style");
-  st.textContent = `.fancyflow{animation:fancyflow ${FANCY_SPIN_S}s ease-in-out infinite}` +
-    `@keyframes fancyflow{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}`;
-  document.head.appendChild(st);
-}
 // One animated <linearGradient> per skin, generated from its `look` DATA and
 // parked in a hidden svg (board rebuilds can't wipe it). Pawns fill with
 // url(#fancy-<id>); SMIL drives the spin/drift/flicker without any JS.
 function buildFancyDefs(){
   const holder = el("svg", { width:0, height:0, style:"position:absolute" });
   const defs = el("defs", {});
+  const clip = el("clipPath", { id:"pawnclip" });              // the pawn silhouette, shared by every turbulent skin
+  clip.appendChild(el("path", { d:PAWN_D }));
+  clip.appendChild(el("circle", { cx:0, cy:-12, r:8.5 }));
+  defs.appendChild(clip);
   FANCY_COLORS.filter(f => f.look).forEach(f => {
+    const T = f.look.turb;
+    if (T){                                                    // feTurbulence displacement: real marble veins / flame tongues / churn
+      const filt = el("filter", { id:"fancyf-"+f.id, x:"-40%", y:"-40%", width:"180%", height:"180%" });
+      filt.appendChild(el("feTurbulence", { type:"fractalNoise", baseFrequency:T.freq.join(" "),
+        numOctaves:T.oct || 2, seed:7, result:"n" }));
+      const disp = el("feDisplacementMap", { in:"SourceGraphic", in2:"n", scale:T.scale,
+        xChannelSelector:"R", yChannelSelector:"G" });
+      if (T.pulse) disp.appendChild(el("animate", { attributeName:"scale",
+        values:`${T.pulse[0]};${T.pulse[1]};${(T.pulse[0]+T.pulse[1])/2};${T.pulse[1]};${T.pulse[0]}`,
+        dur:T.pulse[2]+"s", repeatCount:"indefinite" }));
+      filt.appendChild(disp);
+      defs.appendChild(filt);
+    }
     const L = f.look;
     const gr = el("linearGradient", { id:"fancy-"+f.id, gradientUnits:"userSpaceOnUse",
       x1:L.x1, y1:L.y1, x2:L.x2, y2:L.y2, spreadMethod:L.spread||"pad" });
@@ -6233,7 +6361,6 @@ document.getElementById("bannerNew").addEventListener("click", ()=>{
 });
 
 loadSettings();                  // restore remembered toggles BEFORE the checkboxes are built
-buildFancyStyles();              // swatch-chip CSS for the fancy colours
 buildFancyDefs();                // animated pawn-skin gradients from the FANCY_COLORS table
 applyTheme();
 buildWheel();

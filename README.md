@@ -55,7 +55,17 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
-Recently shipped (2026-07-12, latest): **canvas particle FX engine** — one
+Recently shipped (2026-07-12, latest): **Minecraft tiles + turbulent skins** —
+on the ⛏️ theme every board tile is painted with a generated 16×16 pixel-block
+texture (sand, water, grass, netherrack, gold block, packed ice, stone, slime…
+mapped per tile colour in the `MC` DATA block, generic fallback for new colours);
+and four fancy skins got real SVG-turbulence: Midas Marble's veins genuinely
+MARBLE, Inferno flickers like a flame, Fire & Water churns at a turbulent steam
+line, Versus is a jagged front pushed back and forth. Colour-picker chips are
+now mini-SVGs using the pawns' own gradients+filters, so they match exactly.
+Verified 12/12 headless + screenshots eyeballed, 0 JS errors.
+
+Before that (2026-07-12): **canvas particle FX engine** — one
 screen-space `<canvas>` + a single self-stopping loop now draws every particle;
 recipes live in the `FX` DATA block. Ladder climbs trail rising golden sparkles,
 snake rides shake loose falling slime droplets, rolling a six bursts stars off

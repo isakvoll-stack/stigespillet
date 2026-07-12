@@ -3,6 +3,20 @@
 Standing file: autonomous sessions log clarifications here instead of stopping to ask.
 Answer whenever — each answer gets folded in and the question checked off.
 
+## 2026-07-12 — Minecraft tiles + skins (defaults picked, say if wrong)
+
+- [ ] **Minecraft scope**: only the 90 board tiles got block textures. The
+  frame, START lane, snakes, ladders and secret square kept their normal art.
+  Want more converted (e.g. ladders → wooden rails, snakes → vines, frame →
+  planks)?
+- [ ] **Block choices**: snake heads = netherrack, shop = gold block, freeze =
+  packed ice, fallout = slime block, warp = stone, dizzy = birch planks, plain
+  tiles = sand/water… any block you'd swap? (Each is one palette line in
+  `MC.BLOCKS`.)
+- [ ] **Real Minecraft textures**: I generate look-alike pixel textures in code
+  because embedding Mojang's actual texture files in a public repo isn't
+  allowed. Fine as-is?
+
 ## 2026-07-11 — from the 5-point batch: podium / colours / skins / end stats (defaults picked, say if wrong)
 
 - [ ] **Climb/descent definition**: any non-walked jump of **2+ tiles** counts
