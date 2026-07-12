@@ -734,75 +734,110 @@ const EXTRA_COLORS = ["#7b1e26","#1b2a6b","#145a32","#7ec8e3","#c39bd3","#8b5a2b
    tone used wherever text/pillars need a single colour. */
 const RGB = { enabled:false, ID:"rgb", BASE:"#ff0040",
               SWATCH:"conic-gradient(#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00)" };
-/* ⚠ KEEP FOREVER — each skin's `desc` is Isak's canonical vision (2026-07-11):
-   a skin must LOOK like its description, not just shift back and forth
-   between its colours. Don't delete the descs even after they're built.
-   The `look` block is the declarative gradient that paints the pawn
-   (userSpaceOnUse over the pawn's own coordinates, y −21 = head tip,
-   y 21 = base): `stops` are {o(ffset), c(olour), wob:[min,max,secs]} where
-   wob makes that stop's offset flicker; `spin` rotates the whole gradient
-   (a swirl); `drift:[dx,dy,s]` slides it (moving bands/veins — pair with
-   spread repeat/reflect); `deco` sprinkles twinkling dots (stars, snow,
-   petals, bubbles) over the body; `turb:{freq:[fx,fy],oct,scale,pulse:
-   [min,max,s]}` pushes the paint through an feTurbulence displacement —
-   REAL marbling/flames/churn (freq = noise size, scale = how far paint
-   is shoved in px, pulse animates that shove). The rainbow keeps its
-   hue-spin. */
+/* ⚠ KEEP FOREVER — each skin's `desc` is Isak's canonical vision
+   (2026-07-11, refined 2026-07-12): a skin must LOOK like its description.
+   Don't delete the descs even after they're built.
+   The `look` block is declarative paint over the pawn's own coordinates
+   (y −21 = head tip, y 21 = base):
+   - gradient skins: `stops` are {o(ffset), c(olour), wob} — wob is either
+     [min,max,secs] (steady breathing) or {v:[offsets],t:[keyTimes 0→1],
+     dur} for IRREGULAR tempo (lunges, standoffs, gusts). `spin` rotates
+     the gradient; `drift:[dx,dy,s]` slides it — for a SEAMLESS loop dx,dy
+     must be one full period: the gradient vector for spread:repeat, twice
+     it for spread:reflect (anything else visibly snaps back).
+   - `pattern:{content,spin,...}` paints from real drawn shapes instead of
+     a gradient (the yin-yang swirl, the Norwegian cross).
+   - `head:{stops,craters,glow}` gives the sphere head its own radial paint
+     (the blood moon, the royal golden orb).
+   - `turb:{freq:[fx,fy],oct,scale,pulse}` shoves the paint through an
+     feTurbulence displacement — real marbling/flames/churn; pulse is
+     [min,max,s] or the irregular {v,t,dur} form.
+   - `deco` sprinkles dots over the body: {c,dur,dots:[[x,y,r]…]} twinkle
+     in place; add `drift:{dx,dy,dur}` to make them fall (petals, snow) or
+     rise (bubbles), and `wind:{v:["x y"…],t,dur}` to gust the whole flock.
+   - `alwaysAvail:true` puts the skin in the picker even with 🌈 RGB off.
+   The rainbow keeps its hue-spin. Freezing a player swaps every animated
+   def for its auto-generated `-still` twin (see buildFancyDefs). */
 const FANCY_COLORS = [
   { id:"rgb",         name:"Rainbow",      base:"#ff0040",
     desc:"flashes through the whole rainbow forever", look:null },
   { id:"yinyang",     name:"Yin & Yang",   base:"#bfbfbf",
-    desc:"yin-yang type flowing monochrome — it should SWIRL",
-    look:{ x1:-12,y1:0,x2:12,y2:0, spin:5,
-           stops:[{o:0,c:"#141414"},{o:.5,c:"#141414"},{o:.5,c:"#f2f2f2"},{o:1,c:"#f2f2f2"}] } },
+    desc:"the classic yin-yang symbol itself, slowly swirling around the pawn",
+    look:{ pattern:{ spin:7, content:
+           '<circle r="27" fill="#f2f2f2"/>' +
+           '<path d="M0,-27 A27,27 0 0 1 0,27 A13.5,13.5 0 0 1 0,0 A13.5,13.5 0 0 0 0,-27 Z" fill="#141414"/>' +
+           '<circle cy="-13.5" r="4.4" fill="#141414"/><circle cy="13.5" r="4.4" fill="#f2f2f2"/>' } } },
   { id:"thunderreef", name:"Thunder Reef", base:"#ffd23e",
     desc:"a yellow and blue one — storm bands rolling over the reef",
     look:{ x1:0,y1:-21,x2:9,y2:-9, spread:"repeat", drift:[9,12,3.5],
            stops:[{o:0,c:"#ffd23e"},{o:.35,c:"#ffd23e"},{o:.5,c:"#1e6fd9"},{o:.85,c:"#1e6fd9"},{o:1,c:"#ffd23e"}] } },
   { id:"neonnight",   name:"Neon Night",   base:"#ff4fa3",
-    desc:"a black and pink — a neon glow sweeping through the dark",
-    look:{ x1:0,y1:-21,x2:0,y2:-7, spread:"repeat", drift:[0,14,3],
-           stops:[{o:0,c:"#161616"},{o:.35,c:"#161616"},{o:.5,c:"#ff4fa3"},{o:.65,c:"#161616"},{o:1,c:"#161616"}] } },
+    desc:"a black and pink — a glowing neon tube sweeping through the dark, its light bleeding into a soft halo, stray sparks of signage flicker",
+    look:{ x1:0,y1:-21,x2:0,y2:-3, spread:"repeat", drift:[0,18,4],
+           stops:[{o:0,c:"#0b0b12"},{o:.32,c:"#0b0b12"},{o:.42,c:"#59123c"},{o:.48,c:"#ff37a6"},
+                  {o:.5,c:"#ffe3f4"},{o:.52,c:"#ff37a6"},{o:.58,c:"#59123c"},{o:.68,c:"#0b0b12"},{o:1,c:"#0b0b12"}],
+           deco:{ c:"#ff8fd0", dur:1.1, dots:[[-7,-16,.7],[8,-2,.6],[-6,10,.7],[7,18,.6]] } } },
   { id:"midasmarble", name:"Midas Marble", base:"#d4af37",
-    desc:"a black marbled with gold — thin gold veins crawling through black stone",
-    look:{ x1:-12,y1:-21,x2:0,y2:-7, spread:"reflect", drift:[6,7,8],
+    desc:"a black marbled with gold — thin gold veins crawling through black stone, smooth and endless, never snapping back",
+    look:{ x1:-12,y1:-21,x2:0,y2:-7, spread:"reflect", drift:[24,28,14],
            turb:{ freq:[.05,.05], oct:3, scale:13 },
            stops:[{o:0,c:"#151515"},{o:.4,c:"#151515"},{o:.46,c:"#d4af37"},{o:.5,c:"#f3e08e"},
                   {o:.54,c:"#d4af37"},{o:.6,c:"#151515"},{o:.78,c:"#151515"},{o:.83,c:"#8a6d1f"},
                   {o:.88,c:"#151515"},{o:1,c:"#151515"}] } },
-  { id:"blizzard",    name:"Blizzard",     base:"#9fd0f5",
-    desc:"a blizzardy one — ice sheen with snow whipping past",
+  { id:"frost",       name:"Frost",        base:"#9fd0f5",
+    desc:"a frosty one — calm ice sheen with gentle snow twinkling (was called Blizzard before the real storm arrived)",
     look:{ x1:0,y1:-21,x2:0,y2:21,
            stops:[{o:0,c:"#ffffff"},{o:.45,c:"#cfe9fb",wob:[.35,.55,4]},{o:1,c:"#7db8e8"}],
            deco:{ c:"#ffffff", dur:2.2, dots:[[-4,-14,.9],[5,-10,.7],[-7,7,.8],[6,12,1],[0,2,.7],[9,17,.8]] } } },
-  { id:"inferno",     name:"Inferno",      base:"#ff6a00",
-    desc:"a fiery one — more stable at the bottom than the top, the heart of the fire lighter",
+  { id:"blizzard",    name:"Blizzard",     base:"#7d95ab",
+    desc:"a real blizzard — storm-gray ice bands racing past, gusts shoving the whiteout around, snow streaking sideways on the wind",
+    look:{ x1:0,y1:-21,x2:5,y2:-11, spread:"repeat", drift:[5,10,1.8],
+           turb:{ freq:[.05,.08], oct:2, scale:7, pulse:{v:[4,14,6,18,5],t:[0,.2,.45,.7,1],dur:5} },
+           stops:[{o:0,c:"#5a6a7c"},{o:.4,c:"#8fa3b5"},{o:.55,c:"#e8f2fa"},{o:.7,c:"#8fa3b5"},{o:1,c:"#5a6a7c"}],
+           deco:{ c:"#ffffff", dur:1.2, dots:[[-6,-16,.9],[7,-8,.8],[-4,0,.9],[6,8,.7],[-7,14,.8],[3,18,.9]],
+                  drift:{dx:-14,dy:20,dur:.9},
+                  wind:{v:["0 0","-4 2","-9 3","-2 1","0 0"],t:[0,.25,.5,.8,1],dur:6} } } },
+  { id:"inferno",     name:"Inferno",      base:"#e85d04",
+    desc:"a fiery one — deep smouldering colours, a small light heart low in the flame, flickering tongues above",
     look:{ x1:0,y1:21,x2:0,y2:-21,
            turb:{ freq:[.09,.025], oct:3, scale:10, pulse:[5,15,.75] },
-           stops:[{o:0,c:"#fff3b0"},{o:.18,c:"#ffe27a"},{o:.38,c:"#ffd23e",wob:[.33,.45,1.1]},
-                  {o:.6,c:"#ff9500",wob:[.52,.68,.9]},{o:.82,c:"#ff3d00",wob:[.74,.9,.7]},{o:1,c:"#b32300"}] } },
+           stops:[{o:0,c:"#ffeda3"},{o:.1,c:"#ffcf5e"},{o:.26,c:"#ff9e2e",wob:[.2,.32,1.1]},
+                  {o:.5,c:"#f26414",wob:[.42,.58,.9]},{o:.78,c:"#c92c0a",wob:[.7,.86,.7]},{o:1,c:"#6f1200"}] } },
   { id:"steamclash",  name:"Fire & Water", base:"#ff7043",
-    desc:"a fire and water one — flame above, sea below, a steam line sloshing where they meet, turbulent and swirling where the forces fight",
+    desc:"a fire and water one — two forces genuinely fighting: swirling, turbulent, lunging into each other then drawing back to size the other up, long clashes and darting exchanges, never a steady rhythm",
     look:{ x1:0,y1:-21,x2:0,y2:21,
-           turb:{ freq:[.06,.06], oct:2, scale:14, pulse:[9,18,2.2] },
-           stops:[{o:0,c:"#ffd23e"},{o:.2,c:"#ff5722"},{o:.44,c:"#ff5722",wob:[.32,.56,2.1]},
-                  {o:.5,c:"#ffffff",wob:[.38,.62,1.6]},{o:.56,c:"#2196f3",wob:[.44,.68,1.9]},
+           turb:{ freq:[.09,.08], oct:3, scale:15,
+                  pulse:{v:[8,24,10,26,9,14,22,8],t:[0,.1,.22,.32,.5,.72,.85,1],dur:7} },
+           stops:[{o:0,c:"#ffd23e"},{o:.2,c:"#ff5722"},
+                  {o:.44,c:"#ff5722",wob:{v:[.44,.6,.42,.36,.52,.44],t:[0,.15,.3,.55,.8,1],dur:6.5}},
+                  {o:.5,c:"#ffffff",wob:{v:[.5,.64,.46,.4,.58,.5],t:[0,.15,.32,.56,.8,1],dur:6.5}},
+                  {o:.56,c:"#2196f3",wob:{v:[.56,.7,.5,.44,.62,.56],t:[0,.16,.32,.55,.82,1],dur:6.5}},
                   {o:.85,c:"#2196f3"},{o:1,c:"#67c8ff"}] } },
   { id:"sakura",      name:"Sakura",       base:"#ffb7c5",
-    desc:"a sakura one — soft blossom blush with petals drifting by",
+    desc:"a sakura one — soft blossom blush; petals fall slowly, and now and then a breeze angles them, hurrying some and letting others drift",
     look:{ x1:0,y1:-21,x2:0,y2:21,
            stops:[{o:0,c:"#fff0f5"},{o:.5,c:"#ffb7c5",wob:[.4,.62,5]},{o:1,c:"#e75480"}],
-           deco:{ c:"#fff0f5", dur:3.4, dots:[[-4,-12,1.1],[5,-15,.9],[-6,9,1],[6,14,1.1]] } } },
-  { id:"bloodnight",  name:"Blood Night",  base:"#c0110f",
-    desc:"a red and black — a slow seam of red gliding through the dark",
-    look:{ x1:0,y1:-21,x2:7,y2:-10, spread:"repeat", drift:[7,11,5.5],
-           stops:[{o:0,c:"#191919"},{o:.4,c:"#191919"},{o:.55,c:"#c0110f"},{o:.7,c:"#191919"},{o:1,c:"#191919"}] } },
+           deco:{ c:"#fff0f5", dur:3.4, dots:[[-4,-12,1.1],[5,-15,.9],[-6,9,1],[6,14,1.1],[0,-2,.9]],
+                  drift:{dx:2,dy:24,dur:4.6},
+                  wind:{v:["0 0","1 0","6 2","2 1","-1 0","0 0"],t:[0,.25,.4,.6,.85,1],dur:11} } } },
+  { id:"bloodnight",  name:"Blood Moon",   base:"#c0110f",
+    desc:"sinister moonlight — a near-black body brushed by cold pale light, a faint red stain low down, and the head IS the blood moon: glowing, cratered, dreadful",
+    look:{ x1:0,y1:-21,x2:0,y2:21,
+           stops:[{o:0,c:"#10121c"},{o:.42,c:"#1c2436",wob:[.34,.5,7]},{o:.5,c:"#31405c"},
+                  {o:.58,c:"#1c2436",wob:[.5,.66,7]},{o:.85,c:"#10121c"},{o:1,c:"#3a0d0d"}],
+           head:{ stops:[{o:0,c:"#ff7a52"},{o:.55,c:"#c0110f"},{o:1,c:"#5e0808"}],
+                  craters:[[-3,-14.5,1.7],[3.5,-10,1.2],[-.5,-9,.9]],
+                  glow:["rgba(255,44,20,.5)","rgba(255,44,20,0)"] } } },
   { id:"versus",      name:"Versus",       base:"#d0484a",
-    desc:"red and blue — two forces fighting for ground, the jagged front line pushed back and forth",
+    desc:"red and blue truly fighting — not a steady wave: they lunge, snap back, stand off to size each other up, dart in and out, some clashes long and grinding, some quick",
     look:{ x1:-12,y1:0,x2:12,y2:0,
-           turb:{ freq:[.12,.05], oct:2, scale:7, pulse:[3,10,1.2] },
-           stops:[{o:0,c:"#e6402f"},{o:.46,c:"#e6402f",wob:[.3,.62,3.4]},{o:.5,c:"#ffffff",wob:[.34,.66,3.4]},
-                  {o:.54,c:"#2e86c1",wob:[.38,.7,3.4]},{o:1,c:"#2e86c1"}] } },
+           turb:{ freq:[.16,.07], oct:2, scale:8,
+                  pulse:{v:[3,14,4,16,3,3,10,18,4],t:[0,.08,.2,.28,.42,.6,.68,.82,1],dur:8} },
+           stops:[{o:0,c:"#e6402f"},
+                  {o:.46,c:"#e6402f",wob:{v:[.46,.7,.5,.3,.44,.46,.66,.36,.46],t:[0,.09,.2,.3,.44,.6,.7,.85,1],dur:8}},
+                  {o:.5,c:"#ffffff",wob:{v:[.5,.74,.54,.34,.48,.5,.7,.4,.5],t:[0,.09,.2,.3,.44,.6,.7,.85,1],dur:8}},
+                  {o:.54,c:"#2e86c1",wob:{v:[.54,.78,.58,.38,.52,.54,.74,.44,.54],t:[0,.09,.2,.3,.44,.6,.7,.85,1],dur:8}},
+                  {o:1,c:"#2e86c1"}] } },
   { id:"voidshade",   name:"The Void",     base:"#7d3cff",
     desc:"a purple and deep blue and black — with a bit of twinkling, the hint of stars in a cosmos",
     look:{ x1:0,y1:-21,x2:0,y2:21,
@@ -813,33 +848,47 @@ const FANCY_COLORS = [
     look:{ x1:-12,y1:0,x2:12,y2:0, spin:8,
            stops:[{o:0,c:"#ff9ecb"},{o:.4,c:"#ffe066"},{o:.6,c:"#ffffff"},{o:1,c:"#ff9ecb"}] } },
   { id:"nordlys",     name:"Nordlys",      base:"#37ff9b",
-    desc:"(Claude's pick) aurora curtains — green, teal and violet shimmering sideways",
-    look:{ x1:-12,y1:0,x2:-2,y2:0, spread:"repeat", drift:[10,0,6],
-           stops:[{o:0,c:"#37ff9b"},{o:.4,c:"#19c8c8"},{o:.7,c:"#8a54ff"},{o:1,c:"#37ff9b"}] } },
-  { id:"norge",       name:"Norge",        base:"#ba0c2f",
-    desc:"(Claude's pick) the flag — red, white and blue in proper bands",
-    look:{ x1:-12,y1:0,x2:12,y2:0,
-           stops:[{o:0,c:"#ba0c2f"},{o:.3,c:"#ba0c2f"},{o:.3,c:"#ffffff"},{o:.4,c:"#ffffff"},
-                  {o:.4,c:"#00205b"},{o:.6,c:"#00205b"},{o:.6,c:"#ffffff"},{o:.7,c:"#ffffff"},
-                  {o:.7,c:"#ba0c2f"},{o:1,c:"#ba0c2f"}] } },
+    desc:"(Claude's pick) aurora curtains — broad soft ribbons of green, teal and violet, waving slowly and organically, never a constant thin-lined wave",
+    look:{ x1:-12,y1:0,x2:2,y2:0, spread:"repeat", drift:[14,0,13],
+           turb:{ freq:[.02,.07], oct:2, scale:11, pulse:{v:[7,13,8,14,7],t:[0,.3,.55,.8,1],dur:14} },
+           stops:[{o:0,c:"#2ef58f"},{o:.35,c:"#19c8c8",wob:{v:[.35,.42,.3,.38,.35],t:[0,.3,.6,.85,1],dur:12}},
+                  {o:.65,c:"#8a54ff",wob:{v:[.65,.58,.7,.62,.65],t:[0,.25,.55,.8,1],dur:13}},{o:1,c:"#2ef58f"}] } },
+  { id:"norge",       name:"Norge",        base:"#ba0c2f", alwaysAvail:true,
+    desc:"the flag with its WHOLE cross (vertical + horizontal, offset toward the hoist), rippling gently like cloth — a basic colour, available without the RGB setting",
+    look:{ turb:{ freq:[.04,.06], oct:1, scale:3, pulse:{v:[2,4,2.5,4.5,2],t:[0,.25,.5,.75,1],dur:5} },
+           pattern:{ content:
+           '<rect x="-30" y="-30" width="60" height="60" fill="#ba0c2f"/>' +
+           '<rect x="-9" y="-30" width="12" height="60" fill="#ffffff"/>' +
+           '<rect x="-30" y="-8" width="60" height="12" fill="#ffffff"/>' +
+           '<rect x="-6.5" y="-30" width="7" height="60" fill="#00205b"/>' +
+           '<rect x="-30" y="-5.5" width="60" height="7" fill="#00205b"/>' } } },
   { id:"toxic",       name:"Toxic",        base:"#a6ff00",
-    desc:"(Claude's pick) slime — acid green sinking into murk, bubbles rising",
+    desc:"properly TOXIC — searing acid green oozing over rotten murk, the sludge visibly churning, bubbles actually rising through it",
     look:{ x1:0,y1:-21,x2:0,y2:21,
-           stops:[{o:0,c:"#a6ff00"},{o:.55,c:"#3f7d00",wob:[.45,.65,3.2]},{o:1,c:"#181818"}],
-           deco:{ c:"#d9ff8a", dur:2.8, dots:[[-4,15,.8],[3,9,.7],[-2,1,.6],[6,-9,.7],[-5,-13,.8]] } } },
+           turb:{ freq:[.07,.1], oct:2, scale:9, pulse:{v:[6,12,7,14,6],t:[0,.3,.5,.8,1],dur:4.2} },
+           stops:[{o:0,c:"#c8ff2e"},{o:.4,c:"#7ddc0f",wob:[.3,.5,2.4]},
+                  {o:.75,c:"#2e5210",wob:[.65,.85,3.1]},{o:1,c:"#12180a"}],
+           deco:{ c:"#e4ff9a", dur:2.2, dots:[[-5,16,.9],[4,12,.8],[-2,4,.7],[6,-2,.8],[-6,-10,.7]],
+                  drift:{dx:0,dy:-22,dur:3.2} } } },
   { id:"royal",       name:"Royal",        base:"#9646c8",
-    desc:"(Claude's pick) royalty — purple velvet with a gold sheen sweeping across",
-    look:{ x1:-12,y1:-21,x2:-2,y2:-11, spread:"reflect", drift:[5,5,4.5],
-           stops:[{o:0,c:"#6a0dad"},{o:.42,c:"#6a0dad"},{o:.5,c:"#ffd23e"},{o:.58,c:"#6a0dad"},{o:1,c:"#6a0dad"}] } },
-  { id:"sunset",      name:"Sunset",       base:"#ff7e5f",
-    desc:"(Claude's pick) dusk — pink sky breathing slowly into a warm horizon",
+    desc:"true royalty — deep purple velvet with soft breathing folds, crowned by a golden orb of a head",
     look:{ x1:0,y1:-21,x2:0,y2:21,
-           stops:[{o:0,c:"#ff4e8e"},{o:.45,c:"#feb47b",wob:[.38,.55,8]},{o:1,c:"#ff7e5f"}] } },
+           turb:{ freq:[.03,.05], oct:2, scale:4 },
+           stops:[{o:0,c:"#4a0a70"},{o:.45,c:"#6a0dad",wob:[.38,.52,9]},
+                  {o:.55,c:"#8b30d8",wob:[.5,.62,7]},{o:1,c:"#3a0758"}],
+           head:{ stops:[{o:0,c:"#ffefad"},{o:.45,c:"#f2c94c"},{o:1,c:"#9a7418"}] } } },
+  { id:"sunset",      name:"Sunset",       base:"#ff7e5f",
+    desc:"a REAL sunset — indigo dusk fading through mauve and coral into an amber glow, one thin bright band where the sun sits, dark horizon below, all of it breathing slowly",
+    look:{ x1:0,y1:-21,x2:0,y2:21,
+           stops:[{o:0,c:"#2b1a5e"},{o:.3,c:"#8f3f78",wob:[.26,.36,10]},{o:.52,c:"#ff6f61"},
+                  {o:.62,c:"#ffb35c"},{o:.7,c:"#ffe08a",wob:[.66,.74,8]},{o:.78,c:"#e8793f"},
+                  {o:.85,c:"#3a1b3f"},{o:1,c:"#1a0f26"}] } },
 ];
 const FANCY_BY_ID = {};
 FANCY_COLORS.forEach(f => {
   f.swatch = f.id === "rgb" ? RGB.SWATCH
-           : `linear-gradient(135deg, ${f.look.stops.map(s=>s.c).join(",")}, ${f.look.stops[0].c})`;
+           : f.look.stops ? `linear-gradient(135deg, ${f.look.stops.map(s=>s.c).join(",")}, ${f.look.stops[0].c})`
+           : f.base;
   FANCY_BY_ID[f.id] = f;
 });
 /* ---- DATA: end-of-game stats + podium looks -------------------------- */
@@ -873,32 +922,34 @@ const DIZZY_COLOR   = "#d2b48c";                         // tan
 const CELL_STROKE   = "#1f6fb0";                         // the board's grid-line blue
 /* ---- DATA: Minecraft-theme tile textures ------------------------------
    On the ⛏️ Minecraft page theme every board tile is painted with a
-   generated 16×16 pixel-block texture instead of its flat colour. BLOCKS
-   maps each tile colour to its block's pixel palette; any colour not
-   listed gets a generic block made from SHADES of itself, so new rule
-   colours keep working untouched. CLUMP is how strongly pixels copy a
-   neighbour (0-100; higher = chunkier grain). */
+   generated 16×16 pixel-block texture instead of its flat colour. These
+   are hand-styled originals in the blocky pixel-art idiom (Mojang's real
+   texture files are copyrighted, so they can't be embedded in this public
+   repo). Each entry: `s` = which painter draws it (speckle / blobs /
+   planksH / planksV / waves / ribs / bevel / streaks / shards), `pal` =
+   its pixel palette [base, dark, light, darkest, accent]. Any colour not
+   listed gets a generic speckle block made from SHADES of itself. */
 const MC = {
-  PX: 16, CLUMP: 38,
+  PX: 16,
   GRID: "rgba(0,0,0,.42)",
   SHADES: [1, .88, 1.08, .8, 1.02],
   BLOCKS: {
-    "#f6d55c": ["#dcd3a0","#d7cd94","#e0d8ac","#cfc486","#e6dfb5"],   // sand (plain yellow)
-    "#6fa8dc": ["#3f76e4","#3a6fd8","#4a80ea","#3568c9","#4479e4"],   // water (plain blue)
-    "#3fb45a": ["#7cbd6b","#6faf5d","#89c878","#63a251","#82c271"],   // grass (ladder foot)
-    "#b8e6b0": ["#a8d999","#9ccf8b","#b5e2a7","#8fc47d","#afdca0"],   // lime moss (ladder top)
-    "#e0453b": ["#6e3533","#7c3b38","#8a4340","#612d2b","#963f36"],   // netherrack (snake head)
-    "#f4aaa4": ["#dfa29b","#d4958e","#eab1aa","#c98880","#e5aba4"],   // cherry planks (snake tail)
-    "#d3b8ec": ["#8d64c0","#7b53ae","#9f77d1","#6c4699","#9169c4"],   // amethyst (two roles)
-    "#16306e": ["#1a2f6b","#16295e","#20387c","#122350","#1d3373"],   // deep water (fishing)
-    "#e67e22": ["#c67618","#b96c13","#d48122","#ab620f","#cc7b1d"],   // pumpkin (wheel/support/gun)
-    "#d4a656": ["#f8d33e","#eec72e","#fcdf5b","#dbb62a","#f6d84e"],   // gold block (shop)
-    "#8b1a1a": ["#6e1010","#5c0d0d","#821616","#4a0a0a","#91221a"],   // crimson (back to start)
-    "#d2b48c": ["#c6b177","#bca76d","#d0bb81","#b29d63","#cbb67c"],   // birch planks (dizzy)
-    "#17b5a3": ["#14a392","#0f8a7b","#1fc4b0","#0b7568","#18b7a4"],   // warped nylium (teleport)
-    "#bfe9ff": ["#8db3e6","#7fa6dc","#9cc0ec","#74a0d6","#96bbe9"],   // packed ice (freeze)
-    "#9aa0a6": ["#7f7f7f","#747474","#8a8a8a","#696969","#858585"],   // stone (warp)
-    "#58c81b": ["#63cf2a","#58bd1f","#71da38","#4dae14","#69d430"],   // slime block (fallout)
+    "#f6d55c": { s:"speckle", pal:["#dcd3a0","#d1c78b","#e6deb4","#c4b978","#e0d8ac"] },  // sand (plain yellow)
+    "#6fa8dc": { s:"waves",   pal:["#3f76e4","#345fc0","#4b82ec","#2d51a8","#5b90f0"] },  // water (plain blue)
+    "#3fb45a": { s:"speckle", pal:["#7cbd6b","#5f9e4e","#8fca7f","#4c8340","#6fb35e"] },  // grass (ladder foot)
+    "#b8e6b0": { s:"speckle", pal:["#a8d999","#8fc47d","#b8e3ab","#7bb069","#afdca0"] },  // lime moss (ladder top)
+    "#e0453b": { s:"blobs",   pal:["#7c3b38","#612d2b","#963f36","#4a201f","#8a4340"] },  // netherrack (snake head)
+    "#f4aaa4": { s:"planksH", pal:["#dfa29b","#c07770","#eab1aa","#9e5850","#d4958e"] },  // cherry planks (snake tail)
+    "#d3b8ec": { s:"shards",  pal:["#8d64c0","#6c4699","#b48fdd","#54357a","#9f77d1"] },  // amethyst (two roles)
+    "#16306e": { s:"waves",   pal:["#1a2f6b","#122350","#20387c","#0c1838","#26418c"] },  // deep water (fishing)
+    "#e67e22": { s:"ribs",    pal:["#c67618","#a35d0e","#d98a2b","#8a4e0a","#cc7b1d"] },  // pumpkin (wheel/support/gun)
+    "#d4a656": { s:"bevel",   pal:["#f8d33e","#dbb62a","#fceda2","#a8850f","#eec72e"] },  // gold block (shop)
+    "#8b1a1a": { s:"blobs",   pal:["#6e1010","#4a0a0a","#8c1f1f","#320505","#7d1616"] },  // crimson (back to start)
+    "#d2b48c": { s:"planksV", pal:["#c6b177","#a58e56","#d5c48c","#7d6438","#bca76d"] },  // birch planks (dizzy)
+    "#17b5a3": { s:"speckle", pal:["#14a392","#0f8a7b","#25c4ae","#0a6b5d","#18b7a4"] },  // warped nylium (teleport)
+    "#bfe9ff": { s:"streaks", pal:["#8db3e6","#7fa6dc","#b8d4f2","#6d94cc","#a2c4ec"] },  // packed ice (freeze)
+    "#9aa0a6": { s:"blobs",   pal:["#7f7f7f","#6d6d6d","#8f8f8f","#5a5a5a","#868686"] },  // stone (warp)
+    "#58c81b": { s:"bevel",   pal:["#63cf2a","#4dae14","#8ce55c","#357c0c","#71da38"] },  // slime block (fallout)
   },
 };
 /* ---- DATA: switchback arrows (where the path turns up a row: 9→10, 18→19 …) ---- */
@@ -1245,10 +1296,6 @@ const FX = {
   MAX: 420,                                    // particle cap (integrated-GPU safety)
   GRAVITY: 340,                                // default px/s² pull on burst sparks
   CONFETTI: { COUNT:130, SIZE:[6,11], FALL:[150,300], GRAV:26, SWAY:[30,80], SPIN:4, LIFE:7 },
-  LADDER: { rate:60, colors:["#ffd23e","#fff3b0","#ffffff"], speed:[6,40], up:46, grav:-70,
-            life:.9, size:[1.5,3.2], twinkle:true },        // rising golden sparkles
-  SNAKE:  { rate:45, colors:["#8fd14f","#4c8c1e","#d6f5a3"], speed:[15,70], up:-6, grav:430,
-            life:.65, size:[1.8,3.6] },                     // slime droplets shaken loose
   SIX:    { count:15, colors:["#ffd23e","#fff3b0","#ff9500"], speed:[120,300], up:60,
             life:.75, size:[3,6], shape:"star" },           // star burst off the die
 };
@@ -1545,24 +1592,110 @@ function mcShadesOf(hex){
   return MC.SHADES.map(m => "#" + [r,g,b].map(v =>
     Math.min(255, Math.round(v*m)).toString(16).padStart(2,"0")).join(""));
 }
-function mcTextureURL(pal){
-  const cv = document.createElement("canvas"); cv.width = cv.height = MC.PX;
+/* The block painters. Each draws one 16×16 tile from a 5-shade palette
+   [base, dark, light, darkest, accent] with a deterministic RNG, so every
+   board shows the same texture. px() is the only draw call they share. */
+function mcTextureURL(block){
+  const N = MC.PX, pal = block.pal;
+  const cv = document.createElement("canvas"); cv.width = cv.height = N;
   const g2 = cv.getContext("2d");
   let s = 0;
-  for (const ch of pal.join("")) s = (s*31 + ch.charCodeAt(0)) >>> 0;
-  const grid = [];
-  for (let y=0; y<MC.PX; y++){
-    grid.push([]);
-    for (let x=0; x<MC.PX; x++){
-      s = (s*1664525 + 1013904223) >>> 0;
-      let c;
-      if (x > 0 && s % 100 < MC.CLUMP) c = grid[y][x-1];
-      else if (y > 0 && (s>>>7) % 100 < MC.CLUMP) c = grid[y-1][x];
-      else c = pal[(s>>>13) % pal.length];
-      grid[y].push(c);
-      g2.fillStyle = c; g2.fillRect(x, y, 1, 1);
-    }
-  }
+  for (const ch of pal.join("") + block.s) s = (s*31 + ch.charCodeAt(0)) >>> 0;
+  const rnd = m => { s = (s*1664525 + 1013904223) >>> 0; return (s>>>9) % m; };
+  const px = (x, y, c) => { if (x>=0 && y>=0 && x<N && y<N){ g2.fillStyle = c; g2.fillRect(x, y, 1, 1); } };
+  const fill = c => { g2.fillStyle = c; g2.fillRect(0, 0, N, N); };
+  const P = { base:pal[0], dark:pal[1], light:pal[2], darkest:pal[3], accent:pal[4] };
+  const painters = {
+    speckle(){                       // grass / sand / nylium: grainy 2-px clusters
+      fill(P.base);
+      for (let i=0; i<46; i++){
+        const x = rnd(N), y = rnd(N), c = [P.dark,P.light,P.accent][rnd(3)];
+        px(x, y, c); if (rnd(2)) px(x+1, y, c); if (rnd(3)===0) px(x, y+1, c);
+      }
+      for (let i=0; i<8; i++) px(rnd(N), rnd(N), P.darkest);
+    },
+    blobs(){                         // stone / netherrack: irregular patches + cracks
+      fill(P.base);
+      for (let b=0; b<7; b++){
+        let x = rnd(N), y = rnd(N);
+        const c = b%2 ? P.dark : P.light, len = 5 + rnd(8);
+        for (let i=0; i<len; i++){
+          px(x, y, c); px(x+1, y, c); px(x, y+1, c);
+          x += rnd(3)-1; y += rnd(3)-1;
+        }
+      }
+      for (let k=0; k<3; k++){
+        let x = rnd(N), y = rnd(N);
+        for (let i=0; i<4+rnd(4); i++){ px(x, y, P.darkest); x += rnd(2); y += rnd(3)-1; }
+      }
+    },
+    planksH(){ this.planks(false); },
+    planksV(){ this.planks(true); },
+    planks(vert){                    // 4-px planks: edge shadow, grain streaks, a knot
+      fill(P.base);
+      for (let b=3; b<N; b+=4)
+        for (let a=0; a<N; a++) vert ? px(b, a, P.darkest) : px(a, b, P.darkest);
+      for (let i=0; i<12; i++){
+        const a = rnd(N), b = rnd(N), c = rnd(2) ? P.dark : P.light;
+        vert ? (px(b, a, c), px(b, a+1, c)) : (px(a, b, c), px(a+1, b, c));
+      }
+      const kx = 2 + rnd(N-4), ky = 2 + rnd(N-4);
+      px(kx, ky, P.darkest); px(kx+1, ky, P.dark); px(kx, ky+1, P.dark);
+    },
+    waves(){                         // water: wavy horizontal bands
+      fill(P.base);
+      for (let y=0; y<N; y++){
+        const band = ((y + rnd(2)) >> 2) % 2;
+        for (let x=0; x<N; x++){
+          const w = Math.round(Math.sin((x + y*2) * 0.8));
+          if (band) px(x, y + w, P.dark);
+          else if ((x + y) % 5 === 0) px(x, y + w, P.light);
+        }
+      }
+      for (let i=0; i<6; i++) px(rnd(N), rnd(N), P.accent);
+    },
+    ribs(){                          // pumpkin: vertical ribs with lit edges
+      fill(P.base);
+      for (let x=0; x<N; x++){
+        const m = x % 5;
+        for (let y=0; y<N; y++){
+          if (m === 0) px(x, y, P.darkest);
+          else if (m === 1) px(x, y, P.dark);
+          else if (m === 3 && y % 3) px(x, y, P.light);
+        }
+      }
+      for (let i=0; i<7; i++) px(rnd(N), rnd(N), P.accent);
+    },
+    bevel(){                         // gold / slime: raised block face with a framed core
+      fill(P.dark);
+      for (let i=0; i<N; i++){ px(i, 0, P.light); px(0, i, P.light); px(i, N-1, P.darkest); px(N-1, i, P.darkest); }
+      g2.fillStyle = P.base;  g2.fillRect(2, 2, N-4, N-4);
+      g2.fillStyle = P.light; g2.fillRect(4, 4, N-8, N-8);
+      g2.fillStyle = P.base;  g2.fillRect(5, 5, N-10, N-10);
+      for (let i=0; i<5; i++) px(5 + rnd(N-10), 5 + rnd(N-10), P.accent);
+      px(4, 4, "#ffffff");
+    },
+    streaks(){                       // packed ice: diagonal glassy streaks
+      fill(P.base);
+      for (let k=0; k<5; k++){
+        let x = rnd(N), y = 0;
+        const c = k%2 ? P.light : P.dark;
+        for (; y<N; y++){ px(x, y, c); if (rnd(3)===0) px(x+1, y, c); x = (x + 1) % N; }
+      }
+      for (let i=0; i<6; i++) px(rnd(N), rnd(N), "#e8f4ff");
+    },
+    shards(){                        // amethyst: angular crystal facets
+      fill(P.dark);
+      for (let b=0; b<6; b++){
+        const x0 = rnd(N), y0 = rnd(N), sz = 2 + rnd(4), c = b%2 ? P.light : P.base;
+        for (let dy=0; dy<sz; dy++)
+          for (let dx=0; dx<=dy; dx++) px(x0+dx, y0+dy, c);
+        px(x0, y0, P.accent);
+      }
+      for (let i=0; i<5; i++) px(rnd(N), rnd(N), P.darkest);
+    },
+  };
+  painters[block.s]();
   return cv.toDataURL();
 }
 function mcPatternFill(hex){
@@ -1575,7 +1708,7 @@ function mcPatternFill(hex){
     }
     const id = "mcpat" + Object.keys(mcPatterns).length;
     const pat = el("pattern", { id, width:BOARD.CELL, height:BOARD.CELL, patternUnits:"userSpaceOnUse" });
-    const img = el("image", { href:mcTextureURL(MC.BLOCKS[hex] || mcShadesOf(hex)),
+    const img = el("image", { href:mcTextureURL(MC.BLOCKS[hex] || { s:"speckle", pal:mcShadesOf(hex) }),
                               width:BOARD.CELL, height:BOARD.CELL, preserveAspectRatio:"none" });
     img.style.imageRendering = "pixelated";
     pat.appendChild(img);
@@ -1810,6 +1943,13 @@ function makePawn(color, fancy){
     body.appendChild(ov);
     body.appendChild(el("path",{d:PAWN_D,fill:"none",stroke:dark,"stroke-width":2.4,"stroke-linejoin":"round"}));
     body.appendChild(el("circle",{cx:0,cy:-12,r:8.5,fill:"none",stroke:dark,"stroke-width":2.4}));
+  }
+  const hd = fancy && fancy.look && fancy.look.head;
+  if (hd){
+    // this skin's head is its own celestial body (blood moon, golden orb)
+    if (hd.glow) body.appendChild(el("circle",{cx:0,cy:-12,r:14,fill:`url(#fancy-${fancy.id}-headglow)`}));
+    body.appendChild(el("circle",{cx:0,cy:-12,r:8.5,fill:`url(#fancy-${fancy.id}-head)`,stroke:dark,"stroke-width":2.4}));
+    (hd.craters||[]).forEach(c => body.appendChild(el("circle",{cx:c[0],cy:c[1],r:c[2],fill:"rgba(0,0,0,.32)"})));
   }
   body.appendChild(el("ellipse",{cx:-3,cy:-14.5,rx:2.5,ry:3.2,fill:"rgba(255,255,255,.5)"}));    // head glint
   size.appendChild(body);
@@ -2680,11 +2820,9 @@ async function applyLink(p, idx, depth){       // climb a ladder / slide a chute
   if (link.kind === "slide"){
     // ride the drawn snake body head->tail, easing in like gravity took hold
     const A = cellCenter(from), B = cellCenter(link.to);
-    fxFollow(tokenEls[idx], ffms(ANIM.SLIDE), FX.SNAKE);
     await tweenToken(idx, ANIM.SLIDE, t => snakePoint(A, B, t*t));
     layoutTokens();
   } else {
-    fxFollow(tokenEls[idx], ffms(ANIM.SLIDE), FX.LADDER);
     tokenEls[idx].style.transition = `transform ${ANIM.SLIDE}ms ease-in-out`;
     layoutTokens();
     await sleep(ANIM.SLIDE);
@@ -3065,6 +3203,24 @@ function updateDowned(i){
   body.style.transform = (pl.downed && !pl.frozen) ? "rotate(78deg)" : "rotate(0deg)";
 }
 
+// Freezing also stops the skin itself: every url(#fancy…) paint on the pawn
+// swaps to its "-still" twin (same look, animation stripped), the rainbow's
+// CSS hue-spin pauses, and travelling deco (petals, snow, bubbles) halts.
+function setSkinStill(g, f, on){
+  g.querySelectorAll('[fill^="url(#fancy"],[filter^="url(#fancyf"]').forEach(n => {
+    ["fill","filter"].forEach(attr => {
+      const v = n.getAttribute(attr);
+      if (!v || v.indexOf("url(#fanc") !== 0) return;
+      const id = v.slice(5, -1).replace(/-still$/, "");
+      n.setAttribute(attr, `url(#${id}${on ? "-still" : ""})`);
+    });
+  });
+  g.style.animationPlayState = on ? "paused" : "";
+  if (f.look && f.look.deco){
+    g.querySelectorAll(".deco").forEach(d => d.remove());
+    if (!on) addPawnDeco(g, f);
+  }
+}
 // Icy sheen + snowflake badge on a frozen pawn (cleared when they break free).
 function updateFrozen(i){
   const g = tokenEls[i]; if (!g) return;
@@ -3072,6 +3228,8 @@ function updateFrozen(i){
   const body = g.querySelector(".pawnbody");
   if (body) body.style.filter = frozen
     ? "saturate(.5) brightness(1.2) drop-shadow(0 0 5px #8fd4ff)" : "";
+  const f = fancyOf(game.players[i]);
+  if (f && f.look) setSkinStill(g, f, frozen);
   let ice = g.querySelector(".icebadge");
   if (frozen){
     if (!ice){
@@ -3337,30 +3495,6 @@ function fxBurst(x, y, o){
             size: fxRand(o.size[0], o.size[1]), color: fxPick(o.colors),
             shape: o.shape || "dot", spin: fxRand(-6, 6), twinkle: !!o.twinkle });
   }
-}
-
-// A trail that follows an element's LIVE on-screen position for ms — reads
-// the rendered rect each frame, so it tracks CSS transitions and JS tweens alike.
-function fxFollow(el, ms, o){
-  let last = performance.now(), carry = 0;
-  const end = last + ms;
-  (function frame(now){
-    const dt = Math.min(0.05, (now - last) / 1000); last = now;
-    const r = el.getBoundingClientRect();
-    const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
-    carry += o.rate * dt;
-    while (carry >= 1){
-      carry--;
-      const a = Math.random() * Math.PI * 2, sp = fxRand(o.speed[0], o.speed[1]);
-      fxAdd({ x: cx + fxRand(-8, 8), y: cy + fxRand(-6, 10),
-              vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - (o.up || 0),
-              grav: o.grav != null ? o.grav : 0,
-              life: fxRand(o.life * 0.6, o.life),
-              size: fxRand(o.size[0], o.size[1]), color: fxPick(o.colors),
-              shape: o.shape || "dot", twinkle: !!o.twinkle });
-    }
-    if (now < end) requestAnimationFrame(frame);
-  })(last);
 }
 
 function sixEffect(){
@@ -6097,12 +6231,13 @@ function seatColor(i){
   if (setupColors[i]) return setupColors[i];
   return (RGB.enabled && i === MAX_PLAYERS - 1) ? RGB.ID : PLAYER_COLORS[i];
 }
-// A fancy chip is a mini-svg painted with the SAME gradient + turbulence
-// filter as the pawn itself, so the picker shows exactly what you'll get.
+// A fancy chip is the ACTUAL pawn in miniature — same gradients, filters,
+// head paint and deco — so the picker shows exactly what you'll get.
 function fancyChipSvg(f){
-  const filt = f.look.turb ? ` filter="url(#fancyf-${f.id})"` : "";
-  return `<svg viewBox="-12 -21 24 42" preserveAspectRatio="none" style="display:block;width:100%;height:100%">` +
-         `<rect x="-24" y="-36" width="48" height="72" fill="url(#fancy-${f.id})"${filt}/></svg>`;
+  const g = makePawn(`url(#fancy-${f.id})`, f);
+  if (f.look.deco) addPawnDeco(g, f);
+  return `<svg viewBox="-18 -32 36 62" style="display:block;width:100%;height:100%">` +
+         new XMLSerializer().serializeToString(g) + `</svg>`;
 }
 function paintSwatchEl(el, color){
   const f = FANCY_BY_ID[color];
@@ -6121,60 +6256,103 @@ function swatchHtml(p){
 }
 // The flowing swatch chips share one generated rule; the pawns themselves are
 // painted by SVG gradients built from each skin's `look` (see buildFancyDefs).
-// One animated <linearGradient> per skin, generated from its `look` DATA and
-// parked in a hidden svg (board rebuilds can't wipe it). Pawns fill with
-// url(#fancy-<id>); SMIL drives the spin/drift/flicker without any JS.
+// One animated paint per skin — a <linearGradient>, or a <pattern> of real
+// drawn shapes — generated from its `look` DATA and parked in a hidden svg
+// (board rebuilds can't wipe it). Pawns fill with url(#fancy-<id>); SMIL
+// drives everything without JS. Every def also gets a "-still" twin with the
+// animation stripped, so freezing a player can stop its skin mid-motion.
+function fancyAnim(attr, base, w){
+  const a = Array.isArray(w)
+    ? el("animate", { attributeName:attr, values:`${base};${w[0]};${base};${w[1]};${base}`,
+                      dur:w[2]+"s", repeatCount:"indefinite" })
+    : el("animate", { attributeName:attr, values:w.v.join(";"), keyTimes:w.t.join(";"),
+                      dur:w.dur+"s", repeatCount:"indefinite" });
+  return a;
+}
 function buildFancyDefs(){
   const holder = el("svg", { width:0, height:0, style:"position:absolute" });
   const defs = el("defs", {});
+  const still = node => {                                      // the frozen twin: same paint, no motion
+    const c = node.cloneNode(true);
+    c.setAttribute("id", node.getAttribute("id") + "-still");
+    c.querySelectorAll("animate,animateTransform").forEach(a => a.remove());
+    defs.appendChild(c);
+  };
   const clip = el("clipPath", { id:"pawnclip" });              // the pawn silhouette, shared by every turbulent skin
   clip.appendChild(el("path", { d:PAWN_D }));
   clip.appendChild(el("circle", { cx:0, cy:-12, r:8.5 }));
   defs.appendChild(clip);
   FANCY_COLORS.filter(f => f.look).forEach(f => {
-    const T = f.look.turb;
+    const L = f.look, T = L.turb;
     if (T){                                                    // feTurbulence displacement: real marble veins / flame tongues / churn
       const filt = el("filter", { id:"fancyf-"+f.id, x:"-40%", y:"-40%", width:"180%", height:"180%" });
       filt.appendChild(el("feTurbulence", { type:"fractalNoise", baseFrequency:T.freq.join(" "),
         numOctaves:T.oct || 2, seed:7, result:"n" }));
       const disp = el("feDisplacementMap", { in:"SourceGraphic", in2:"n", scale:T.scale,
         xChannelSelector:"R", yChannelSelector:"G" });
-      if (T.pulse) disp.appendChild(el("animate", { attributeName:"scale",
-        values:`${T.pulse[0]};${T.pulse[1]};${(T.pulse[0]+T.pulse[1])/2};${T.pulse[1]};${T.pulse[0]}`,
-        dur:T.pulse[2]+"s", repeatCount:"indefinite" }));
+      if (T.pulse) disp.appendChild(fancyAnim("scale", T.scale, T.pulse));
       filt.appendChild(disp);
-      defs.appendChild(filt);
+      defs.appendChild(filt); still(filt);
     }
-    const L = f.look;
-    const gr = el("linearGradient", { id:"fancy-"+f.id, gradientUnits:"userSpaceOnUse",
-      x1:L.x1, y1:L.y1, x2:L.x2, y2:L.y2, spreadMethod:L.spread||"pad" });
-    L.stops.forEach(s => {
-      const st = el("stop", { offset:s.o, "stop-color":s.c });
-      if (s.wob) st.appendChild(el("animate", { attributeName:"offset",
-        values:`${s.o};${s.wob[0]};${s.o};${s.wob[1]};${s.o}`, dur:s.wob[2]+"s", repeatCount:"indefinite" }));
-      gr.appendChild(st);
-    });
-    if (L.spin) gr.appendChild(el("animateTransform", { attributeName:"gradientTransform",
-      type:"rotate", from:"0 0 0", to:"360 0 0", dur:L.spin+"s", repeatCount:"indefinite", additive:"sum" }));
-    if (L.drift) gr.appendChild(el("animateTransform", { attributeName:"gradientTransform",
-      type:"translate", from:"0 0", to:`${L.drift[0]} ${L.drift[1]}`, dur:L.drift[2]+"s",
-      repeatCount:"indefinite", additive:"sum" }));
-    defs.appendChild(gr);
+    if (L.pattern){                                            // drawn-shape paint (yin-yang, the flag cross)
+      const pat = el("pattern", { id:"fancy-"+f.id, patternUnits:"userSpaceOnUse",
+        x:-30, y:-30, width:60, height:60 });
+      const center = el("g", { transform:"translate(30,30)" });
+      const inner = el("g", {}, L.pattern.content);
+      if (L.pattern.spin) inner.appendChild(el("animateTransform", { attributeName:"transform",
+        type:"rotate", from:"0 0 0", to:"360 0 0", dur:L.pattern.spin+"s", repeatCount:"indefinite" }));
+      center.appendChild(inner); pat.appendChild(center);
+      defs.appendChild(pat); still(pat);
+    } else {
+      const gr = el("linearGradient", { id:"fancy-"+f.id, gradientUnits:"userSpaceOnUse",
+        x1:L.x1, y1:L.y1, x2:L.x2, y2:L.y2, spreadMethod:L.spread||"pad" });
+      L.stops.forEach(s => {
+        const st = el("stop", { offset:s.o, "stop-color":s.c });
+        if (s.wob) st.appendChild(fancyAnim("offset", s.o, s.wob));
+        gr.appendChild(st);
+      });
+      if (L.spin) gr.appendChild(el("animateTransform", { attributeName:"gradientTransform",
+        type:"rotate", from:"0 0 0", to:"360 0 0", dur:L.spin+"s", repeatCount:"indefinite", additive:"sum" }));
+      if (L.drift) gr.appendChild(el("animateTransform", { attributeName:"gradientTransform",
+        type:"translate", from:"0 0", to:`${L.drift[0]} ${L.drift[1]}`, dur:L.drift[2]+"s",
+        repeatCount:"indefinite", additive:"sum" }));
+      defs.appendChild(gr); still(gr);
+    }
+    if (L.head){                                               // the head's own radial paint (blood moon, golden orb)
+      const hg = el("radialGradient", { id:"fancy-"+f.id+"-head", cx:".35", cy:".32", r:".95" });
+      L.head.stops.forEach(s => hg.appendChild(el("stop", { offset:s.o, "stop-color":s.c })));
+      defs.appendChild(hg); still(hg);
+      if (L.head.glow){
+        const gg = el("radialGradient", { id:"fancy-"+f.id+"-headglow" });
+        gg.appendChild(el("stop", { offset:.35, "stop-color":L.head.glow[0] }));
+        gg.appendChild(el("stop", { offset:1,   "stop-color":L.head.glow[1] }));
+        defs.appendChild(gg); still(gg);
+      }
+    }
   });
   holder.appendChild(defs);
   document.body.appendChild(holder);
 }
-// Twinkling deco dots (stars, snow, petals, bubbles) inside the pawn body so
-// they tip over with it; negative begins phase the twinkles apart.
+// Deco dots (stars, snow, petals, bubbles) inside the pawn body so they tip
+// over with it. Plain dots twinkle in place; `drift` makes each one travel
+// (fall or rise) on a loop, staggered apart; `wind` gusts the whole flock.
 function addPawnDeco(g, f){
   const body = g.querySelector(".pawnbody");
   const D = f.look.deco;
+  const flock = el("g", { "class":"deco" });
+  if (D.wind) flock.appendChild(el("animateTransform", { attributeName:"transform",
+    type:"translate", values:D.wind.v.join(";"), keyTimes:D.wind.t.join(";"),
+    dur:D.wind.dur+"s", repeatCount:"indefinite" }));
   D.dots.forEach((d, k) => {
+    const ph = -k * (D.drift ? D.drift.dur : D.dur) / D.dots.length;
     const c = el("circle", { cx:d[0], cy:d[1], r:d[2], fill:D.c, opacity:0 });
-    c.appendChild(el("animate", { attributeName:"opacity", values:"0;1;0", dur:D.dur+"s",
-      begin:(-k * D.dur / D.dots.length)+"s", repeatCount:"indefinite" }));
-    body.appendChild(c);
+    c.appendChild(el("animate", { attributeName:"opacity", values:"0;1;1;0", dur:(D.drift?D.drift.dur:D.dur)+"s",
+      begin:ph+"s", repeatCount:"indefinite" }));
+    if (D.drift) c.appendChild(el("animateTransform", { attributeName:"transform", type:"translate",
+      from:"0 0", to:`${D.drift.dx} ${D.drift.dy}`, dur:D.drift.dur+"s", begin:ph+"s", repeatCount:"indefinite" }));
+    flock.appendChild(c);
   });
+  body.appendChild(flock);
 }
 let colorPopEl = null;
 function closeColorPop(){ if (colorPopEl){ colorPopEl.remove(); colorPopEl = null; } }
@@ -6187,7 +6365,8 @@ function openColorPop(sw, i){
   const pop = document.createElement("div"); pop.className = "colorpop"; pop.dataset.seat = i;
   const taken = [];
   for (let k=0;k<chosenSeats;k++) if (k !== i) taken.push(seatColor(k));
-  const options = [...PLAYER_COLORS, ...EXTRA_COLORS, ...(RGB.enabled ? FANCY_COLORS.map(f => f.id) : [])];
+  const options = [...PLAYER_COLORS, ...EXTRA_COLORS,
+                   ...FANCY_COLORS.filter(f => f.alwaysAvail || RGB.enabled).map(f => f.id)];
   options.forEach(col => {
     const b = document.createElement("button"); b.type = "button"; b.className = "copt";
     paintSwatchEl(b, col);

@@ -55,7 +55,18 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
-Recently shipped (2026-07-12, latest): **Minecraft tiles + turbulent skins** —
+Recently shipped (2026-07-12, latest): **the big art pass** — Minecraft tiles
+rebuilt as structured per-block pixel art (bevelled gold, wavy water, planked
+wood with knots, blobby stone, ribbed pumpkins…); 13 fancy skins reworked to
+their visions (classic Yin-Yang swirl, neon tubes, seamless marble, Frost +
+a real storming Blizzard, deeper Inferno, genuinely FIGHTING Fire & Water and
+Versus with irregular clash tempo, falling wind-blown sakura petals, Blood
+Moon head, thick organic Nordlys, full-cross Norge as a basic colour, oozing
+Toxic, gold-crowned Royal, a real Sunset); freezing a player now freezes
+their skin's animation too; ladder/snake trail particles removed. Verified
+15/15 headless + screenshots eyeballed, 0 JS errors.
+
+Before that (2026-07-12): **Minecraft tiles + turbulent skins** —
 on the ⛏️ theme every board tile is painted with a generated 16×16 pixel-block
 texture (sand, water, grass, netherrack, gold block, packed ice, stone, slime…
 mapped per tile colour in the `MC` DATA block, generic fallback for new colours);

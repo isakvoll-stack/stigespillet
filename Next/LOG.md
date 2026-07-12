@@ -3,6 +3,49 @@
 Newest first. One entry per working session; note what shipped and what's next.
 
 ---
+## 2026-07-12 (night) — the big art pass: MC pixel art, 13 skin reworks, freeze-stills, trail removal
+
+Isak's four-point batch:
+
+**1. Trails removed** — ladder sparkles + snake slime cut (`FX.LADDER`/`FX.SNAKE`
+recipes, `fxFollow`, and the two `applyLink` calls). Six-burst + confetti stay.
+
+**2. Freeze freezes skins** — every animated def in `buildFancyDefs` now gets an
+auto-generated `-still` twin (clone with `animate`/`animateTransform` stripped).
+`updateFrozen` → `setSkinStill`: swaps every `url(#fancy…)` fill/filter on the
+pawn to its `-still` twin, pauses the rainbow's CSS hue-spin
+(`animationPlayState`), and halts travelling deco. Thaw restores everything.
+
+**3. Minecraft textures rebuilt** — noise replaced by structured per-block
+painters (`speckle`/`blobs`/`planksH`/`planksV`/`waves`/`ribs`/`bevel`/
+`streaks`/`shards`), each block one `{s, pal}` line in `MC.BLOCKS`. NOTE:
+Isak asked for Mojang's textures "down to the pixel" — can't embed copyrighted
+game assets in a public repo, so these are original pixel-art in the same
+blocky idiom; logged in QUESTIONS.md.
+
+**4. Skin art pass** (13 reworked, schema grew: `wob`/`pulse` accept irregular
+`{v,t,dur}` keyTimes for clash tempo; `pattern:{content,spin}` paints drawn
+shapes; `head:{stops,craters,glow}` radial head paint; `deco.drift` falling/
+rising dots + `deco.wind` gusts; `alwaysAvail` skips the RGB gate):
+Yin-Yang = the actual spinning symbol; Neon Night = glowing tube with halo +
+sign-sparkle; Midas Marble drift fixed to a full reflect period (24,28,14s —
+was snapping back at half); Frost = the old calm Blizzard renamed, NEW
+Blizzard = storm bands + gusty turb + wind-driven snow; Inferno deeper with a
+small low heart; Fire & Water + Versus = irregular lunge/standoff/dart
+choreography (uneven keyTimes on stops + displacement pulse); Sakura petals
+fall with occasional wind; Blood Moon (ex Blood Night) = moonlit black body,
+cratered glowing blood-moon HEAD; Nordlys thick slow organic curtains (turb);
+Norge = real flag cross pattern, rippling, `alwaysAvail` (basic colour);
+Toxic = acid ooze (turb) + rising bubbles; Royal = velvet folds + golden orb
+head; Sunset = indigo→mauve→coral→amber sun-band→dark horizon. Picker chips
+are now the ACTUAL pawn in miniature (`fancyChipSvg` serialises `makePawn`,
+incl. head + deco). Dead `.fancyflow` CSS removed.
+
+Verified headless Edge **15/15, 0 JS errors** incl. full bot game + freeze/
+thaw round-trip; screenshot grid of all 15 skins + MC board eyeballed.
+Committed + pushed.
+
+---
 ## 2026-07-12 (later) — Minecraft tile textures + turbulence-reworked skins
 
 Isak's two tasks, with "use the better solution, not the half-hearted one":

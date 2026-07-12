@@ -3,6 +3,22 @@
 Standing file: autonomous sessions log clarifications here instead of stopping to ask.
 Answer whenever — each answer gets folded in and the question checked off.
 
+## 2026-07-12 (night) — art pass (defaults picked, say if wrong)
+
+- [ ] **"Down to the pixel" Minecraft textures**: Mojang's actual texture files
+  are copyrighted game assets, so they can't be embedded in this public repo —
+  that limit doesn't go away with a library. Instead every block now has its
+  own structured pixel-art painter (bevelled gold, wavy water, planks with
+  knots, blobby stone, ribs, shards…). If a specific block still reads wrong,
+  name it and I'll redraw that one's painter/palette.
+- [ ] **Fire & Water**: you offered "Ice & Fire OR more turbulent" — I kept
+  Fire & Water and made it properly turbulent with fight-tempo. Want an
+  Ice & Fire skin as well/instead? (one DATA entry.)
+- [ ] **Blizzard rename**: saved picks of the old calm skin now load the NEW
+  stormy Blizzard; the calm one is called Frost. Swap that mapping?
+- [ ] **Yin-Yang orientation/dots**: eyeballed close to the classic; if the
+  swirl direction or dot placement feels off in motion, say so.
+
 ## 2026-07-12 — Minecraft tiles + skins (defaults picked, say if wrong)
 
 - [ ] **Minecraft scope**: only the 90 board tiles got block textures. The
