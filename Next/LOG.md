@@ -3,6 +3,35 @@
 Newest first. One entry per working session; note what shipped and what's next.
 
 ---
+## 2026-07-12 (late night) — recovery: MC tiles reverted + the chip-perf bug found and fixed
+
+Isak reported the game "very broken" after the art pass and asked for the
+Minecraft tiles to be reverted and an integrity check run.
+
+**Diagnosis first**: a sweep across every screen (title, setup, colour popover
+with all skins, theme cycling, 6-fancy-player game, 40× scoreboard repaints,
+freeze/thaw, per-cell repaint) found **zero JS errors** — nothing crashes. The
+real problem: `renderScoreboard()` fires from ~40 call sites (every coin/move/
+event) and each call rebuilt every fancy player's colour chip as a live
+mini-pawn — SMIL animations restarting + a fresh feTurbulence filter per chip,
+dozens at once on the UHD 620 = stutter/flicker across the whole game.
+
+**Fixes**:
+1. **Minecraft tiles fully reverted** (tabled): `MC` DATA, all block painters,
+   `cellFill`/`cellStroke`/`repaintBoard` and the applyTheme hook removed;
+   board back to flat `cellColor` + blue grid. The ⛏️ page theme (sky/glyphs)
+   remains as it always was. If revisited someday: exact Mojang textures can't
+   be embedded (copyright, public repo) — that constraint stands.
+2. **Chips static + cached** (`fancyChipCache`): each chip is one square of
+   the skin's `-still` paint (no animation, no filter), built once per skin;
+   Blood Moon/Royal get their head paint dotted on top. Scoreboard/HUD/picker
+   all use it. Board pawns keep full animation — a few pawns is cheap, dozens
+   of chips was not.
+
+Verified headless Edge **16/16 + diagnostic sweep, 0 JS errors**, full bot
+game finished; setup + picker screenshot eyeballed. Committed + pushed.
+
+---
 ## 2026-07-12 (night) — the big art pass: MC pixel art, 13 skin reworks, freeze-stills, trail removal
 
 Isak's four-point batch:

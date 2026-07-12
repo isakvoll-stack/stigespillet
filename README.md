@@ -55,7 +55,18 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
-Recently shipped (2026-07-12, latest): **the big art pass** — Minecraft tiles
+Recently shipped (2026-07-12, latest): **stability recovery** — the Minecraft
+tile textures are REVERTED and tabled (Isak's call; the generated pixel art
+wasn't close enough to the real blocks, and exact copies can't legally go in
+a public repo). Root cause of the "game feels broken" report found and fixed:
+colour chips were live-animated mini-pawns rebuilt on EVERY scoreboard
+repaint — dozens of turbulence filters churning on integrated graphics. Chips
+are now static cached swatches of each skin's still-paint (head dotted on top
+for Blood Moon/Royal); the pawns on the board keep their full animation. All
+13 skin reworks, the freeze-stills-skins behaviour and the FX engine remain.
+Verified 16/16 headless + a zero-error diagnostic sweep across every screen.
+
+Before that (2026-07-12): **the big art pass** — Minecraft tiles
 rebuilt as structured per-block pixel art (bevelled gold, wavy water, planked
 wood with knots, blobby stone, ribbed pumpkins…); 13 fancy skins reworked to
 their visions (classic Yin-Yang swirl, neon tubes, seamless marble, Frost +

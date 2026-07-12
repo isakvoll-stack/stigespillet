@@ -919,39 +919,6 @@ const SETBACK_TILES = [7];                               // dark-red "back to st
 const SETBACK_COLOR = "#8b1a1a";                         // deep red — clearly a penalty tile
 const DIZZY_TILES   = [56];                              // tan "dizzy" square — stop here and your feet betray you
 const DIZZY_COLOR   = "#d2b48c";                         // tan
-const CELL_STROKE   = "#1f6fb0";                         // the board's grid-line blue
-/* ---- DATA: Minecraft-theme tile textures ------------------------------
-   On the ⛏️ Minecraft page theme every board tile is painted with a
-   generated 16×16 pixel-block texture instead of its flat colour. These
-   are hand-styled originals in the blocky pixel-art idiom (Mojang's real
-   texture files are copyrighted, so they can't be embedded in this public
-   repo). Each entry: `s` = which painter draws it (speckle / blobs /
-   planksH / planksV / waves / ribs / bevel / streaks / shards), `pal` =
-   its pixel palette [base, dark, light, darkest, accent]. Any colour not
-   listed gets a generic speckle block made from SHADES of itself. */
-const MC = {
-  PX: 16,
-  GRID: "rgba(0,0,0,.42)",
-  SHADES: [1, .88, 1.08, .8, 1.02],
-  BLOCKS: {
-    "#f6d55c": { s:"speckle", pal:["#dcd3a0","#d1c78b","#e6deb4","#c4b978","#e0d8ac"] },  // sand (plain yellow)
-    "#6fa8dc": { s:"waves",   pal:["#3f76e4","#345fc0","#4b82ec","#2d51a8","#5b90f0"] },  // water (plain blue)
-    "#3fb45a": { s:"speckle", pal:["#7cbd6b","#5f9e4e","#8fca7f","#4c8340","#6fb35e"] },  // grass (ladder foot)
-    "#b8e6b0": { s:"speckle", pal:["#a8d999","#8fc47d","#b8e3ab","#7bb069","#afdca0"] },  // lime moss (ladder top)
-    "#e0453b": { s:"blobs",   pal:["#7c3b38","#612d2b","#963f36","#4a201f","#8a4340"] },  // netherrack (snake head)
-    "#f4aaa4": { s:"planksH", pal:["#dfa29b","#c07770","#eab1aa","#9e5850","#d4958e"] },  // cherry planks (snake tail)
-    "#d3b8ec": { s:"shards",  pal:["#8d64c0","#6c4699","#b48fdd","#54357a","#9f77d1"] },  // amethyst (two roles)
-    "#16306e": { s:"waves",   pal:["#1a2f6b","#122350","#20387c","#0c1838","#26418c"] },  // deep water (fishing)
-    "#e67e22": { s:"ribs",    pal:["#c67618","#a35d0e","#d98a2b","#8a4e0a","#cc7b1d"] },  // pumpkin (wheel/support/gun)
-    "#d4a656": { s:"bevel",   pal:["#f8d33e","#dbb62a","#fceda2","#a8850f","#eec72e"] },  // gold block (shop)
-    "#8b1a1a": { s:"blobs",   pal:["#6e1010","#4a0a0a","#8c1f1f","#320505","#7d1616"] },  // crimson (back to start)
-    "#d2b48c": { s:"planksV", pal:["#c6b177","#a58e56","#d5c48c","#7d6438","#bca76d"] },  // birch planks (dizzy)
-    "#17b5a3": { s:"speckle", pal:["#14a392","#0f8a7b","#25c4ae","#0a6b5d","#18b7a4"] },  // warped nylium (teleport)
-    "#bfe9ff": { s:"streaks", pal:["#8db3e6","#7fa6dc","#b8d4f2","#6d94cc","#a2c4ec"] },  // packed ice (freeze)
-    "#9aa0a6": { s:"blobs",   pal:["#7f7f7f","#6d6d6d","#8f8f8f","#5a5a5a","#868686"] },  // stone (warp)
-    "#58c81b": { s:"bevel",   pal:["#63cf2a","#4dae14","#8ce55c","#357c0c","#71da38"] },  // slime block (fallout)
-  },
-};
 /* ---- DATA: switchback arrows (where the path turns up a row: 9→10, 18→19 …) ---- */
 const SWITCHBACK = { LEN:54, HEAD_W:30, HEAD_H:19, SHAFT_W:9,   // arrow size (px): total length, head, shaft
   FILL:"rgba(255,255,255,.8)", EDGE:"rgba(31,63,90,.55)" };
@@ -1582,145 +1549,6 @@ function cellColor(cell){
   return CELL_PALETTE[h % CELL_PALETTE.length];
 }
 
-/* On the Minecraft theme every tile colour becomes a pixel-block texture:
-   a 16×16 canvas of clumpy palette noise, wrapped in an SVG pattern. One
-   pattern per colour, built lazily and kept in a hidden defs svg. */
-let mcDefs = null;
-const mcPatterns = {};
-function mcShadesOf(hex){
-  const n = parseInt(hex.slice(1), 16), r = n>>16, g = (n>>8)&255, b = n&255;
-  return MC.SHADES.map(m => "#" + [r,g,b].map(v =>
-    Math.min(255, Math.round(v*m)).toString(16).padStart(2,"0")).join(""));
-}
-/* The block painters. Each draws one 16×16 tile from a 5-shade palette
-   [base, dark, light, darkest, accent] with a deterministic RNG, so every
-   board shows the same texture. px() is the only draw call they share. */
-function mcTextureURL(block){
-  const N = MC.PX, pal = block.pal;
-  const cv = document.createElement("canvas"); cv.width = cv.height = N;
-  const g2 = cv.getContext("2d");
-  let s = 0;
-  for (const ch of pal.join("") + block.s) s = (s*31 + ch.charCodeAt(0)) >>> 0;
-  const rnd = m => { s = (s*1664525 + 1013904223) >>> 0; return (s>>>9) % m; };
-  const px = (x, y, c) => { if (x>=0 && y>=0 && x<N && y<N){ g2.fillStyle = c; g2.fillRect(x, y, 1, 1); } };
-  const fill = c => { g2.fillStyle = c; g2.fillRect(0, 0, N, N); };
-  const P = { base:pal[0], dark:pal[1], light:pal[2], darkest:pal[3], accent:pal[4] };
-  const painters = {
-    speckle(){                       // grass / sand / nylium: grainy 2-px clusters
-      fill(P.base);
-      for (let i=0; i<46; i++){
-        const x = rnd(N), y = rnd(N), c = [P.dark,P.light,P.accent][rnd(3)];
-        px(x, y, c); if (rnd(2)) px(x+1, y, c); if (rnd(3)===0) px(x, y+1, c);
-      }
-      for (let i=0; i<8; i++) px(rnd(N), rnd(N), P.darkest);
-    },
-    blobs(){                         // stone / netherrack: irregular patches + cracks
-      fill(P.base);
-      for (let b=0; b<7; b++){
-        let x = rnd(N), y = rnd(N);
-        const c = b%2 ? P.dark : P.light, len = 5 + rnd(8);
-        for (let i=0; i<len; i++){
-          px(x, y, c); px(x+1, y, c); px(x, y+1, c);
-          x += rnd(3)-1; y += rnd(3)-1;
-        }
-      }
-      for (let k=0; k<3; k++){
-        let x = rnd(N), y = rnd(N);
-        for (let i=0; i<4+rnd(4); i++){ px(x, y, P.darkest); x += rnd(2); y += rnd(3)-1; }
-      }
-    },
-    planksH(){ this.planks(false); },
-    planksV(){ this.planks(true); },
-    planks(vert){                    // 4-px planks: edge shadow, grain streaks, a knot
-      fill(P.base);
-      for (let b=3; b<N; b+=4)
-        for (let a=0; a<N; a++) vert ? px(b, a, P.darkest) : px(a, b, P.darkest);
-      for (let i=0; i<12; i++){
-        const a = rnd(N), b = rnd(N), c = rnd(2) ? P.dark : P.light;
-        vert ? (px(b, a, c), px(b, a+1, c)) : (px(a, b, c), px(a+1, b, c));
-      }
-      const kx = 2 + rnd(N-4), ky = 2 + rnd(N-4);
-      px(kx, ky, P.darkest); px(kx+1, ky, P.dark); px(kx, ky+1, P.dark);
-    },
-    waves(){                         // water: wavy horizontal bands
-      fill(P.base);
-      for (let y=0; y<N; y++){
-        const band = ((y + rnd(2)) >> 2) % 2;
-        for (let x=0; x<N; x++){
-          const w = Math.round(Math.sin((x + y*2) * 0.8));
-          if (band) px(x, y + w, P.dark);
-          else if ((x + y) % 5 === 0) px(x, y + w, P.light);
-        }
-      }
-      for (let i=0; i<6; i++) px(rnd(N), rnd(N), P.accent);
-    },
-    ribs(){                          // pumpkin: vertical ribs with lit edges
-      fill(P.base);
-      for (let x=0; x<N; x++){
-        const m = x % 5;
-        for (let y=0; y<N; y++){
-          if (m === 0) px(x, y, P.darkest);
-          else if (m === 1) px(x, y, P.dark);
-          else if (m === 3 && y % 3) px(x, y, P.light);
-        }
-      }
-      for (let i=0; i<7; i++) px(rnd(N), rnd(N), P.accent);
-    },
-    bevel(){                         // gold / slime: raised block face with a framed core
-      fill(P.dark);
-      for (let i=0; i<N; i++){ px(i, 0, P.light); px(0, i, P.light); px(i, N-1, P.darkest); px(N-1, i, P.darkest); }
-      g2.fillStyle = P.base;  g2.fillRect(2, 2, N-4, N-4);
-      g2.fillStyle = P.light; g2.fillRect(4, 4, N-8, N-8);
-      g2.fillStyle = P.base;  g2.fillRect(5, 5, N-10, N-10);
-      for (let i=0; i<5; i++) px(5 + rnd(N-10), 5 + rnd(N-10), P.accent);
-      px(4, 4, "#ffffff");
-    },
-    streaks(){                       // packed ice: diagonal glassy streaks
-      fill(P.base);
-      for (let k=0; k<5; k++){
-        let x = rnd(N), y = 0;
-        const c = k%2 ? P.light : P.dark;
-        for (; y<N; y++){ px(x, y, c); if (rnd(3)===0) px(x+1, y, c); x = (x + 1) % N; }
-      }
-      for (let i=0; i<6; i++) px(rnd(N), rnd(N), "#e8f4ff");
-    },
-    shards(){                        // amethyst: angular crystal facets
-      fill(P.dark);
-      for (let b=0; b<6; b++){
-        const x0 = rnd(N), y0 = rnd(N), sz = 2 + rnd(4), c = b%2 ? P.light : P.base;
-        for (let dy=0; dy<sz; dy++)
-          for (let dx=0; dx<=dy; dx++) px(x0+dx, y0+dy, c);
-        px(x0, y0, P.accent);
-      }
-      for (let i=0; i<5; i++) px(rnd(N), rnd(N), P.darkest);
-    },
-  };
-  painters[block.s]();
-  return cv.toDataURL();
-}
-function mcPatternFill(hex){
-  if (!(hex in mcPatterns)){
-    if (!mcDefs){
-      const holder = el("svg", { width:0, height:0, style:"position:absolute" });
-      mcDefs = el("defs", {});
-      holder.appendChild(mcDefs);
-      document.body.appendChild(holder);
-    }
-    const id = "mcpat" + Object.keys(mcPatterns).length;
-    const pat = el("pattern", { id, width:BOARD.CELL, height:BOARD.CELL, patternUnits:"userSpaceOnUse" });
-    const img = el("image", { href:mcTextureURL(MC.BLOCKS[hex] || { s:"speckle", pal:mcShadesOf(hex) }),
-                              width:BOARD.CELL, height:BOARD.CELL, preserveAspectRatio:"none" });
-    img.style.imageRendering = "pixelated";
-    pat.appendChild(img);
-    mcDefs.appendChild(pat);
-    mcPatterns[hex] = id;
-  }
-  return `url(#${mcPatterns[hex]})`;
-}
-const mcThemeOn = () => THEMES[THEME.current].id === "minecraft";
-function cellFill(cell){ const c = cellColor(cell); return mcThemeOn() ? mcPatternFill(c) : c; }
-function cellStroke(){ return mcThemeOn() ? MC.GRID : CELL_STROKE; }
-
 function drawLadder(x1,y1,x2,y2){
   const dx=x2-x1, dy=y2-y1, len=Math.hypot(dx,dy);
   const ux=dx/len, uy=dy/len, px=-uy, py=ux, half=11;
@@ -1800,7 +1628,7 @@ function buildBoard(){
   for (let cell=1; cell<=BOARD.COUNT; cell++){
     const {x,y} = cellCenter(cell);
     const gx = x - C/2, gy = y - C/2;
-    svg.appendChild(el("rect",{"data-cell":cell,x:gx+1,y:gy+1,width:C-2,height:C-2,fill:cellFill(cell),stroke:cellStroke(),"stroke-width":"1.5"}));
+    svg.appendChild(el("rect",{"data-cell":cell,x:gx+1,y:gy+1,width:C-2,height:C-2,fill:cellColor(cell),stroke:"#1f6fb0","stroke-width":"1.5"}));
     svg.appendChild(el("rect",{x:gx+5,y:gy+5,width:26,height:18,rx:4,fill:"rgba(255,255,255,.78)"}));
     const t = el("text",{x:gx+18,y:gy+19,"text-anchor":"middle","font-size":"14","font-weight":"700",fill:"#2a2018","font-family":"Segoe UI, sans-serif"});
     t.textContent = cell;
@@ -1825,13 +1653,7 @@ function buildBoard(){
   svg.appendChild(lab);
 }
 
-function repaintCell(n){ const r = svg.querySelector(`[data-cell="${n}"]`); if (r) r.setAttribute("fill", cellFill(n)); }
-function repaintBoard(){
-  svg.querySelectorAll("[data-cell]").forEach(r => {
-    r.setAttribute("fill", cellFill(+r.getAttribute("data-cell")));
-    r.setAttribute("stroke", cellStroke());
-  });
-}
+function repaintCell(n){ const r = svg.querySelector(`[data-cell="${n}"]`); if (r) r.setAttribute("fill", cellColor(n)); }
 
 function slotOffset(k, n){
   // symmetric placement of the k-th of n tokens that share ONE tile; alone = centre
@@ -2489,7 +2311,6 @@ function applyTheme(){
   r.setProperty("--glow", t.glow);
   makeSnow(t.flakes, t.glyphs);
   makeClouds(t.clouds);
-  repaintBoard();
   document.getElementById("titleSub").textContent = t.sub;
   document.getElementById("themeBtn").textContent = `🎨 Theme: ${t.ico} ${t.name}`;
 }
@@ -6231,13 +6052,21 @@ function seatColor(i){
   if (setupColors[i]) return setupColors[i];
   return (RGB.enabled && i === MAX_PLAYERS - 1) ? RGB.ID : PLAYER_COLORS[i];
 }
-// A fancy chip is the ACTUAL pawn in miniature — same gradients, filters,
-// head paint and deco — so the picker shows exactly what you'll get.
+// A fancy chip fills its square with the skin's own paint (gradient or
+// pattern over the pawn's coordinate box), using the STILL twin and a cache:
+// the scoreboard repaints constantly, and rebuilding live-animated turbulence
+// chips every time made the whole game stutter on integrated graphics
+// (Isak, 2026-07-12). Skins with a special head get it dotted on top; the
+// pawns on the board stay fully animated.
+const fancyChipCache = {};
 function fancyChipSvg(f){
-  const g = makePawn(`url(#fancy-${f.id})`, f);
-  if (f.look.deco) addPawnDeco(g, f);
-  return `<svg viewBox="-18 -32 36 62" style="display:block;width:100%;height:100%">` +
-         new XMLSerializer().serializeToString(g) + `</svg>`;
+  if (!fancyChipCache[f.id])
+    fancyChipCache[f.id] =
+      `<svg viewBox="-12 -21 24 42" preserveAspectRatio="none" style="display:block;width:100%;height:100%">` +
+      `<rect x="-12" y="-21" width="24" height="42" fill="url(#fancy-${f.id}-still)"/>` +
+      (f.look.head ? `<circle cx="0" cy="-10" r="7" fill="url(#fancy-${f.id}-head-still)"/>` : "") +
+      `</svg>`;
+  return fancyChipCache[f.id];
 }
 function paintSwatchEl(el, color){
   const f = FANCY_BY_ID[color];

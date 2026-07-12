@@ -3,6 +3,19 @@
 Standing file: autonomous sessions log clarifications here instead of stopping to ask.
 Answer whenever — each answer gets folded in and the question checked off.
 
+## 2026-07-12 (late night) — recovery (defaults picked, say if wrong)
+
+- [ ] **Minecraft tiles are reverted and tabled** as you asked. The idea stays
+  in git history (`2883179`) if you ever want another attempt — but a
+  pixel-exact copy of the real textures stays off the table for the public
+  repo (copyright), so any retry means better original pixel art or living
+  with flat colours on the ⛏️ theme.
+- [ ] **Chips are now static** (no animation in the picker/scoreboard chips —
+  they show each skin's exact colours/pattern, frozen). This was the fix for
+  the stutter; the pawns on the board still animate fully. If you'd rather
+  have animated chips ONLY inside the colour popover (transient, mostly fine
+  perf-wise), that's a small change — say the word.
+
 ## 2026-07-12 (night) — art pass (defaults picked, say if wrong)
 
 - [ ] **"Down to the pixel" Minecraft textures**: Mojang's actual texture files
