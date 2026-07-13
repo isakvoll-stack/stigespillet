@@ -107,7 +107,9 @@ Painting and plain-tile detection are automatic — `cellColor` and `isPlainTile
 so the board follows the registry (even through the wheel's 🌀 tile shuffle).
 
 **A new movement modifier** (anything that adds steps to a roll): one entry in `MOVE_BONUSES`
-(`feature`, `amount(p, roll)`, optional `note`). `roll` is the die face, so a modifier
+(`feature`, `amount(p, roll)`, optional `note`). If `amount` mutates state (consumes a charge,
+takes a coin), also give the entry a pure `peek(p, roll)` — `moveBonusPeek` uses it for the
+two-dice landing preview and bot die choices; without it the preview consumes the resource. `roll` is the die face, so a modifier
 can scale with or invert the roll (the tan dizzy tile returns `-2*roll` to walk the
 whole move backwards); a net-negative total makes moveCurrent walk backwards generically.
 
