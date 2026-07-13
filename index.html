@@ -86,7 +86,7 @@
   .die.pick{opacity:1;cursor:pointer;box-shadow:0 4px 0 #b8a079, 0 0 16px 5px rgba(255,210,62,.8);animation:pickpulse .9s ease-in-out infinite}
   @keyframes pickpulse{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
   .die.dim{opacity:.35}
-  .die.faded{opacity:.22}
+  .die.faded{visibility:hidden}
 
   /* match play (Advanced settings) + series banner */
   .matchbtns{display:flex;gap:6px;margin:6px 0}
@@ -2319,7 +2319,7 @@ function newGame(roster){
 
 function refreshHUD(){
   const p = game.players[game.current];
-  // in a two-dice game the second die fades out when the coming roll is
+  // in a two-dice game the second die hides when the coming roll is
   // single-die (get-up/break-free and forced rolls)
   if (game.dualDice)
     die2.classList.toggle("faded", !!(p.downed || p.forceSix || p.forceRoll || (p.curseRolls||0) > 0));
@@ -2694,8 +2694,13 @@ async function fireCheatCall(){
   const shout = document.getElementById("cheatcall");
   shout.classList.remove("show"); void shout.offsetWidth; shout.classList.add("show");
   await sleep(ffms(CHEAT.SHOUT_MS));
-  const caller = cands.length === 1 ? cands[0] : await pickPlayer("Who calls it out?", cands);
+  const caller = await pickPlayer("Who calls it out?", cands, "Never mind…");
   shout.classList.remove("show");
+  if (!caller){                                    // the call is taken back; the move stays open
+    lastMove = lm; judging = false;
+    game.busy = false; refreshHUD(); maybeAuto();
+    return;
+  }
   await sleep(ffms(CHEAT.VERDICT_PAUSE_MS));
   const endNeeded = await resolveCheatCall(lm, caller);
   judging = false;
@@ -4912,7 +4917,7 @@ function orangeChoice(p){
 }
 
 let pickResolve = null;
-function pickPlayer(title, candidates){
+function pickPlayer(title, candidates, cancelLabel){
   return new Promise(res => {
     document.getElementById("pickerTitle").textContent = title;
     const list = document.getElementById("pickerList"); list.innerHTML = "";
@@ -4922,6 +4927,12 @@ function pickPlayer(title, candidates){
       b.onclick = () => { document.getElementById("picker").classList.remove("show"); pickResolve = null; res(q); };
       list.appendChild(b);
     });
+    if (cancelLabel){
+      const c = document.createElement("button");
+      c.className = "btn"; c.textContent = cancelLabel; c.style.boxShadow = "none";
+      c.onclick = () => { document.getElementById("picker").classList.remove("show"); pickResolve = null; res(null); };
+      list.appendChild(c);
+    }
     pickResolve = res;
     document.getElementById("picker").classList.add("show");
   });
