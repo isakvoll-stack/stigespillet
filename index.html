@@ -2064,9 +2064,11 @@ const MOVE_BONUSES = [
     amount: p => Math.floor((p.fish||0) / FISH.MOVE_PER_FISH),
     note: (p,n) => `🐟 ${p.name}'s catch carries them +${n} extra.` },
   { id:"coffee", feature:"shop",                          // a used Coffee boosts this one roll
-    amount: p => { const n = p.rollBonus||0; p.rollBonus = 0; return n; } },
+    amount: p => { const n = p.rollBonus||0; p.rollBonus = 0; return n; },
+    peek:   p => p.rollBonus||0 },
   { id:"fireegg", feature:"shop",                         // a Fire Egg singe shortens the next roll
     amount: p => { if (!p.singeRolls) return 0; p.singeRolls--; return -FIRE_EGG.SINGE; },
+    peek:   p => p.singeRolls ? -FIRE_EGG.SINGE : 0,
     note: (p,n) => `🔥 ${p.name} is singed — ${n} on this roll.` },
   { id:"shoes",  feature:"shop",                          // Running Shoes: +1 on every roll while worn
     amount: p => p.passive === "shoes" ? ITEM.SHOES_BONUS : 0 },
@@ -2083,6 +2085,7 @@ const MOVE_BONUSES = [
       p.dizzy = false;
       return DIZZY_TILES.includes(p.pos) ? -2*roll : 0;   // knocked off the square = the spinning fades
     },
+    peek: (p, roll) => p.dizzy && DIZZY_TILES.includes(p.pos) ? -2*roll : 0,
     note: p => `😵‍💫 ${p.name} is so dizzy the world runs the wrong way!` },
   { id:"stormstride", feature:"blackMarket",              // Stormstride pact: permanent stride
     amount: p => hasCurse(p, "stormstride") ? CURSE.STRIDE : 0 },
@@ -2098,6 +2101,7 @@ const MOVE_BONUSES = [
       }
       return -CURSE.BLOOD_SLOW;
     },
+    peek: p => hasCurse(p, "blooddice") && !(p.coins > 0) ? -CURSE.BLOOD_SLOW : 0,
     note: p => `🎲🩸 ${p.name}'s purse is dry — the Blood Dice drink their stride instead!` },
 ];
 
@@ -2111,6 +2115,25 @@ function moveBonusTotal(p, roll){
     if (b.note){ const msg = b.note(p, n); if (msg) log(msg); }
   }
   return total;
+}
+// Read-only twin of moveBonusTotal for previews: entries whose amount()
+// consumes something expose a pure `peek`; the rest are safe to ask directly.
+// No logs, no side effects.
+function moveBonusPeek(p, roll){
+  let total = 0;
+  for (const b of MOVE_BONUSES){
+    if (!FEATURES[b.feature]) continue;
+    total += (b.peek || b.amount)(p, roll);
+  }
+  return total;
+}
+// Where walking `steps` (die + bonuses) takes p — the exact path moveCurrent
+// animates, shared with the two-dice landing preview so the two can't drift.
+function movePathFor(p, steps){
+  const backwards = steps < 0 && p.pos > 1;
+  if (steps < 1 && !backwards) return { stuck:true, backwards:false, path:[Math.max(1, p.pos)] };
+  return { stuck:false, backwards,
+           path: backwards ? walkBackPath(p.pos, -steps) : walkPath(p.pos === 0 ? 0 : p.pos, steps) };
 }
 
 /* RARE_EVENTS: the turn-start strikes. Each entry is a feature flag + an
@@ -2433,7 +2456,8 @@ function pickDie(p, a, b){
     die.classList.add("pick"); die2.classList.add("pick");
     let marks = null;
     if (VARIANTS.dualPreview){
-      const same = walkPath(Math.max(0, p.pos), a).slice(-1)[0] === walkPath(Math.max(0, p.pos), b).slice(-1)[0];
+      const endOf = f => { const mv = movePathFor(p, f + moveBonusPeek(p, f)); return mv.path[mv.path.length - 1]; };
+      const same = endOf(a) === endOf(b);
       marks = el("g", {});
       marks.style.pointerEvents = "none";
       marks.appendChild(dieLandingMark(p, a, DUAL.MARK_COLORS[0], 0));
@@ -2448,14 +2472,15 @@ function pickDie(p, a, b){
     }};
   });
 }
-// One die's landing preview: a ring on the square that face walks to, the
+// One die's landing preview: a ring on the ACTUAL square that face would
+// walk you to (bonuses counted via moveBonusPeek — backward walks too), the
 // face number above it, and — if a ladder/chute waits there — a dashed line
-// to where it carries you. `lift` nudges the second mark when both dice
-// land on the same square.
+// to where it carries you (the Serpent Pact holder gets no line: links spare
+// them). `lift` nudges the second mark when both dice land on the same square.
 function dieLandingMark(p, face, color, lift){
-  const path = walkPath(Math.max(0, p.pos), face);
-  const landed = path[path.length - 1];
-  const link = linkAt(landed);
+  const mv = movePathFor(p, face + moveBonusPeek(p, face));
+  const landed = mv.path[mv.path.length - 1];
+  const link = hasCurse(p, "serpentpact") ? null : linkAt(landed);
   const c = cellCenter(landed);
   const g = el("g", {});
   if (link){
@@ -2476,7 +2501,8 @@ function dieLandingMark(p, face, color, lift){
 }
 function botPickDie(p, a, b){
   const from = p.pos === 0 ? 0 : p.pos;
-  return landingScore(from, a, p) + botRand() >= landingScore(from, b, p) + botRand() ? a : b;
+  const sc = f => { const s = f + moveBonusPeek(p, f); return s >= 1 ? landingScore(from, s, p) : -f; };
+  return sc(a) + botRand() >= sc(b) + botRand() ? a : b;
 }
 async function rollDual(cur){
   die2.style.display = "";
@@ -2517,15 +2543,15 @@ async function moveCurrent(rollValue, extraRoll){
     : (FEATURES.sixRollsAgain && rollValue === RULES.DICE_SIDES);
   p.onSecret = false; p.marketDue = false;     // leaving the secret square (if they were on it)
   const steps = rollValue + moveBonusTotal(p, rollValue); // die face + every active MOVE_BONUSES entry
-  const backwards = steps < 0 && p.pos > 1;    // a bonus deficit beyond the roll drags you back
-  if (steps < 1 && !backwards){                // sapped to nothing (the bonus notes said why)
+  const mv = movePathFor(p, steps);
+  if (mv.stuck){                               // sapped to nothing (the bonus notes said why)
     log(`😮‍💨 ${p.name} is too weak to move!`);
     await sleep(500);
     await endTurn(); return;
   }
+  const backwards = mv.backwards;              // a bonus deficit beyond the roll drags you back
   const from = p.pos === 0 ? 1 : p.pos;        // first move walks from square 1
-  const path = backwards ? walkBackPath(p.pos, -steps)
-                         : walkPath(p.pos === 0 ? 0 : p.pos, steps);
+  const path = mv.path;
   p.steps = (p.steps||0) + path.length;
   if (backwards) log(`↩️ ${p.name} hops ${path.length} backwards!`);
   const landed = path[path.length-1];

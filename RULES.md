@@ -57,10 +57,12 @@ live in the `GAME_MODES` DATA table):
   cursed 1s — bypass the choice and keep the classic 6 rule. The Everburning
   Heart still allows no bonus rolls at all.
   - **🔦 Show both landings** (sub-setting, on by default) — while you pick, the
-    two squares the plain faces would walk you to **light up** (a ring + the
-    face number, and a dashed line if a ladder/chute waits there). The preview
-    shows the bare die walk — roll bonuses (shoes, fish, coffee…) can shift the
-    real landing. *(Colours/sizes in `DUAL`.)*
+    two squares you would **actually** walk to light up (a ring + the face
+    number, and a dashed line if a ladder/chute waits there). The preview
+    counts every roll bonus — shoes, fish, coffee, a singe, radiation, even a
+    dizzy backward walk — without spending any of them, so it always matches
+    the real move. *(Colours/sizes in `DUAL`; the read-only bonus pass is
+    `moveBonusPeek` over the same `MOVE_BONUSES` registry.)*
 
 - **🥇 Match play** *(Advanced settings → 🏁 Game)* — play a **series**:
   *best of N* (3/5/7/9) or *first to N
