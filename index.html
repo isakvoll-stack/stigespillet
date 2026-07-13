@@ -83,6 +83,16 @@
   .die[data-face="6"] .pip:nth-child(1),.die[data-face="6"] .pip:nth-child(3),.die[data-face="6"] .pip:nth-child(4),.die[data-face="6"] .pip:nth-child(6),.die[data-face="6"] .pip:nth-child(7),.die[data-face="6"] .pip:nth-child(9)
   {visibility:visible}
   .roll-hint{font-size:13px;color:#d8c7a8}
+  .die.pick{opacity:1;cursor:pointer;box-shadow:0 4px 0 #b8a079, 0 0 16px 5px rgba(255,210,62,.8);animation:pickpulse .9s ease-in-out infinite}
+  @keyframes pickpulse{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+  .die.dim{opacity:.35}
+
+  /* match play (Advanced settings) + series banner */
+  .matchbtns{display:flex;gap:6px;margin:6px 0}
+  .matchbtns button{flex:1;padding:5px 8px;border-radius:8px;border:2px solid #d8c49a;background:#fff8ea;font:inherit;font-size:13px;cursor:pointer}
+  .matchbtns button.sel{background:#ffd23e;border-color:#b8952d;font-weight:700}
+  .serieshead{font-weight:700;font-size:18px;margin-bottom:10px}
+  .serieswins{font-weight:600;font-size:14px;margin-top:3px}
 
   /* buttons + setup */
   button.btn{
@@ -435,8 +445,14 @@
         </div>
         <div class="turn-sub" id="turnSub"></div>
         <div class="turn-sub" id="roundLine" style="display:none"></div>
+        <div class="turn-sub" id="matchLine" style="display:none"></div>
         <div class="dice-row">
           <div class="die disabled" id="die" data-face="1" title="Roll the die">
+            <span class="pip"></span><span class="pip"></span><span class="pip"></span>
+            <span class="pip"></span><span class="pip"></span><span class="pip"></span>
+            <span class="pip"></span><span class="pip"></span><span class="pip"></span>
+          </div>
+          <div class="die disabled" id="die2" data-face="1" title="The second die" style="display:none">
             <span class="pip"></span><span class="pip"></span><span class="pip"></span>
             <span class="pip"></span><span class="pip"></span><span class="pip"></span>
             <span class="pip"></span><span class="pip"></span><span class="pip"></span>
@@ -706,9 +722,32 @@ const FEATURES = {
   setback:       true,   // one dark-red tile near the start sends you back to tile 1
   dizzy:         true,   // the tan tile: stop there and your next move from it walks backwards
   brokenGate:    true,   // the black market's second section: free cursed pacts — great gifts, heavy prices
+  crafting:      true,   // carried item pieces fuse by themselves into secret crafts (the Singularity)
   botThoughts:   true,   // bots pause to show the decision they're weighing (slower, watchable bot turns)
   sound:         true,   // sound effects
 };
+const FEATURE_BASE = Object.assign({}, FEATURES);   // the authored defaults; Family Mode flips a set off per game
+
+/* ---- DATA: game variants (Advanced settings → 🏁 Game) --------------
+   family — the calmer, more skill-based race: the chaos meta-layer
+   (FAMILY.OFF features + the gun + two wheel slices) switches off for the
+   game, and radiation follows the softer FAMILY_CURVE.
+   dualDice — experimental: movement rolls throw TWO dice and you walk the
+   one you pick; DOUBLES (not 6s) grant the extra roll. Get-up / break-free
+   rolls and forced rolls (Clover, Loaded Dice) stay single-die. */
+const VARIANTS = { family:false, dualDice:false };
+const VARIANT_TOGGLES = [
+  { key:"family",   ico:"👨‍👩‍👧", name:"Family mode",
+    desc:"the calmer race — no cursed pacts, black market, fate swaps, board flips or gun; softer fallout" },
+  { key:"dualDice", ico:"🎲", name:"Two dice (experimental)",
+    desc:"movement rolls throw two dice and you walk ONE — doubles roll again instead of 6s" },
+];
+const FAMILY = {
+  OFF: ["fateSwap","warp","secretSquare","blackMarket","brokenGate","crafting"],
+  WHEEL_SKIP: ["gun","fate"],          // random-event outcomes the family wheel never draws
+};
+const MATCH = { mode:"off", len:3, BO_MIN:3, FT_MIN:2, LEN_MAX:9 };   // "off" | "bestof" | "firstto"
+let series = null;   // live match-play state: { mode, len, target, wins[], game, done }
 
 /* ---- DATA: ladders & slides (the only place board content lives) ----
    start -> end.  Ladders go UP (end > start); slides go DOWN.
@@ -1128,6 +1167,8 @@ const TXT = {
   moved:   (a,b)=>`moved ${a} → ${b}`,
   overshoot:(n)=>`too high — bouncing back from ${n}`,
   rollAgain: "rolled a 6 — roll again!",
+  rollAgainDual: "doubles — roll again!",
+  pickDie: "Pick a die — click it (or press 1 / 2)",
   bounced: (n,a,b)=>`${n} bounced on: ${a} → ${b}`,
   kicked:  (n,a,b)=>`${n} was kicked back: ${a} → ${b}`,
   won: (name)=>`${name} wins! 🎉`,
@@ -1346,7 +1387,9 @@ const WARP = { ANGLES:[90, 180, 270], SPIN_MS:800, active:0 };
 /* ---- DATA: radioactive fallout (created by a nuke) ------------------ */
 const RAD_TILES = [];                      // fallout tiles — empty until a nuke converts plain tiles
 const RAD_COLOR = "#58c81b";               // radioactive green
-const RAD = { PER_NUKE:2, GROW_TURNS:5, IMMUNE_BONUS:1 };  // tiles per nuke; sickness worsens 5 turns (to -5) then recovers; survive = permanent +1
+const RAD = { PER_NUKE:2, IMMUNE_BONUS:1,                  // tiles per nuke; survive the curve = permanent +1
+  CURVE:        [-1,-2,-3,-4,-5,-4,-3,-2,-1],              // roll modifier per sick turn; past the end = recovered
+  FAMILY_CURVE: [-1,-3,-5,-4,-2] };                        // Family Mode: sharper but shorter sickness
 const COIN = { PLAIN:1, BLUE:3, START:10 }; // coins per plain-tile landing (yellow pays quietly, blue pays big) + the opening purse
 const COIN_FX = {                          // how each coin source announces itself
   six:   { SOUND:false, POPS:0 },                          // rolled-6 bonus: silent — you only see it on the scoreboard
@@ -1815,6 +1858,7 @@ let revealResolve = null;         // pending rule-reveal resolver
 let spotDark = null, spotHole = null, beamEl = null, beamFrom = {x:0,y:0};  // spotlight + laser
 let arrowEl = null;               // "whose turn" arrow, re-parented onto the active token
 const die = document.getElementById("die");
+const die2 = document.getElementById("die2");
 const logEl = document.getElementById("log");
 
 /* ---- error trap: never soft-lock ------------------------------------
@@ -1907,7 +1951,7 @@ const LANDING_ORDER = {
 function specialTileColor(cell){
   for (const id in TILE_RULES){
     const r = TILE_RULES[id];
-    if (r.tiles.includes(cell)) return r.color;
+    if (FEATURES[r.feature] && r.tiles.includes(cell)) return r.color;
   }
   return null;
 }
@@ -1967,7 +2011,7 @@ async function irradiate(p){
   await revealRuleOnce("radioactive");
   if (p.radImmune){ log(`☢️ ${p.name} is hardened — the fallout can't touch them.`); return false; }
   if (p.radSick){
-    p.radTurns = Math.min(p.radTurns, RAD.GROW_TURNS);     // re-exposure knocks the recovery back
+    p.radTurns = Math.min(p.radTurns, radWorstTurn());     // re-exposure knocks the recovery back
     log(`☢️ ${p.name} soaks up MORE radiation — the recovery is set back!`);
   } else {
     p.radSick = true; p.radTurns = 0; p.radLevel = 0;
@@ -1977,16 +2021,20 @@ async function irradiate(p){
   await sleep(600);
   return true;
 }
-// Ticks at the start of each of the sick player's turns: -1 per turn down to -5,
-// then +1 per turn back to 0 — survive it and the hardening is a permanent +1.
+// Ticks at the start of each of the sick player's turns, walking the active
+// curve (Family Mode uses the softer one) — survive it and the hardening is
+// a permanent +1.
+function radCurve(){ return game && game.family ? RAD.FAMILY_CURVE : RAD.CURVE; }
+function radWorstTurn(){ const c = radCurve(); return c.indexOf(Math.min(...c)) + 1; }
 async function progressRadiation(p){
   p.radTurns++;
-  if (p.radTurns <= RAD.GROW_TURNS){
-    p.radLevel = -p.radTurns;
-    log(`☢️ ${p.name}'s radiation sickness worsens (${p.radLevel} on rolls).`);
-  } else if (p.radTurns < RAD.GROW_TURNS*2){
-    p.radLevel = -(RAD.GROW_TURNS*2 - p.radTurns);
-    log(`☢️ ${p.name} is recovering (${p.radLevel} on rolls).`);
+  const curve = radCurve();
+  if (p.radTurns <= curve.length){
+    const prev = p.radLevel;
+    p.radLevel = curve[p.radTurns - 1];
+    log(p.radLevel < prev
+      ? `☢️ ${p.name}'s radiation sickness worsens (${p.radLevel} on rolls).`
+      : `☢️ ${p.name} is recovering (${p.radLevel} on rolls).`);
   } else {
     p.radSick = false; p.radLevel = 0; p.radImmune = true;
     await revealRuleOnce("mutation", p.name);
@@ -2189,7 +2237,12 @@ function newGame(roster){
     mode: chosenMode, maxRounds: chosenMode === "koth" ? (chosenRounds || defaultRounds(count)) : 0,
     finishNeed: Math.max(1, Math.min(FINISH.NEED, count)), placesTaken: 0,
     standings: null, marketVisits: 0, traps: [],
+    family: VARIANTS.family, dualDice: VARIANTS.dualDice,
   };
+  // Family Mode flips its feature set off for this game (and back for a normal one)
+  FAMILY.OFF.forEach(k => { FEATURES[k] = game.family ? false : FEATURE_BASE[k]; });
+  die2.style.display = game.dualDice ? "" : "none";
+  die2.classList.remove("dim"); die.classList.remove("dim");
   hideSecret();
   TRAP89_TILES.splice(0, Infinity, TRAP89.TILE);   // re-arm the tile-89 trapdoor for the new game
   RAD_TILES.splice(0, Infinity);                   // clear last game's fallout
@@ -2216,10 +2269,13 @@ function refreshHUD(){
   const roundLine = document.getElementById("roundLine");
   roundLine.style.display = isKoth() ? "" : "none";
   if (isKoth()) roundLine.textContent = `🏆 Round ${Math.min(game.round, game.maxRounds)} of ${game.maxRounds}`;
+  const matchLine = document.getElementById("matchLine");
+  matchLine.style.display = series ? "" : "none";
+  if (series) matchLine.textContent = `🥇 Match game ${series.game} · wins ${series.wins.join("–")}`;
   if (game.winner){
     sub.textContent = "";
     hint.innerHTML = "";
-    die.classList.add("disabled");
+    die.classList.add("disabled"); die2.classList.add("disabled");
   } else {
     sub.textContent = game.busy ? TXT.rolling
       : (p.downed ? (p.frozen ? "frozen 🧊" : TXT.down) : (p.pos >= BOARD.WIN-6 && p.pos > 0 ? "🔥 Almost home!" : ""));
@@ -2227,6 +2283,7 @@ function refreshHUD(){
       ? (p.frozen ? `Roll to break free (${getupNeed(p)}+)` : `Roll to get up (${getupNeed(p)}+)`)
       : TXT.rollHint);
     die.classList.toggle("disabled", game.busy);
+    die2.classList.toggle("disabled", game.busy);
   }
   const invBtn = document.getElementById("invBtn");
   if (invBtn){
@@ -2323,6 +2380,7 @@ function log(msg, cls){
 }
 
 function setDie(v){ die.setAttribute("data-face", v); }
+function setDie2(v){ die2.setAttribute("data-face", v); }
 
 async function roll(){
   if (!game || game.winner || game.busy) return;
@@ -2330,6 +2388,12 @@ async function roll(){
   const cur = game.players[game.current];
   if (cur.bot && !cur.downed) await botMaybeUseItem(cur);    // bots spend coffee/clover before rolling
   game.busy = true; refreshHUD();
+  // Two-dice movement rolls take their own path; get-up/break-free rolls and
+  // forced rolls (Clover, Loaded Dice, cursed 1s) stay on the single die.
+  if (game.dualDice && !cur.downed && !cur.forceSix && !cur.forceRoll && !(cur.curseRolls > 0)){
+    await rollDual(cur); return;
+  }
+  die.classList.remove("dim"); die2.classList.remove("dim");
   die.classList.add("rolling");
   SFX.play("dice");
   const end = performance.now() + ffms(ANIM.DICE);
@@ -2352,9 +2416,62 @@ async function roll(){
   else await moveCurrent(value);
 }
 
-async function moveCurrent(rollValue){
+/* ---- two-dice movement (the dualDice variant) -----------------------
+   Both dice roll; the player walks ONE of them. Doubles replace the 6 as
+   the roll-again trigger (the Everburning Heart still allows no bonus
+   rolls). Equal faces need no choice; bots score both landings and pick. */
+let dicePick = null;   // live "choose your die" state: { a, b, res }
+function pickDie(a, b){
+  return new Promise(res => {
+    showPrompt(TXT.pickDie);
+    die.classList.add("pick"); die2.classList.add("pick");
+    dicePick = { a, b, res: v => {
+      dicePick = null; hidePrompt();
+      die.classList.remove("pick"); die2.classList.remove("pick");
+      res(v);
+    }};
+  });
+}
+function botPickDie(p, a, b){
+  const from = p.pos === 0 ? 0 : p.pos;
+  return landingScore(from, a, p) + botRand() >= landingScore(from, b, p) + botRand() ? a : b;
+}
+async function rollDual(cur){
+  die.classList.remove("dim"); die2.classList.remove("dim");
+  die.classList.add("rolling"); die2.classList.add("rolling");
+  SFX.play("dice");
+  const end = performance.now() + ffms(ANIM.DICE);
+  while (performance.now() < end){
+    setDie(1 + Math.floor(Math.random()*RULES.DICE_SIDES));
+    setDie2(1 + Math.floor(Math.random()*RULES.DICE_SIDES));
+    await sleep(70);
+  }
+  die.classList.remove("rolling"); die2.classList.remove("rolling");
+  const a = pactAdjustRoll(cur, 1 + Math.floor(Math.random()*RULES.DICE_SIDES));
+  const b = pactAdjustRoll(cur, 1 + Math.floor(Math.random()*RULES.DICE_SIDES));
+  setDie(a); setDie2(b);
+  const again = FEATURES.sixRollsAgain && a === b && !hasCurse(cur, "emberheart");
+  await sleep(160);
+  let value;
+  if (a === b) value = a;
+  else if (cur.bot){
+    value = botPickDie(cur, a, b);
+    log(`🎲 ${cur.name} walks the ${value}.`);
+  } else {
+    value = await pickDie(a, b);
+  }
+  if (a !== b) (value === a ? die2 : die).classList.add("dim");
+  if (again) sixEffect();
+  await moveCurrent(value, again);
+}
+
+async function moveCurrent(rollValue, extraRoll){
   const p = game.players[game.current];
   const i = game.current;
+  // Another roll still coming? Classic: a rolled 6. Dual dice passes its own
+  // verdict in (doubles) — a walked 6 is then just a 6.
+  const rollsAgain = extraRoll !== undefined ? extraRoll
+    : (FEATURES.sixRollsAgain && rollValue === RULES.DICE_SIDES);
   p.onSecret = false; p.marketDue = false;     // leaving the secret square (if they were on it)
   const steps = rollValue + moveBonusTotal(p, rollValue); // die face + every active MOVE_BONUSES entry
   const backwards = steps < 0 && p.pos > 1;    // a bonus deficit beyond the roll drags you back
@@ -2396,16 +2513,16 @@ async function moveCurrent(rollValue){
   if (p.pos === BOARD.WIN){
     await finishPlayer(p);
     if (game.over) return;
-    if (isKoth()) await afterKothLap(p, rollValue);
+    if (isKoth()) await afterKothLap(p, rollsAgain);
     else await endTurn();               // finished: no bonus roll, the rest race on
     return;
   }
 
-  // A 6 means another roll is still coming, so the square you're on isn't your
-  // final stop yet. Choice/minigame tiles (fishing, teleporter, orange, shop,
-  // setback, freeze) only fire on the square you END your turn on — on a 6 we
-  // skip them here and let the player roll again from this square.
-  const rolledSix = FEATURES.sixRollsAgain && rollValue === RULES.DICE_SIDES;
+  // rollsAgain (a 6 — or doubles under dual dice) means another roll is still
+  // coming, so the square you're on isn't your final stop yet. Choice/minigame
+  // tiles (fishing, teleporter, orange, shop, setback, freeze) only fire on the
+  // square you END your turn on — here we skip them and let the player roll
+  // again from this square.
 
   // Landing on an occupied tile is settled FIRST, before any tile event/minigame.
   // Bounce forward and you leave this square (so its event never fires for you);
@@ -2414,7 +2531,7 @@ async function moveCurrent(rollValue){
     const lapsBefore = p.laps || 0;
     await resolveEncounters(p);
     if (game.over) return;
-    if ((p.laps||0) > lapsBefore){ await afterKothLap(p, rollValue); return; }   // bounced onto the top mid-chain
+    if ((p.laps||0) > lapsBefore){ await afterKothLap(p, rollsAgain); return; }   // bounced onto the top mid-chain
     if (p.finished){ await endTurn(); return; }   // bounced home mid-chain (multi-finish race)
   }
 
@@ -2426,7 +2543,7 @@ async function moveCurrent(rollValue){
   }
 
   // hand the landing to the tile-rule registry; a rule that fires ends the turn
-  if (!rolledSix && !slipped){
+  if (!rollsAgain && !slipped){
     const fired = await runTileRules(p, {offTurn:false, depth:0});
     if (game.over) return;
     if (fired){ await endTurn(); return; }
@@ -2438,10 +2555,10 @@ async function moveCurrent(rollValue){
     awardCoin(p, blue ? "Blue tile" : "Plain tile", blue ? COIN.BLUE : COIN.PLAIN, blue ? "blue" : "plain");
   }
 
-  // a 6 earns another roll for the same player; otherwise end the turn
-  if (FEATURES.sixRollsAgain && rollValue === RULES.DICE_SIDES){
-    if (FEATURES.coins) awardCoin(p, "Rolled a 6", 1, "six");
-    log(TXT.rollAgain);
+  // a 6 (or doubles) earns another roll for the same player; otherwise end the turn
+  if (rollsAgain){
+    if (FEATURES.coins) awardCoin(p, extraRoll !== undefined ? "Rolled doubles" : "Rolled a 6", 1, "six");
+    log(extraRoll !== undefined ? TXT.rollAgainDual : TXT.rollAgain);
     game.busy = false; refreshHUD(); maybeAuto();
   } else {
     await endTurn();
@@ -2547,8 +2664,27 @@ function endClassic(){
   game.standings.forEach((q,idx) => { q.place = idx + 1; });
   game.winner = game.standings[0];
   log(TXT.won(game.winner.name), "win");
+  recordSeriesResult();
   showStandings();
   game.busy = false; refreshHUD();
+}
+
+/* ---- match play (best of / first to; MATCH in DATA) ------------------
+   A series spans games with the same roster: each game's winner banks a
+   win, the first to `target` takes the match. Seat order is the key, so
+   the wins array lines up with the scoreboard. */
+function initSeries(count){
+  series = MATCH.mode === "off" ? null
+    : { mode: MATCH.mode, len: MATCH.len,
+        target: MATCH.mode === "bestof" ? Math.floor(MATCH.len/2) + 1 : MATCH.len,
+        wins: Array(count).fill(0), game: 1, done: false };
+}
+function recordSeriesResult(){
+  if (!series || series.done) return;
+  const wi = game.players.indexOf(game.winner);
+  if (wi < 0) return;
+  series.wins[wi]++;
+  series.done = series.wins[wi] >= series.target;
 }
 
 /* ---- King of the Hill: trophies + the final whistle ----------------- */
@@ -2565,11 +2701,12 @@ function awardTrophy(p, reason, n){
 }
 
 // After a lap the runner stands in the START lane, where no tile logic
-// applies; only the roll-again rule is still honoured before the turn passes.
-async function afterKothLap(p, rollValue){
-  if (FEATURES.sixRollsAgain && rollValue === RULES.DICE_SIDES){
-    if (FEATURES.coins) awardCoin(p, "Rolled a 6", 1, "six");
-    log(TXT.rollAgain);
+// applies; only the roll-again verdict (a 6 — or doubles under dual dice)
+// is still honoured before the turn passes.
+async function afterKothLap(p, rollsAgain){
+  if (rollsAgain){
+    if (FEATURES.coins) awardCoin(p, game.dualDice ? "Rolled doubles" : "Rolled a 6", 1, "six");
+    log(game.dualDice ? TXT.rollAgainDual : TXT.rollAgain);
     game.busy = false; refreshHUD(); maybeAuto();
   } else {
     await endTurn();
@@ -2613,6 +2750,7 @@ async function finishKoth(){
   s.forEach((q,idx) => { q.place = idx + 1; });
   SFX.play("win");
   log(`⏰ Time! ${game.winner.name} takes the hill with ${game.winner.trophies||0} 🏆!`, "win");
+  recordSeriesResult();
   showStandings();
   game.busy = false; refreshHUD();
 }
@@ -2917,8 +3055,10 @@ async function botEncounterChoice(p, others){
 }
 
 async function botPickOrange(p){
-  await botThink(p, "weighs the wheel, the gun and a “helping hand”");
-  const opt = weightedPick(BOT.ORANGE, BOT.ORANGE_WEIGHTS);
+  await botThink(p, game.family ? "weighs the wheel and a “helping hand”"
+                                : "weighs the wheel, the gun and a “helping hand”");
+  const pool = BOT.ORANGE.filter(o => !(game.family && o === "gun"));   // Family Mode retires the revolver
+  const opt = weightedPick(pool, pool.map(o => BOT.ORANGE_WEIGHTS[BOT.ORANGE.indexOf(o)]));
   await botDecide(p, opt === "wheel" ? "spins the wheel! 🎡"
                  : opt === "gun" ? "goes for the revolver… 🔫"
                  : "lends a helping hand 🤝");
@@ -4382,8 +4522,9 @@ let orangeResolve = null;
 function orangeChoice(p){
   return new Promise(res => {
     showSpotlight(p.pos);
+    document.getElementById("optGun").style.display = game.family ? "none" : "";
     document.getElementById("orangeText").innerHTML =
-      `<b style="color:${p.color}">${p.name}</b> — Wheel, Support or Gun?`;
+      `<b style="color:${p.color}">${p.name}</b> — ${game.family ? "Wheel or Support?" : "Wheel, Support or Gun?"}`;
     document.getElementById("orange").classList.add("show");
     orangeResolve = (c) => {
       document.getElementById("orange").classList.remove("show");
@@ -4907,21 +5048,22 @@ async function goldRain(p){
 // necessarily involved. Matches the behaviour before the player-targeted slot was added.
 async function randomBoardEvent(p){
   const effects = [
-    ()=> nukeEveryone("🎲 "),
-    async()=>{ SFX.play("chute"); noteSkip(p, p.pos, 1); p.pos = 1; layoutTokens(); renderScoreboard(); log(`🎲 Random: ${p.name} back to start!`); await sleep(600); await resolveLanding(p); },
-    async()=>{ log(`🎲 Random: ${p.name} inches forward.`); await advancePlayer(p, MOVE.WHEEL_NEXT); },
-    async()=>{ log(`🎲 Random: ${p.name} leaps 15 spaces!`); await advancePlayer(p, MOVE.WHEEL_BIG); },
-    ()=> revolverRoulette(p),
-    ()=> runSupport(p),
-    async()=>{ await revealRuleOnce("lightning"); await strikeLightning(); },     // hits the LEADER
-    async()=>{ p.fish = (p.fish||0) + 1; SFX.play("catch"); renderScoreboard(); log(`🎲🐟 Random: ${p.name} gains a fish!`); await sleep(500); },
-    ()=> freezeFromRandom(p),
-    async()=>{ await revealRuleOnce("lucky"); await strikeLucky(); },             // carries the TRAILER
-    ()=> strikeFate(),                                                             // swaps LEADER and LAST
-    ()=> randomTeleport(p),
-    async()=>{ SFX.play("click"); log(`🎲 Random: … nothing happens.`); await sleep(500); },
+    { run:()=> nukeEveryone("🎲 ") },
+    { run:async()=>{ SFX.play("chute"); noteSkip(p, p.pos, 1); p.pos = 1; layoutTokens(); renderScoreboard(); log(`🎲 Random: ${p.name} back to start!`); await sleep(600); await resolveLanding(p); } },
+    { run:async()=>{ log(`🎲 Random: ${p.name} inches forward.`); await advancePlayer(p, MOVE.WHEEL_NEXT); } },
+    { run:async()=>{ log(`🎲 Random: ${p.name} leaps 15 spaces!`); await advancePlayer(p, MOVE.WHEEL_BIG); } },
+    { id:"gun",  run:()=> revolverRoulette(p) },
+    { run:()=> runSupport(p) },
+    { run:async()=>{ await revealRuleOnce("lightning"); await strikeLightning(); } },     // hits the LEADER
+    { run:async()=>{ p.fish = (p.fish||0) + 1; SFX.play("catch"); renderScoreboard(); log(`🎲🐟 Random: ${p.name} gains a fish!`); await sleep(500); } },
+    { run:()=> freezeFromRandom(p) },
+    { run:async()=>{ await revealRuleOnce("lucky"); await strikeLucky(); } },             // carries the TRAILER
+    { id:"fate", run:()=> strikeFate() },                                                  // swaps LEADER and LAST
+    { run:()=> randomTeleport(p) },
+    { run:async()=>{ SFX.play("click"); log(`🎲 Random: … nothing happens.`); await sleep(500); } },
   ];
-  await effects[(Math.random()*effects.length)|0]();
+  const pool = effects.filter(e => !(game.family && FAMILY.WHEEL_SKIP.includes(e.id)));
+  await pool[(Math.random()*pool.length)|0].run();
 }
 
 // Special-tile placement. The canonical layout is captured at load; a scrambled
@@ -4975,21 +5117,22 @@ async function randomWheelEffect(p){
   // Every random effect centres on YOU (the spinner): lightning hits you, the star
   // carries you, the swap trades you with the leader or the trailer, etc.
   const effects = [
-    ()=> nukeEveryone("🎲 "),
-    async()=>{ SFX.play("chute"); noteSkip(p, p.pos, 1); p.pos = 1; layoutTokens(); renderScoreboard(); log(`🎲 Random: ${p.name} back to start!`); await sleep(600); await resolveLanding(p); },
-    async()=>{ log(`🎲 Random: ${p.name} inches forward.`); await advancePlayer(p, MOVE.WHEEL_NEXT); },
-    async()=>{ log(`🎲 Random: ${p.name} leaps 15 spaces!`); await advancePlayer(p, MOVE.WHEEL_BIG); },
-    ()=> revolverRoulette(p),
-    ()=> runSupport(p),
-    async()=>{ await revealRuleOnce("lightning"); await lightningStrike(p); },     // strikes YOU
-    async()=>{ p.fish = (p.fish||0) + 1; SFX.play("catch"); renderScoreboard(); log(`🎲🐟 Random: ${p.name} gains a fish!`); await sleep(500); },
-    ()=> freezeFromRandom(p),
-    async()=>{ await revealRuleOnce("lucky"); await luckySweep(p); },              // carries YOU
-    ()=> fateSwapYou(p),                                                            // YOU swap w/ leader or trailer
-    ()=> randomTeleport(p),
-    ()=> downYou(p),                                                                // YOU get picked off
+    { run:()=> nukeEveryone("🎲 ") },
+    { run:async()=>{ SFX.play("chute"); noteSkip(p, p.pos, 1); p.pos = 1; layoutTokens(); renderScoreboard(); log(`🎲 Random: ${p.name} back to start!`); await sleep(600); await resolveLanding(p); } },
+    { run:async()=>{ log(`🎲 Random: ${p.name} inches forward.`); await advancePlayer(p, MOVE.WHEEL_NEXT); } },
+    { run:async()=>{ log(`🎲 Random: ${p.name} leaps 15 spaces!`); await advancePlayer(p, MOVE.WHEEL_BIG); } },
+    { id:"gun",  run:()=> revolverRoulette(p) },
+    { run:()=> runSupport(p) },
+    { run:async()=>{ await revealRuleOnce("lightning"); await lightningStrike(p); } },     // strikes YOU
+    { run:async()=>{ p.fish = (p.fish||0) + 1; SFX.play("catch"); renderScoreboard(); log(`🎲🐟 Random: ${p.name} gains a fish!`); await sleep(500); } },
+    { run:()=> freezeFromRandom(p) },
+    { run:async()=>{ await revealRuleOnce("lucky"); await luckySweep(p); } },              // carries YOU
+    { id:"fate", run:()=> fateSwapYou(p) },                                                 // YOU swap w/ leader or trailer
+    { run:()=> randomTeleport(p) },
+    { run:()=> downYou(p) },                                                                // YOU get picked off
   ];
-  await effects[(Math.random()*effects.length)|0]();
+  const pool = effects.filter(e => !(game.family && FAMILY.WHEEL_SKIP.includes(e.id)));
+  await pool[(Math.random()*pool.length)|0].run();
 }
 
 async function spinWheel(p){
@@ -5053,6 +5196,7 @@ function giveItem(p, id){
 function takeItem(p, id){ const k = p.items.indexOf(id); if (k >= 0) p.items.splice(k, 1); }
 // The CRAFT recipes fuse by themselves the moment the pieces share a bag.
 function checkCrafting(p){
+  if (!FEATURES.crafting) return;
   for (const r of CRAFT){
     for (let fused = true; fused;){
       fused = false;
@@ -5935,7 +6079,16 @@ function showStandings(){
           `<span class="lbstats">${stats}</span></div>`;
   });
   lb += '</div>';
-  document.getElementById("bannerText").innerHTML = pod + lb;
+  let seriesHtml = "";
+  if (series){
+    const line = game.players.map((q,i)=>`<b style="color:${q.color}">${q.name}</b> ${series.wins[i]}`).join(" · ");
+    seriesHtml = `<div class="serieshead">` + (series.done
+      ? `👑 ${game.winner.name} wins the match!`
+      : `🥇 Match — game ${series.game} of ${series.mode === "bestof" ? "best of " + series.len : "first to " + series.len + " wins"}`) +
+      `<div class="serieswins">${line}</div></div>`;
+  }
+  document.getElementById("bannerNew").textContent = series && !series.done ? "▶ Next game" : "Play again";
+  document.getElementById("bannerText").innerHTML = seriesHtml + pod + lb;
   document.getElementById("banner").classList.add("show");
   confettiBurst();
 }
@@ -5981,7 +6134,7 @@ function buildRoundsRow(){
    (enabled is what shopStock() filters on — shop + black market alike);
    Board = BOARD_OPTIONS (read by newGame via boardOpt). */
 const ADV_SECTIONS = [
-  { id:"game", title:"🏁 Game", build: list => buildFinishRow(list) },
+  { id:"game", title:"🏁 Game", build: list => { buildFinishRow(list); buildVariantRows(list); buildMatchRow(list); } },
   { id:"items", title:"🛒 Items", entries: SHOP_CATALOG.filter(i => !i.craftOnly) },   // craft-only pieces stay a secret
   { id:"exotics", title:"🕯️ Black market", entries: EXOTICS },
   { id:"cursed", title:"⛓️ Broken Gate", entries: CURSED },
@@ -6011,6 +6164,57 @@ function buildFinishRow(list){
   r.oninput = ()=>{ FINISH.NEED = +r.value; paint(); saveSettings(); };
   paint();
   row.append(label, r); list.appendChild(row);
+}
+// The variant checkboxes (Family Mode, dual dice) — VARIANT_TOGGLES DATA rows
+// binding straight onto VARIANTS; a new variant is one table entry.
+function buildVariantRows(list){
+  VARIANT_TOGGLES.forEach(v => {
+    const row = document.createElement("label"); row.className = "adv-item";
+    const box = document.createElement("input"); box.type = "checkbox";
+    box.checked = VARIANTS[v.key];
+    box.onchange = ()=>{ VARIANTS[v.key] = box.checked; saveSettings(); };
+    const label = document.createElement("span");
+    label.innerHTML = `${v.ico} <b>${v.name}</b> <span class="adv-desc">— ${v.desc}</span>`;
+    row.append(box, label); list.appendChild(row);
+  });
+}
+// Match play: off / best of N / first to N wins. Applies when the next game
+// is started from the setup screen; a running series keeps its own numbers.
+function buildMatchRow(list){
+  const row = document.createElement("div"); row.className = "rounds";
+  const label = document.createElement("div"); label.className = "rounds-label";
+  const btns = document.createElement("div"); btns.className = "matchbtns";
+  const r = document.createElement("input"); r.type = "range";
+  const snapLen = ()=>{
+    if (MATCH.mode === "bestof"){
+      MATCH.len = Math.max(MATCH.BO_MIN, Math.min(MATCH.LEN_MAX, MATCH.len));
+      if (MATCH.len % 2 === 0) MATCH.len++;                    // best-of stays odd — no drawn series
+    } else if (MATCH.mode === "firstto"){
+      MATCH.len = Math.max(MATCH.FT_MIN, Math.min(MATCH.LEN_MAX, MATCH.len));
+    }
+  };
+  const paint = ()=>{
+    [...btns.children].forEach(b => b.classList.toggle("sel", b.dataset.mode === MATCH.mode));
+    r.style.display = MATCH.mode === "off" ? "none" : "";
+    if (MATCH.mode === "off"){
+      label.innerHTML = `🥇 Match play: <b>off</b> <span class="adv-desc">— one game at a time</span>`;
+    } else {
+      const bo = MATCH.mode === "bestof";
+      r.min = bo ? MATCH.BO_MIN : MATCH.FT_MIN; r.max = MATCH.LEN_MAX; r.step = bo ? 2 : 1;
+      r.value = MATCH.len;
+      label.innerHTML = `🥇 Match play: <b>${bo ? "best of " + MATCH.len : "first to " + MATCH.len + " wins"}</b> ` +
+        `<span class="adv-desc">— the winner of each game banks a win</span>`;
+    }
+  };
+  [["off","Single game"],["bestof","Best of …"],["firstto","First to …"]].forEach(([m, name]) => {
+    const b = document.createElement("button"); b.type = "button";
+    b.dataset.mode = m; b.textContent = name;
+    b.onclick = ()=>{ MATCH.mode = m; snapLen(); paint(); saveSettings(); };
+    btns.appendChild(b);
+  });
+  r.oninput = ()=>{ MATCH.len = +r.value; paint(); saveSettings(); };
+  snapLen(); paint();
+  row.append(label, btns, r); list.appendChild(row);
 }
 function buildAdvanced(){
   const body = document.getElementById("advBody");
@@ -6246,6 +6450,7 @@ function startFromSetup(){
     takenCols.add(col);
     roster.push({ name: nm, bot: allBots || !!setupBots[i], color: col });
   }
+  initSeries(roster.length);       // a fresh start begins a fresh match (or none)
   newGame(roster);
   showScreen("game");
   startTurn();                     // begin (handles a first-turn sniper, then auto if enabled)
@@ -6264,6 +6469,8 @@ function saveSettings(){
       rgb: RGB.enabled,
       theme: THEMES[THEME.current].id,
       finishNeed: FINISH.NEED,
+      variants: { family: VARIANTS.family, dualDice: VARIANTS.dualDice },
+      match: { mode: MATCH.mode, len: MATCH.len },
       items: Object.fromEntries([...SHOP_CATALOG, ...EXOTICS, ...CURSED].map(i => [i.id, i.enabled])),
       board: Object.fromEntries(BOARD_OPTIONS.map(b => [b.key, b.enabled])),
     }));
@@ -6278,6 +6485,14 @@ function loadSettings(){
     if (typeof s.fastForward === "boolean") SPEED.fastForward = s.fastForward;
     if (typeof s.rgb === "boolean") RGB.enabled = s.rgb;
     if (typeof s.finishNeed === "number") FINISH.NEED = Math.max(1, Math.min(MAX_PLAYERS, s.finishNeed));
+    if (s.variants){
+      if (typeof s.variants.family === "boolean") VARIANTS.family = s.variants.family;
+      if (typeof s.variants.dualDice === "boolean") VARIANTS.dualDice = s.variants.dualDice;
+    }
+    if (s.match){
+      if (["off","bestof","firstto"].includes(s.match.mode)) MATCH.mode = s.match.mode;
+      if (typeof s.match.len === "number") MATCH.len = Math.max(MATCH.FT_MIN, Math.min(MATCH.LEN_MAX, s.match.len));
+    }
     const ti = THEMES.findIndex(t => t.id === s.theme);
     if (ti >= 0) THEME.current = ti;
     [...SHOP_CATALOG, ...EXOTICS, ...CURSED].forEach(i => { if (s.items && typeof s.items[i.id] === "boolean") i.enabled = s.items[i.id]; });
@@ -6286,8 +6501,14 @@ function loadSettings(){
 }
 
 /* ---- wire up ------------------------------------------------------- */
-die.addEventListener("click", roll);
+die.addEventListener("click", ()=>{ if (dicePick) dicePick.res(dicePick.a); else roll(); });
+die2.addEventListener("click", ()=>{ if (dicePick) dicePick.res(dicePick.b); });
 document.addEventListener("keydown", e=>{
+  if (dicePick){                                                            // dual dice: pick with 1 / 2
+    if (e.code === "Digit1" || e.code === "Numpad1") dicePick.res(dicePick.a);
+    else if (e.code === "Digit2" || e.code === "Numpad2") dicePick.res(dicePick.b);
+    return;
+  }
   if (document.getElementById("fish").classList.contains("show")) return;   // minigame owns its keys
   if (document.getElementById("inv").classList.contains("show")){
     if (e.code === "Enter"){ e.preventDefault(); closeInventory(); }
@@ -6298,7 +6519,7 @@ document.addEventListener("keydown", e=>{
   if (document.getElementById("orange").classList.contains("show")){
     if (e.code === "KeyW"){ if (orangeResolve) orangeResolve("wheel"); }
     else if (e.code === "KeyS"){ if (orangeResolve) orangeResolve("support"); }
-    else if (e.code === "KeyG"){ if (orangeResolve) orangeResolve("gun"); }
+    else if (e.code === "KeyG" && !game.family){ if (orangeResolve) orangeResolve("gun"); }
     return;
   }
   if (document.getElementById("reveal").classList.contains("show")){
@@ -6364,6 +6585,8 @@ document.getElementById("seatMinus").addEventListener("click", ()=>{ chosenSeats
 document.getElementById("seatPlus").addEventListener("click", ()=>{ chosenSeats=Math.min(MAX_PLAYERS,chosenSeats+1); buildSetup(); });
 document.getElementById("startBtn").addEventListener("click", startFromSetup);
 document.getElementById("bannerNew").addEventListener("click", ()=>{
+  if (series && !series.done) series.game++;                 // the match rolls on…
+  else initSeries(game.players.length);                      // …or a fresh one begins
   newGame(game.players.map(p=>({ name:p.name, bot:p.bot, color: p.fancy || p.color }))); // replay the same roster
   startTurn();
 });

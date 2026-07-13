@@ -55,7 +55,21 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
-Recently shipped (2026-07-12, latest): **stability recovery** — the Minecraft
+Recently shipped (2026-07-13, latest): **Family Mode, two-dice variant &
+match play** (Advanced settings → 🏁 Game). Family Mode keeps almost every
+rule but retires the chaos meta-layer (fate swap, warp square, secret
+square/black market/pacts, Singularity crafting, the gun — also filtered out
+of the wheel's 🎲 slices) and runs the softer `RAD.FAMILY_CURVE` fallout.
+Two dice (experimental): movement rolls throw two dice, you walk the one you
+pick (click / 1 / 2, bots score both landings); doubles — not 6s — roll
+again; get-up and forced rolls stay single-die. Match play: best-of-N or
+first-to-N series with a HUD score line, series banner and ▶ Next game flow.
+All three persist in localStorage; open defaults logged in
+`Next/QUESTIONS.md`. Verified 24/24 headless (full family+dual bot game and
+a complete first-to-2 series). Next: Isak reviews the defaults + a real
+in-browser feel-test of the two-dice UI.
+
+Before that (2026-07-12): **stability recovery** — the Minecraft
 tile textures are REVERTED and tabled (Isak's call; the generated pixel art
 wasn't close enough to the real blocks, and exact copies can't legally go in
 a public repo). Root cause of the "game feels broken" report found and fixed:

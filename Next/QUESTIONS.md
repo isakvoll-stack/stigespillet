@@ -3,6 +3,25 @@
 Standing file: autonomous sessions log clarifications here instead of stopping to ask.
 Answer whenever — each answer gets folded in and the question checked off.
 
+## 2026-07-13 — Family Mode / two dice / match play (defaults picked, say if wrong)
+
+- [ ] **Two dice + forced rolls:** the Clover (forces a 6) and Loaded Dice
+  (chosen face) bypass the two-dice throw — one known face, and a forced 6
+  still rolls again the classic way (so the Clover keeps its chain). OK?
+- [ ] **Two dice + get-up rolls:** stand-up/break-free rolls stay single-die,
+  and getting up on a 6 still lets you roll to move (the doubles rule only
+  replaces the 6 on movement rolls). OK?
+- [ ] **Two dice + Everburning Heart:** the pact says "no bonus rolls, ever",
+  so doubles don't re-roll for its holder either. OK?
+- [ ] **Family Mode also turns off Singularity crafting** (Shield/Bomb/Fire Egg
+  no longer fuse) — it wasn't on your keep-list, so it went with the black
+  market. Say if you want it back.
+- [ ] **Family Mode wheel:** the 🎲 random-event slices can no longer draw the
+  gun or a fate swap (the other outcomes are untouched). OK?
+- [ ] **Match play + "Play again":** after a match is decided, the banner
+  button starts a fresh match with the same settings and roster. Mid-series,
+  changing match settings only applies from the next fresh start. OK?
+
 ## 2026-07-12 (late night) — recovery (defaults picked, say if wrong)
 
 - [ ] **Minecraft tiles are reverted and tabled** as you asked. The idea stays

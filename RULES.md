@@ -32,6 +32,36 @@ live in the `GAME_MODES` DATA table):
     everyone's 🏆 count, and the HUD shows *Round X of Y* all game.
   *(All payouts + the rounds formula are tunables in the `KOTH` DATA block.)*
 
+## Game variants (Advanced settings → 🏁 Game)
+
+- **👨‍👩‍👧 Family mode** — the calmer, more skill-based race. Most rules stay in
+  play, but the chaos meta-layer switches off for the game: **no reversal of
+  fortune**, **no gray warp square**, **no secret square / black market /
+  Broken Gate pacts**, **no Singularity crafting**, and the orange square offers
+  only **Wheel or Support** (the gun is retired — the wheel's 🎲 random slices
+  can't draw the gun or a fate swap either). Radioactive fallout runs a
+  **sharper but shorter** sickness: −1, −3, −5, −4, −2, then recovered (+1
+  hardened as usual — `RAD.FAMILY_CURVE`). Everything else — sniper, shame,
+  teleporters, fish rules, freeze, the rotten plank, the dizzy square, pile-ups,
+  lightning, the lucky star, all shop items — plays exactly as normal.
+  *(Toggle list in `FAMILY.OFF` / `FAMILY.WHEEL_SKIP`.)*
+
+- **🎲 Two dice (experimental)** — every movement roll throws **two dice** and
+  you **walk the one you pick** (click it, or press **1 / 2**; bots weigh both
+  landings). **Doubles grant the extra roll** — rolling a 6 no longer does, and
+  the doubles coin replaces the 6 coin. Only movement rolls are doubled:
+  get-up/break-free rolls stay single-die (a 6 there still stands you up with a
+  move), and forced rolls — Clover, Loaded Dice, cursed 1s — bypass the choice
+  and keep the classic 6 rule. The Everburning Heart still allows no bonus
+  rolls at all.
+
+- **🥇 Match play** — play a **series**: *best of N* (3/5/7/9) or *first to N
+  wins* (2–9), default **off**. The winner of each game banks a win; the HUD
+  shows the series score, the end screen shows the running tally with a
+  **▶ Next game** button, and the first to the target takes the match. A new
+  match with the same settings starts from *Play again* or the setup screen.
+  *(Settings in `MATCH`; live state in `series`.)*
+
 ## Goal
 Be the **first** player to land **exactly** on the final square (**tile 90**) —
 that player **wins**. By default the game then ends and everyone is ranked: 1st is
@@ -257,7 +287,9 @@ below tile 1). Landing in fallout again while sick **knocks your recovery
 back** to the worst point. Survive the whole sickness and you emerge **hardened: a
 permanent +1 to every roll** — and immune to fallout forever.
 
-*Toggle: `FEATURES.radioactive`. Tiles per nuke / sickness length / reward in `RAD`.*
+*Toggle: `FEATURES.radioactive`. Tiles per nuke / reward in `RAD`; the sickness
+follows `RAD.CURVE` (−1…−5 then back up), or the shorter `RAD.FAMILY_CURVE`
+(−1, −3, −5, −4, −2) in Family mode.*
 
 ### Lightning (very rare)
 Once in a blue moon (about **0.75% of turns**) a storm strikes the player in the
@@ -518,7 +550,8 @@ stand up. Ladders, chutes and tile effects fire where they land.
 tiles it almost certainly does (95%)**, at **5 it's a coin flip (55%)**, at **7 it
 probably passes you by (25%)**, and beyond that it only rarely reaches (10%).
 Players on the start lane or the secret square are off the map — out of its reach.
-*(All numbers in `SING`; recipes in `CRAFT`. Preview: `index.html#preview=singularity`.)*
+*(All numbers in `SING`; recipes in `CRAFT`; crafting rides `FEATURES.crafting` —
+off in Family mode. Preview: `index.html#preview=singularity`.)*
 
 **Using items:** on your turn, before rolling, press the **🎒 Inventory** button next
 to the die. Use any consumable, then roll. Using one
