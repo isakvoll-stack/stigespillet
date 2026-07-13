@@ -18,6 +18,11 @@ Answer whenever — each answer gets folded in and the question checked off.
   market. Say if you want it back.
 - [ ] **Family Mode wheel:** the 🎲 random-event slices can no longer draw the
   gun or a fate swap (the other outcomes are untouched). OK?
+- [ ] **Landing preview shows the bare die walk:** roll bonuses (Running
+  Shoes, fish, coffee, radiation…) can shift where you actually stop, so the
+  highlight can be a square or two off for boosted players. Making it
+  bonus-aware needs a dry-run mode for every move bonus — worth it, or fine
+  as is?
 - [ ] **Match play + "Play again":** after a match is decided, the banner
   button starts a fresh match with the same settings and roster. Mid-series,
   changing match settings only applies from the next fresh start. OK?

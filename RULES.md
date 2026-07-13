@@ -32,9 +32,10 @@ live in the `GAME_MODES` DATA table):
     everyone's 🏆 count, and the HUD shows *Round X of Y* all game.
   *(All payouts + the rounds formula are tunables in the `KOTH` DATA block.)*
 
-## Game variants (Advanced settings → 🏁 Game)
+## Game variants
 
-- **👨‍👩‍👧 Family mode** — the calmer, more skill-based race. Most rules stay in
+- **👨‍👩‍👧 Family mode** *(Settings screen, under the title menu)* — the calmer,
+  more skill-based race. Most rules stay in
   play, but the chaos meta-layer switches off for the game: **no reversal of
   fortune**, **no gray warp square**, **no secret square / black market /
   Broken Gate pacts**, **no Singularity crafting**, and the orange square offers
@@ -46,16 +47,23 @@ live in the `GAME_MODES` DATA table):
   lightning, the lucky star, all shop items — plays exactly as normal.
   *(Toggle list in `FAMILY.OFF` / `FAMILY.WHEEL_SKIP`.)*
 
-- **🎲 Two dice (experimental)** — every movement roll throws **two dice** and
-  you **walk the one you pick** (click it, or press **1 / 2**; bots weigh both
-  landings). **Doubles grant the extra roll** — rolling a 6 no longer does, and
-  the doubles coin replaces the 6 coin. Only movement rolls are doubled:
-  get-up/break-free rolls stay single-die (a 6 there still stands you up with a
-  move), and forced rolls — Clover, Loaded Dice, cursed 1s — bypass the choice
-  and keep the classic 6 rule. The Everburning Heart still allows no bonus
-  rolls at all.
+- **🎲 Two dice (experimental)** *(Advanced settings → 🏁 Game)* — every
+  movement roll throws **two dice** and you **walk the one you pick** (click a
+  die, or press **← / →** or **1 / 2**; bots weigh both landings). **Doubles
+  grant the extra roll** — rolling a 6 no longer does, and the doubles coin
+  replaces the 6 coin. Only movement rolls are doubled: get-up/break-free rolls
+  stay single-die (a 6 there still stands you up with a move — and the second
+  die hides while one is coming), and forced rolls — Clover, Loaded Dice,
+  cursed 1s — bypass the choice and keep the classic 6 rule. The Everburning
+  Heart still allows no bonus rolls at all.
+  - **🔦 Show both landings** (sub-setting, on by default) — while you pick, the
+    two squares the plain faces would walk you to **light up** (a ring + the
+    face number, and a dashed line if a ladder/chute waits there). The preview
+    shows the bare die walk — roll bonuses (shoes, fish, coffee…) can shift the
+    real landing. *(Colours/sizes in `DUAL`.)*
 
-- **🥇 Match play** — play a **series**: *best of N* (3/5/7/9) or *first to N
+- **🥇 Match play** *(Advanced settings → 🏁 Game)* — play a **series**:
+  *best of N* (3/5/7/9) or *first to N
   wins* (2–9), default **off**. The winner of each game banks a win; the HUD
   shows the series score, the end screen shows the running tally with a
   **▶ Next game** button, and the first to the target takes the match. A new
@@ -582,7 +590,8 @@ self-contained page. Toggle with `FEATURES.sound`. On the big dramatic moments
 **The Settings screen** (button under *Play* on the title menu) holds: the **🤖 bot
 decision popups** toggle, **⏩ Fast-forward bot turns** (bot turns run at 3× —
 `SPEED.FF_DIV` — human turns are untouched), the **🌈 RGB player** toggle (see
-*Players & bots*), and a **🔊 master volume slider** (0 = mute; covers all effects
+*Players & bots*), the **👨‍👩‍👧 Family mode** toggle (see *Game variants* —
+applies to new games), and a **🔊 master volume slider** (0 = mute; covers all effects
 and the kill-announcer voice, `SOUND.VOLUME`). All settings — including the Advanced
 item/exotic/board/finish-line toggles on the setup screen, the RGB toggle and the
 chosen theme — are **remembered between sessions** (browser `localStorage`; still one

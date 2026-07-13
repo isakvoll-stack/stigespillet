@@ -544,6 +544,7 @@
       <label class="toggle"><input type="checkbox" id="optBotThoughts" checked> Bot decision popups 🤖</label>
       <label class="toggle"><input type="checkbox" id="optFastForward"> Fast-forward bot turns ⏩</label>
       <label class="toggle"><input type="checkbox" id="optRgb"> RGB player 🌈 (the 11th seat's natural colour)</label>
+      <label class="toggle"><input type="checkbox" id="optFamily"> Family mode 👨‍👩‍👧 (the calmer, more skill-based rules — applies to new games)</label>
       <label class="toggle">🔊 Volume <input type="range" id="optVolume" min="0" max="100" value="100" style="width:150px;vertical-align:middle;margin-left:8px"></label>
       <button class="btn ghost" id="settingsBack">Back</button>
     </div>
@@ -735,17 +736,18 @@ const FEATURE_BASE = Object.assign({}, FEATURES);   // the authored defaults; Fa
    dualDice — experimental: movement rolls throw TWO dice and you walk the
    one you pick; DOUBLES (not 6s) grant the extra roll. Get-up / break-free
    rolls and forced rolls (Clover, Loaded Dice) stay single-die. */
-const VARIANTS = { family:false, dualDice:false };
-const VARIANT_TOGGLES = [
-  { key:"family",   ico:"👨‍👩‍👧", name:"Family mode",
-    desc:"the calmer race — no cursed pacts, black market, fate swaps, board flips or gun; softer fallout" },
+const VARIANTS = { family:false, dualDice:false, dualPreview:true };
+const VARIANT_TOGGLES = [          // Family Mode lives on the Settings screen (optFamily)
   { key:"dualDice", ico:"🎲", name:"Two dice (experimental)",
     desc:"movement rolls throw two dice and you walk ONE — doubles roll again instead of 6s" },
+  { key:"dualPreview", ico:"🔦", name:"Show both landings", sub:true,
+    desc:"while you pick a die, the two squares you could land on light up" },
 ];
 const FAMILY = {
   OFF: ["fateSwap","warp","secretSquare","blackMarket","brokenGate","crafting"],
   WHEEL_SKIP: ["gun","fate"],          // random-event outcomes the family wheel never draws
 };
+const DUAL = { MARK_COLORS:["#ffd23e","#7ec8e3"], MARK_R:15, LINK_R:11 };   // landing-preview rings (die 1 / die 2)
 const MATCH = { mode:"off", len:3, BO_MIN:3, FT_MIN:2, LEN_MAX:9 };   // "off" | "bestof" | "firstto"
 let series = null;   // live match-play state: { mode, len, target, wins[], game, done }
 
@@ -1168,7 +1170,7 @@ const TXT = {
   overshoot:(n)=>`too high — bouncing back from ${n}`,
   rollAgain: "rolled a 6 — roll again!",
   rollAgainDual: "doubles — roll again!",
-  pickDie: "Pick a die — click it (or press 1 / 2)",
+  pickDie: "Pick a die — click it (← / → or 1 / 2)",
   bounced: (n,a,b)=>`${n} bounced on: ${a} → ${b}`,
   kicked:  (n,a,b)=>`${n} was kicked back: ${a} → ${b}`,
   won: (name)=>`${name} wins! 🎉`,
@@ -2261,6 +2263,10 @@ function newGame(roster){
 
 function refreshHUD(){
   const p = game.players[game.current];
+  // in a two-dice game the second die only shows when the coming roll IS a
+  // movement roll — get-up/break-free and forced rolls are single-die
+  if (game.dualDice)
+    die2.style.display = (p.downed || p.forceSix || p.forceRoll || (p.curseRolls||0) > 0) ? "none" : "";
   const ts = document.getElementById("turnSwatch");
   paintSwatchEl(ts, p.fancy || p.color);
   document.getElementById("turnName").textContent = `${p.name} ${TXT.turnSuffix}`;
@@ -2421,22 +2427,59 @@ async function roll(){
    the roll-again trigger (the Everburning Heart still allows no bonus
    rolls). Equal faces need no choice; bots score both landings and pick. */
 let dicePick = null;   // live "choose your die" state: { a, b, res }
-function pickDie(a, b){
+function pickDie(p, a, b){
   return new Promise(res => {
     showPrompt(TXT.pickDie);
     die.classList.add("pick"); die2.classList.add("pick");
+    let marks = null;
+    if (VARIANTS.dualPreview){
+      const same = walkPath(Math.max(0, p.pos), a).slice(-1)[0] === walkPath(Math.max(0, p.pos), b).slice(-1)[0];
+      marks = el("g", {});
+      marks.style.pointerEvents = "none";
+      marks.appendChild(dieLandingMark(p, a, DUAL.MARK_COLORS[0], 0));
+      marks.appendChild(dieLandingMark(p, b, DUAL.MARK_COLORS[1], same ? 1 : 0));
+      svg.appendChild(marks);
+    }
     dicePick = { a, b, res: v => {
       dicePick = null; hidePrompt();
+      if (marks) marks.remove();
       die.classList.remove("pick"); die2.classList.remove("pick");
       res(v);
     }};
   });
+}
+// One die's landing preview: a ring on the square that face walks to, the
+// face number above it, and — if a ladder/chute waits there — a dashed line
+// to where it carries you. `lift` nudges the second mark when both dice
+// land on the same square.
+function dieLandingMark(p, face, color, lift){
+  const path = walkPath(Math.max(0, p.pos), face);
+  const landed = path[path.length - 1];
+  const link = linkAt(landed);
+  const c = cellCenter(landed);
+  const g = el("g", {});
+  if (link){
+    const to = cellCenter(link.to);
+    g.appendChild(el("line", {x1:c.x, y1:c.y, x2:to.x, y2:to.y,
+      stroke: link.kind === "ladder" ? "#39c46a" : "#e74c3c",
+      "stroke-width":"4", "stroke-dasharray":"4 8", opacity:".9"}));
+    g.appendChild(el("circle", {cx:to.x, cy:to.y, r:DUAL.LINK_R, fill:"none",
+      stroke:color, "stroke-width":"3.5", opacity:".9"}));
+  }
+  g.appendChild(el("circle", {cx:c.x, cy:c.y, r:DUAL.MARK_R + lift*4, fill:"none",
+    stroke:color, "stroke-width":"4.5", opacity:".95"}));
+  const t = el("text", {x:c.x, y:c.y - DUAL.MARK_R - 7 - lift*24, "text-anchor":"middle",
+    "font-size":"22", "font-weight":"800", fill:color, stroke:"#241a12", "stroke-width":"0.9"});
+  t.textContent = face;
+  g.appendChild(t);
+  return g;
 }
 function botPickDie(p, a, b){
   const from = p.pos === 0 ? 0 : p.pos;
   return landingScore(from, a, p) + botRand() >= landingScore(from, b, p) + botRand() ? a : b;
 }
 async function rollDual(cur){
+  die2.style.display = "";
   die.classList.remove("dim"); die2.classList.remove("dim");
   die.classList.add("rolling"); die2.classList.add("rolling");
   SFX.play("dice");
@@ -2458,7 +2501,7 @@ async function rollDual(cur){
     value = botPickDie(cur, a, b);
     log(`🎲 ${cur.name} walks the ${value}.`);
   } else {
-    value = await pickDie(a, b);
+    value = await pickDie(cur, a, b);
   }
   if (a !== b) (value === a ? die2 : die).classList.add("dim");
   if (again) sixEffect();
@@ -6170,6 +6213,7 @@ function buildFinishRow(list){
 function buildVariantRows(list){
   VARIANT_TOGGLES.forEach(v => {
     const row = document.createElement("label"); row.className = "adv-item";
+    if (v.sub) row.style.marginLeft = "24px";
     const box = document.createElement("input"); box.type = "checkbox";
     box.checked = VARIANTS[v.key];
     box.onchange = ()=>{ VARIANTS[v.key] = box.checked; saveSettings(); };
@@ -6469,7 +6513,7 @@ function saveSettings(){
       rgb: RGB.enabled,
       theme: THEMES[THEME.current].id,
       finishNeed: FINISH.NEED,
-      variants: { family: VARIANTS.family, dualDice: VARIANTS.dualDice },
+      variants: { family: VARIANTS.family, dualDice: VARIANTS.dualDice, dualPreview: VARIANTS.dualPreview },
       match: { mode: MATCH.mode, len: MATCH.len },
       items: Object.fromEntries([...SHOP_CATALOG, ...EXOTICS, ...CURSED].map(i => [i.id, i.enabled])),
       board: Object.fromEntries(BOARD_OPTIONS.map(b => [b.key, b.enabled])),
@@ -6488,6 +6532,7 @@ function loadSettings(){
     if (s.variants){
       if (typeof s.variants.family === "boolean") VARIANTS.family = s.variants.family;
       if (typeof s.variants.dualDice === "boolean") VARIANTS.dualDice = s.variants.dualDice;
+      if (typeof s.variants.dualPreview === "boolean") VARIANTS.dualPreview = s.variants.dualPreview;
     }
     if (s.match){
       if (["off","bestof","firstto"].includes(s.match.mode)) MATCH.mode = s.match.mode;
@@ -6504,9 +6549,9 @@ function loadSettings(){
 die.addEventListener("click", ()=>{ if (dicePick) dicePick.res(dicePick.a); else roll(); });
 die2.addEventListener("click", ()=>{ if (dicePick) dicePick.res(dicePick.b); });
 document.addEventListener("keydown", e=>{
-  if (dicePick){                                                            // dual dice: pick with 1 / 2
-    if (e.code === "Digit1" || e.code === "Numpad1") dicePick.res(dicePick.a);
-    else if (e.code === "Digit2" || e.code === "Numpad2") dicePick.res(dicePick.b);
+  if (dicePick){                                                            // dual dice: pick with ← / → or 1 / 2
+    if (e.code === "ArrowLeft" || e.code === "Digit1" || e.code === "Numpad1") dicePick.res(dicePick.a);
+    else if (e.code === "ArrowRight" || e.code === "Digit2" || e.code === "Numpad2") dicePick.res(dicePick.b);
     return;
   }
   if (document.getElementById("fish").classList.contains("show")) return;   // minigame owns its keys
@@ -6564,9 +6609,11 @@ document.getElementById("settingsBtn").addEventListener("click", ()=>{
   document.getElementById("optBotThoughts").checked = FEATURES.botThoughts;
   document.getElementById("optFastForward").checked = SPEED.fastForward;
   document.getElementById("optRgb").checked = RGB.enabled;
+  document.getElementById("optFamily").checked = VARIANTS.family;
   document.getElementById("optVolume").value = Math.round(SOUND.VOLUME * 100);
   showScreen("settings");
 });
+document.getElementById("optFamily").addEventListener("change", e=>{ VARIANTS.family = e.target.checked; saveSettings(); });
 document.getElementById("optRgb").addEventListener("change", e=>{ RGB.enabled = e.target.checked; saveSettings(); });
 document.getElementById("themeBtn").addEventListener("click", ()=>{
   THEME.current = (THEME.current + 1) % THEMES.length;

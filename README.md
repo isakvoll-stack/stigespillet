@@ -56,7 +56,12 @@ The live to-do list and session history now live in the **`Next/`** folder
 what's next.
 
 Recently shipped (2026-07-13, latest): **Family Mode, two-dice variant &
-match play** (Advanced settings → 🏁 Game). Family Mode keeps almost every
+match play** — plus Isak's follow-up round: Family Mode moved to the main
+Settings screen, the two-dice pick gained a 🔦 landing-preview sub-setting
+(rings + face numbers on both possible squares, dashed line to a waiting
+ladder/chute; preview shows the bare die walk), ← / → arrow keys pick die
+1 / die 2, and the second die hides entirely during get-up/forced single-die
+rolls. Verified 32/32 headless. Family Mode keeps almost every
 rule but retires the chaos meta-layer (fate swap, warp square, secret
 square/black market/pacts, Singularity crafting, the gun — also filtered out
 of the wheel's 🎲 slices) and runs the softer `RAD.FAMILY_CURVE` fallout.
