@@ -5,10 +5,18 @@ Answer whenever — each answer gets folded in and the question checked off.
 
 ## 2026-07-13 (later) — Manual/cheat mode (defaults picked, say if wrong)
 
-- [ ] **Call-out window = a 3-second beat after every confirmed move** (the
-  prompt says "SPACE calls it out"); when it passes, the landing's effects
-  (tiles, coins, encounters) resolve. Undo is perfectly clean because nothing
-  has resolved yet when the call comes. Longer/shorter window? (`CHEAT.WINDOW_MS`)
+- [x] ~~Call-out window = a 3-second pause~~ — REPLACED 2026-07-13 per Isak:
+  no pause, no prompt; a move stays callable **until the next player's move
+  begins** (their roll resolving into movement). Consequences of the new
+  timing, say if wrong:
+  - The move's effects (tiles, coins, shop visits) resolve immediately, so a
+    late bust restores **position + cuffs** only — coins/items picked up on
+    the cheated landing stay.
+  - A cheated **finish** IS fully rolled back (win, standings, banked place,
+    series point — call it from the game-over screen). A KOTH ending by round
+    limit stands (only the cheated lap's trophies are clawed back).
+  - While the next player is placing/walking, the previous move can no longer
+    be called.
 - [ ] **Snapping the cuffs ends the turn** — rolling the double/6 frees you
   but you don't also move that turn (mirrors how standing up works, minus the
   6-bonus). OK?

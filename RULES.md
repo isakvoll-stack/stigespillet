@@ -52,9 +52,10 @@ live in the `GAME_MODES` DATA table):
   die, or press **← / →** or **1 / 2**; bots weigh both landings). **Doubles
   grant the extra roll** — rolling a 6 no longer does, and the doubles coin
   replaces the 6 coin. Only movement rolls are doubled: get-up/break-free rolls
-  stay single-die (a 6 there still stands you up with a move — and the second
-  die hides while one is coming), and forced rolls — Clover, Loaded Dice,
-  cursed 1s — bypass the choice and keep the classic 6 rule. The Everburning
+  stay single-die (a 6 there still stands you up with a move — the second
+  die fades out while one is coming), and forced rolls — Clover, Loaded Dice,
+  cursed 1s — bypass the choice and keep the classic 6 rule. Either die (or
+  the ↓ arrow key, or Enter) starts a roll. The Everburning
   Heart still allows no bonus rolls at all.
   - **🔦 Show both landings** (sub-setting, on by default) — while you pick, the
     two squares you would **actually** walk to light up (a ring + the face
@@ -64,23 +65,25 @@ live in the `GAME_MODES` DATA table):
     the real move. *(Colours/sizes in `DUAL`; the read-only bonus pass is
     `moveBonusPeek` over the same `MOVE_BONUSES` registry.)*
 
-- **🖐️ Manual moves — cheat mode** *(Advanced settings → 🏁 Game)* — you roll,
-  then **move your own piece**: click a square (a **ghost pawn** previews it)
-  and press **Confirm** (or **Enter**). The honest squares are where your walk
-  really ends — bonuses included — and if a ladder/chute waits there, **its foot
-  or its far end are both legal**. With two dice, either die's landing is fine.
-  Nothing stops you from "miscounting"… but in this mode **SPACE is the
-  call-out button** (it never rolls — Enter or the die does that). After every
-  confirmed move there's a short window (`CHEAT.WINDOW_MS`): slam **SPACE**,
-  a giant **CHEATER!** fills the screen, and the accuser picks themselves from
-  the roster. **Caught cheating** → the move is undone and the cheat is
-  **handcuffed 🔗**: each turn they roll to snap the cuffs (**doubles** with two
-  dice, **a 6** on one) — after `CHEAT.CUFF_TURNS` turns the cuffs spring open
-  by themselves. **False accusation** → the accuser is **knocked flat and
-  shamed**; if they were *already* shamed or down it's **4–6 squares back**
-  instead, and if they were *both* it's **11–15 back**. Bots always move
-  honestly (their moves are automatic and can't be called out). The manual hop
-  skips shop pass-by browsing. *(All numbers in `CHEAT`.)*
+- **🖐️ Manual moves** *(Settings screen, under the title menu)* — you roll,
+  then **move your own piece**: click a square (a **ghost pawn** previews it),
+  press **Confirm** (or **Enter**), and the pawn walks there tile by tile as
+  usual. The honest squares are where your walk really ends — bonuses included —
+  and if a ladder/chute waits there, **its foot or its far end are both legal**.
+  With two dice, either die's landing is fine. In this mode **Space never
+  rolls** (Enter, ↓ or the dice do) — Space is reserved: press it **any time
+  before the next player's move begins** if you think the last move was wrong.
+  A giant **CHEATER!** fills the screen, the accuser picks themselves, and
+  after a beat a **verdict box** states the outcome — the sentence lands only
+  when it's dismissed. **Caught cheating** → the piece goes back where it came
+  from (a cheated finish is un-won) and the cheat is **handcuffed** with a
+  yellow **CHEATER** tag overhead: each turn they roll to snap the cuffs
+  (**doubles** with two dice, **a 6** on one) — after `CHEAT.CUFF_TURNS` turns
+  they spring open by themselves. **False accusation** → the accuser is
+  **knocked flat and shamed**; *already* shamed or down → **4–6 squares back**;
+  *both* → **11–15 back**. Bots always move honestly (their moves are automatic
+  and can't be called out). The manual walk skips shop pass-by browsing.
+  *(All numbers in `CHEAT`.)*
 
 - **🥇 Match play** *(Advanced settings → 🏁 Game)* — play a **series**:
   *best of N* (3/5/7/9) or *first to N
@@ -610,8 +613,8 @@ self-contained page. Toggle with `FEATURES.sound`. On the big dramatic moments
 **The Settings screen** (button under *Play* on the title menu) holds: the **🤖 bot
 decision popups** toggle, **⏩ Fast-forward bot turns** (bot turns run at 3× —
 `SPEED.FF_DIV` — human turns are untouched), the **🌈 RGB player** toggle (see
-*Players & bots*), the **👨‍👩‍👧 Family mode** toggle (see *Game variants* —
-applies to new games), and a **🔊 master volume slider** (0 = mute; covers all effects
+*Players & bots*), the **👨‍👩‍👧 Family mode** and **🖐️ Manual moves** toggles (see
+*Game variants* — both apply to new games), and a **🔊 master volume slider** (0 = mute; covers all effects
 and the kill-announcer voice, `SOUND.VOLUME`). All settings — including the Advanced
 item/exotic/board/finish-line toggles on the setup screen, the RGB toggle and the
 chosen theme — are **remembered between sessions** (browser `localStorage`; still one

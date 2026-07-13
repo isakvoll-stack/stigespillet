@@ -55,17 +55,17 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
-Recently shipped (2026-07-13, latest): **🖐️ Manual moves / cheat mode**
-(Advanced → 🏁 Game): roll, place your own piece via ghost-pawn preview +
-Confirm (Enter), legal = real walk end (bonuses incl.) or a waiting link's
-far end — either die in dual mode. SPACE never rolls in this mode; it's the
-CHEATER! call-out (giant bouncing text, pick the accuser). Caught → move
-undone + handcuffed (doubles/6 to snap, or 4 turns serve); false call →
-knocked+shamed, then 4–6 back, then 11–15 back for repeat slander. Landing
-effects resolve only after the 3s call window, so undo is always clean
-(`settleLanding` extracted from moveCurrent and shared with manual placement).
-Bots move honestly/automatically. Verified 41/41 headless. Defaults logged in
-Next/QUESTIONS.md.
+Recently shipped (2026-07-13, latest): **🖐️ Manual moves** (now a main-menu
+Settings toggle, cheat talk toned down): roll, place your own piece via
+ghost-pawn preview + Confirm, pawn walks tile-by-tile as usual. No call
+prompt/pause anymore — a move stays callable via SPACE until the next
+player's move begins; the call shows CHEATER!, accuser pick, then a verdict
+box, and the sentence applies only on dismissal. Busted → piece back +
+handcuffs + yellow CHEATER overhead tag (shame-style); a cheated finish is
+fully un-won (standings + series point rolled back). Dual-dice polish in the
+same round: die 2 fades (not hides) during single-die rolls, clicking either
+die or pressing ↓/Enter rolls. Verified 44/44 headless. Timing consequences
+logged in Next/QUESTIONS.md.
 
 Before that (2026-07-13): **Family Mode, two-dice variant &
 match play** — plus Isak's follow-up round: Family Mode moved to the main

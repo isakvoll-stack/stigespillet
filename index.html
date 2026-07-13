@@ -86,6 +86,7 @@
   .die.pick{opacity:1;cursor:pointer;box-shadow:0 4px 0 #b8a079, 0 0 16px 5px rgba(255,210,62,.8);animation:pickpulse .9s ease-in-out infinite}
   @keyframes pickpulse{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
   .die.dim{opacity:.35}
+  .die.faded{opacity:.22}
 
   /* match play (Advanced settings) + series banner */
   .matchbtns{display:flex;gap:6px;margin:6px 0}
@@ -559,6 +560,7 @@
       <label class="toggle"><input type="checkbox" id="optFastForward"> Fast-forward bot turns ⏩</label>
       <label class="toggle"><input type="checkbox" id="optRgb"> RGB player 🌈 (the 11th seat's natural colour)</label>
       <label class="toggle"><input type="checkbox" id="optFamily"> Family mode 👨‍👩‍👧 (the calmer, more skill-based rules — applies to new games)</label>
+      <label class="toggle"><input type="checkbox" id="optManual"> Manual moves 🖐️ (move your own piece each roll — applies to new games)</label>
       <label class="toggle">🔊 Volume <input type="range" id="optVolume" min="0" max="100" value="100" style="width:150px;vertical-align:middle;margin-left:8px"></label>
       <button class="btn ghost" id="settingsBack">Back</button>
     </div>
@@ -758,13 +760,12 @@ const VARIANT_TOGGLES = [          // Family Mode lives on the Settings screen (
     desc:"movement rolls throw two dice and you walk ONE — doubles roll again instead of 6s" },
   { key:"dualPreview", ico:"🔦", name:"Show both landings", sub:true,
     desc:"while you pick a die, the two squares you could land on light up" },
-  { key:"manual", ico:"🖐️", name:"Manual moves (cheat mode)",
-    desc:"move your own piece and confirm — nobody checks your count… except SPACE, the call-out button" },
 ];
-/* Manual/cheat mode numbers: the call-out window after each confirmed move,
-   the CHEATER! shout beat, cuff sentence length, the ghost-pawn look, and
-   the knock-back ranges for false accusers (already shamed OR down / both). */
-const CHEAT = { WINDOW_MS:3000, SHOUT_MS:1000, CUFF_TURNS:4, HOP_MS:520,
+/* Manual-mode call-out numbers (manual itself lives on the Settings screen):
+   the CHEATER! shout beat, the pause before the verdict box, cuff sentence
+   length, the ghost-pawn look, and the knock-back ranges for false accusers
+   (already shamed OR down / both). */
+const CHEAT = { SHOUT_MS:1000, VERDICT_PAUSE_MS:900, CUFF_TURNS:4,
   GHOST_OPACITY:.55, BACK_ONE:[4,6], BACK_BOTH:[11,15] };
 const FAMILY = {
   OFF: ["fateSwap","warp","secretSquare","blackMarket","brokenGate","crafting"],
@@ -1196,7 +1197,6 @@ const TXT = {
   pickDie: "Pick a die — click it (← / → or 1 / 2)",
   rollHintManual: "Tap the die<br>or press ENTER",
   placePiece: "Place your piece — click the square your roll takes you to, then Confirm (Enter)",
-  cheatHint: "…anyone smell a rat? SPACE calls it out!",
   bounced: (n,a,b)=>`${n} bounced on: ${a} → ${b}`,
   kicked:  (n,a,b)=>`${n} was kicked back: ${a} → ${b}`,
   won: (name)=>`${name} wins! 🎉`,
@@ -1207,7 +1207,7 @@ const RULE_INFO = {
   manual: {
     ico: "🖐️",
     name: "Manual moves",
-    text: "Here you move your own piece and swear the count was honest. Maybe it was. SPACE never forgets — but a false accusation cuts deep.",
+    text: "Here you move your own piece: click the square, confirm, done. Count carefully — and should you ever doubt someone else's count, SPACE is listening.",
   },
   encounter: {
     ico: "🦘",
@@ -2298,8 +2298,8 @@ function newGame(roster){
   // Family Mode flips its feature set off for this game (and back for a normal one)
   FAMILY.OFF.forEach(k => { FEATURES[k] = game.family ? false : FEATURE_BASE[k]; });
   die2.style.display = game.dualDice ? "" : "none";
-  die2.classList.remove("dim"); die.classList.remove("dim");
-  placeState = null; cheatCall = null;                       // no stale manual-mode state across games
+  die2.classList.remove("dim", "faded"); die.classList.remove("dim");
+  placeState = null; lastMove = null; judging = false;       // no stale manual-mode state across games
   document.getElementById("confirmBtn").style.display = "none";
   hideSecret();
   TRAP89_TILES.splice(0, Infinity, TRAP89.TILE);   // re-arm the tile-89 trapdoor for the new game
@@ -2319,10 +2319,10 @@ function newGame(roster){
 
 function refreshHUD(){
   const p = game.players[game.current];
-  // in a two-dice game the second die only shows when the coming roll IS a
-  // movement roll — get-up/break-free and forced rolls are single-die
+  // in a two-dice game the second die fades out when the coming roll is
+  // single-die (get-up/break-free and forced rolls)
   if (game.dualDice)
-    die2.style.display = (p.downed || p.forceSix || p.forceRoll || (p.curseRolls||0) > 0) ? "none" : "";
+    die2.classList.toggle("faded", !!(p.downed || p.forceSix || p.forceRoll || (p.curseRolls||0) > 0));
   const ts = document.getElementById("turnSwatch");
   paintSwatchEl(ts, p.fancy || p.color);
   document.getElementById("turnName").textContent = `${p.name} ${TXT.turnSuffix}`;
@@ -2544,7 +2544,7 @@ function botPickDie(p, a, b){
   return sc(a) + botRand() >= sc(b) + botRand() ? a : b;
 }
 async function rollDual(cur){
-  die2.style.display = "";
+  die2.classList.remove("faded");
   die.classList.remove("dim"); die2.classList.remove("dim");
   die.classList.add("rolling"); die2.classList.add("rolling");
   SFX.play("dice");
@@ -2580,16 +2580,20 @@ async function rollDual(cur){
 
 /* ---- manual moves + the CHEATER! call-out (the manual variant) -------
    The player rolls, then places their OWN piece and confirms — a ghost pawn
-   previews the spot. Legal squares: where the walk (bonuses included) ends,
-   plus a waiting ladder/chute's other end. Nothing stops a "miscount"…
-   but after every confirmed move SPACE opens the call-out. A caught cheat
-   is undone and handcuffed (doubles / a 6 / serve CHEAT.CUFF_TURNS turns);
+   previews the spot, then the pawn walks there tile by tile as usual. Legal
+   squares: where the walk (bonuses included) ends, plus a waiting ladder/
+   chute's other end. Nothing stops a "miscount"… but the move stays open to
+   a SPACE call-out until the NEXT player's move begins. The call shows a
+   verdict box first; only its dismissal applies the sentence: a caught cheat
+   is put back and handcuffed (doubles / a 6 / serve CHEAT.CUFF_TURNS turns),
    a false accuser is knocked flat and shamed — repeat slander walks back. */
 let placeState = null;   // open manual placement: { confirm }
-let cheatCall = null;    // open call-out window: { fire }
+let lastMove = null;     // the last confirmed manual move, still callable
+let judging = false;     // a call-out is being resolved
 
 async function manualMove(cur, faces, again, dual){
   const i = game.current;
+  lastMove = null;                                // a new move retires the old call
   await revealRuleOnce("manual");
   cur.onSecret = false; cur.marketDue = false;
   const legal = [];
@@ -2605,15 +2609,34 @@ async function manualMove(cur, faces, again, dual){
   const face = (byFace.find(e => e.cells.includes(target)) || byFace[0]).f;
   moveBonusTotal(cur, face);                      // the roll is walked: bonuses are spent
   const fromPos = cur.pos, from = fromPos === 0 ? 1 : fromPos;
-  cur.steps = (cur.steps||0) + Math.abs(target - from);
-  cur.pos = target;
-  SFX.play("step");
-  renderScoreboard();
-  if (fromPos >= 1) await hopToken(i, fromPos, target, CHEAT.HOP_MS);
-  else { moveTokenTo(i, target); await sleep(ANIM.STEP); }
+  // normal tile-by-tile hops to the chosen square (up or down the path)
+  const path = [];
+  if (fromPos === 0){ for (let c = 1; c <= target; c++) path.push(c); }
+  else { const dir = target >= fromPos ? 1 : -1;
+         for (let c = fromPos + dir; dir > 0 ? c <= target : c >= target; c += dir) path.push(c); }
+  cur.steps = (cur.steps||0) + path.length;
+  let at = fromPos;
+  for (const c of path){
+    cur.pos = c;
+    SFX.play("step");
+    renderScoreboard();
+    if (at >= 1) await hopToken(i, at, c, ANIM.STEP);
+    else { moveTokenTo(i, c); await sleep(ANIM.STEP); }
+    at = c;
+  }
   layoutTokens();
-  if (await cheatWindow(cur, legal, fromPos, target)){ await endTurn(); return; }
-  if (game.over) return;
+  // the move is on the record — callable until the next player's move begins
+  lastMove = { mover: cur, fromPos, target, legal,
+    snapFin: game.players.map(q => ({ f: q.finished, pl: q.place })),
+    snapPlaces: game.placesTaken,
+    snapSeriesWins: series ? series.wins.slice() : null,
+    snapSeriesDone: series ? series.done : false,
+    snapLaps: cur.laps||0, snapTrophies: cur.trophies||0 };
+  if (!path.length){                              // stayed put (a sapped roll — or nerve)
+    log(`${cur.name} stays put.`);
+    await sleep(400);
+    await endTurn(); return;
+  }
   await settleLanding(cur, i, from, target, again, dual);
 }
 
@@ -2657,60 +2680,101 @@ function placePiece(p, i){
   });
 }
 
-// The window after a confirmed move where SPACE can call the cheat.
-// Resolves true when the move was busted and undone.
-function cheatWindow(mover, legal, fromPos, target){
-  const cands = game.players.filter(q => q !== mover && !q.bot && !q.finished);
-  if (!cands.length) return Promise.resolve(false);
-  return new Promise(res => {
-    showPrompt(TXT.cheatHint);
-    const t = setTimeout(() => { cheatCall = null; hidePrompt(); res(false); }, ffms(CHEAT.WINDOW_MS));
-    cheatCall = { fire(){
-      clearTimeout(t); cheatCall = null; hidePrompt();
-      resolveCheatCall(mover, cands, legal, fromPos, target).then(res);
-    }};
-  });
-}
-
-async function resolveCheatCall(mover, cands, legal, fromPos, target){
+// SPACE in a manual game: judge the last confirmed move. Shout, pick the
+// accuser, pause, then a verdict box — the sentence lands only after it's
+// dismissed.
+async function fireCheatCall(){
+  if (!game || !lastMove || judging || game.busy) return;
+  const lm = lastMove;
+  const cands = game.players.filter(q => q !== lm.mover && !q.bot && !q.finished);
+  if (!cands.length) return;
+  judging = true; lastMove = null;
+  game.busy = true; refreshHUD();
   SFX.play("megaboom"); flashScreen();
   const shout = document.getElementById("cheatcall");
   shout.classList.remove("show"); void shout.offsetWidth; shout.classList.add("show");
   await sleep(ffms(CHEAT.SHOUT_MS));
   const caller = cands.length === 1 ? cands[0] : await pickPlayer("Who calls it out?", cands);
   shout.classList.remove("show");
-  if (!legal.includes(target)){
-    // busted: the move is undone and the cheat is cuffed
-    log(`🚔 BUSTED! ${caller.name} catches ${mover.name} red-handed — the move is undone!`, "win");
-    SFX.play("fall");
-    mover.pos = fromPos;
+  await sleep(ffms(CHEAT.VERDICT_PAUSE_MS));
+  const endNeeded = await resolveCheatCall(lm, caller);
+  judging = false;
+  if (endNeeded) await endTurn();                  // a rolled-back finish: hand the turn on properly
+  else { game.busy = false; refreshHUD(); maybeAuto(); }
+}
+
+// The verdict box (reuses the rule-reveal modal); resolves when dismissed.
+function showVerdict(ico, name, text){
+  return new Promise(res => {
+    SFX.play("rule");
+    document.getElementById("revealIco").textContent = ico;
+    document.getElementById("revealTitle").textContent = "The verdict";
+    document.getElementById("revealName").textContent = name;
+    document.getElementById("revealText").textContent = text;
+    document.getElementById("reveal").classList.add("show");
+    revealResolve = () => {
+      document.getElementById("reveal").classList.remove("show");
+      revealResolve = null; res();
+    };
+  });
+}
+
+// Judge lastMove `lm` against accuser `caller`. Returns true when a finish
+// was rolled back and the turn still has to be handed on.
+async function resolveCheatCall(lm, caller){
+  const mover = lm.mover, mi = idxOf(mover);
+  if (!lm.legal.includes(lm.target)){
+    // busted: verdict first, then the piece goes back and the cuffs go on
+    await showVerdict("🚔", "BUSTED!",
+      `${mover.name}'s move was NOT legal. The piece goes back to ${lm.fromPos > 0 ? "square " + lm.fromPos : "the start"}, ` +
+      `and the handcuffs go on — roll ${game.dualDice ? "doubles" : "a 6"} to snap them, or serve ${CHEAT.CUFF_TURNS} turns.`);
+    mover.pos = lm.fromPos; mover.onSecret = false; mover.marketDue = false;
     mover.cuffs = CHEAT.CUFF_TURNS;
-    layoutTokens(); renderScoreboard(); refreshBadges();
-    log(`🔗 ${mover.name} is handcuffed — ${game.dualDice ? "doubles" : "a 6"} snaps them, or ${CHEAT.CUFF_TURNS} turns serve them.`);
-    await sleep(700);
-    return true;
+    if (isKoth() && (mover.laps||0) > lm.snapLaps){          // a cheated lap is taken back
+      mover.laps = lm.snapLaps; mover.trophies = lm.snapTrophies;
+    }
+    let endNeeded = false;
+    if (!isKoth() && (game.over || mover.finished) && !lm.snapFin[mi].f){
+      // the cheated move banked a place (or ended the game): roll the finish back
+      game.players.forEach((q,k) => { q.finished = lm.snapFin[k].f; q.place = lm.snapFin[k].pl; });
+      game.placesTaken = lm.snapPlaces;
+      if (game.over){
+        game.over = false; game.winner = null; game.standings = null;
+        if (series && lm.snapSeriesWins){ series.wins = lm.snapSeriesWins; series.done = lm.snapSeriesDone; }
+        hideBanner();
+        endNeeded = true;                                    // the cheat's turn never really ended
+      }
+    }
+    SFX.play("fall");
+    log(`🚔 ${caller.name} was right — ${mover.name}'s move is undone and the cuffs go on. 🔗`, "win");
+    layoutTokens(); renderScoreboard(); refreshBadges(); refreshHUD();
+    return endNeeded;
   }
-  // false alarm: the accuser pays, on a rising scale
+  // legal move: the accuser pays, on a rising scale
   const wasDown = caller.downed, wasShame = caller.shame > 0;
-  if (!wasDown && !wasShame){
-    log(`😳 ${mover.name} played it clean — ${caller.name} is knocked flat and SHAMED for the slander!`);
+  const n = (wasDown || wasShame)
+    ? (() => { const [lo, hi] = (wasDown && wasShame) ? CHEAT.BACK_BOTH : CHEAT.BACK_ONE;
+               return lo + Math.floor(Math.random() * (hi - lo + 1)); })()
+    : 0;
+  await showVerdict("😳", "FALSE ALARM",
+    `${mover.name}'s move was perfectly legal. ` +
+    (n ? `${caller.name} pays for the repeat accusation — ${n} squares back.`
+       : `${caller.name} is knocked flat and shamed for the accusation.`));
+  if (n){
+    SFX.play("chute");
+    log(`${mover.name} played it clean — ${caller.name} walks ${n} squares back.`);
+    setBackPos(caller, caller.pos - n);
+    layoutTokens(); renderScoreboard();
+    await sleep(500);
+    if (!caller.onSecret) await resolveLanding(caller);
+  } else {
     SFX.play("kick");
+    log(`${mover.name} played it clean — ${caller.name} is knocked flat and SHAMED. 😳`);
     downPlayer(caller);
     caller.shame = SHAME.TURNS;
     refreshBadges();
-  } else {
-    const [lo, hi] = (wasDown && wasShame) ? CHEAT.BACK_BOTH : CHEAT.BACK_ONE;
-    const n = lo + Math.floor(Math.random() * (hi - lo + 1));
-    const from = caller.pos;
-    log(`${mover.name} played it clean — ${caller.name}'s repeat slander costs ${n} squares (${from} → back)!`);
-    SFX.play("chute");
-    setBackPos(caller, caller.pos - n);
-    layoutTokens(); renderScoreboard();
-    await sleep(600);
-    if (!caller.onSecret) await resolveLanding(caller);
   }
   layoutTokens(); renderScoreboard();
-  await sleep(400);
   return false;
 }
 
@@ -2721,7 +2785,7 @@ async function rollCuffs(cur){
   let freed, faces;
   const end = performance.now() + ffms(ANIM.DICE);
   if (game.dualDice){
-    die2.style.display = "";
+    die2.classList.remove("faded");
     die.classList.add("rolling"); die2.classList.add("rolling");
     while (performance.now() < end){
       setDie(1 + Math.floor(Math.random()*RULES.DICE_SIDES));
@@ -2751,13 +2815,14 @@ async function rollCuffs(cur){
     if (cur.cuffs === 0) log(`🔗 ${cur.name}'s cuffs spring open — time served.`);
     else log(`🔗 ${cur.name} rattles the cuffs in vain (${faces} — ${cur.cuffs} ${cur.cuffs === 1 ? "turn" : "turns"} left).`);
   }
-  renderScoreboard();
+  renderScoreboard(); refreshBadges();
   await endTurn();
 }
 
 async function moveCurrent(rollValue, extraRoll){
   const p = game.players[game.current];
   const i = game.current;
+  lastMove = null;               // an automatic move begins: the previous manual move is settled
   // Another roll still coming? Classic: a rolled 6. Dual dice passes its own
   // verdict in (doubles) — a walked 6 is then just a 6.
   const rollsAgain = extraRoll !== undefined ? extraRoll
@@ -3513,6 +3578,22 @@ function updateShame(i){
   } else if (badge){ badge.remove(); }
 }
 
+// "CHEATER" badge — the shame treatment in yellow, for a player in cuffs.
+function updateCuffs(i){
+  const g = tokenEls[i]; if (!g) return;
+  let badge = g.querySelector(".cheaterbadge");
+  if (game.players[i].cuffs > 0){
+    if (!badge){
+      const s = TOKEN.ICON_SCALE;
+      badge = el("g", {"class":"cheaterbadge"});
+      badge.appendChild(el("rect",{x:-31*s,y:-76-16*s,width:62*s,height:16*s,rx:8*s,fill:"rgba(240,198,32,.96)",stroke:"#fff","stroke-width":"1"}));
+      const t = el("text",{x:0,y:-76-4*s,"text-anchor":"middle","font-size":11*s,"font-weight":"800",fill:"#241a12","font-family":"Segoe UI, sans-serif"});
+      t.textContent = "CHEATER"; badge.appendChild(t);
+      g.appendChild(badge);
+    }
+  } else if (badge){ badge.remove(); }
+}
+
 // A translucent blue force-field around a player who is holding a Shield. It
 // stays as long as the Shield is in their bag and pops the moment it's spent.
 function updateShield(i){
@@ -3527,7 +3608,7 @@ function updateShield(i){
     else g.appendChild(bub);
   } else if (!has && bub){ bub.remove(); }
 }
-function refreshBadges(){ if (game) game.players.forEach((_,i)=>{ updateShame(i); updateShield(i); }); }
+function refreshBadges(){ if (game) game.players.forEach((_,i)=>{ updateShame(i); updateCuffs(i); updateShield(i); }); }
 
 // Mario-style pop: an icon (coin, trophy …) rises off the player's head and fades.
 function coinPopup(p, n, scale){ iconPopup(p, "🪙", n, scale); }
@@ -6802,12 +6883,8 @@ function loadSettings(){
 
 /* ---- wire up ------------------------------------------------------- */
 die.addEventListener("click", ()=>{ if (dicePick) dicePick.res(dicePick.a); else roll(); });
-die2.addEventListener("click", ()=>{ if (dicePick) dicePick.res(dicePick.b); });
+die2.addEventListener("click", ()=>{ if (dicePick) dicePick.res(dicePick.b); else roll(); });
 document.addEventListener("keydown", e=>{
-  if (cheatCall){                                                           // manual mode: SPACE is the call-out
-    if (e.code === "Space"){ e.preventDefault(); cheatCall.fire(); }
-    return;
-  }
   if (placeState){                                                          // manual placement: Enter confirms
     if (e.code === "Enter"){ e.preventDefault(); placeState.confirm(); }
     else if (e.code === "Space") e.preventDefault();
@@ -6848,8 +6925,12 @@ document.addEventListener("keydown", e=>{
   }
   if (document.querySelector(".screen.show")) return;       // not while a menu is open
   if (e.target && e.target.tagName === "INPUT") return;     // not while typing a name
-  // in manual mode Space belongs to the call-out alone — only Enter (or the die) rolls
-  if (e.code === "Enter" || (e.code === "Space" && !(game && game.manual))){ e.preventDefault(); roll(); }
+  // in manual mode Space belongs to the call-out alone — Enter, ↓ or the dice roll
+  if (e.code === "Enter" || e.code === "ArrowDown" || (e.code === "Space" && !(game && game.manual))){
+    e.preventDefault(); roll();
+  } else if (e.code === "Space" && game && game.manual){
+    e.preventDefault(); fireCheatCall();
+  }
 });
 
 document.getElementById("revealOk").addEventListener("click", ()=>{ if (revealResolve) revealResolve(); });
@@ -6875,10 +6956,12 @@ document.getElementById("settingsBtn").addEventListener("click", ()=>{
   document.getElementById("optFastForward").checked = SPEED.fastForward;
   document.getElementById("optRgb").checked = RGB.enabled;
   document.getElementById("optFamily").checked = VARIANTS.family;
+  document.getElementById("optManual").checked = VARIANTS.manual;
   document.getElementById("optVolume").value = Math.round(SOUND.VOLUME * 100);
   showScreen("settings");
 });
 document.getElementById("optFamily").addEventListener("change", e=>{ VARIANTS.family = e.target.checked; saveSettings(); });
+document.getElementById("optManual").addEventListener("change", e=>{ VARIANTS.manual = e.target.checked; saveSettings(); });
 document.getElementById("optRgb").addEventListener("change", e=>{ RGB.enabled = e.target.checked; saveSettings(); });
 document.getElementById("themeBtn").addEventListener("click", ()=>{
   THEME.current = (THEME.current + 1) % THEMES.length;
