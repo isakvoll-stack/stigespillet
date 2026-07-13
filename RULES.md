@@ -64,6 +64,24 @@ live in the `GAME_MODES` DATA table):
     the real move. *(Colours/sizes in `DUAL`; the read-only bonus pass is
     `moveBonusPeek` over the same `MOVE_BONUSES` registry.)*
 
+- **🖐️ Manual moves — cheat mode** *(Advanced settings → 🏁 Game)* — you roll,
+  then **move your own piece**: click a square (a **ghost pawn** previews it)
+  and press **Confirm** (or **Enter**). The honest squares are where your walk
+  really ends — bonuses included — and if a ladder/chute waits there, **its foot
+  or its far end are both legal**. With two dice, either die's landing is fine.
+  Nothing stops you from "miscounting"… but in this mode **SPACE is the
+  call-out button** (it never rolls — Enter or the die does that). After every
+  confirmed move there's a short window (`CHEAT.WINDOW_MS`): slam **SPACE**,
+  a giant **CHEATER!** fills the screen, and the accuser picks themselves from
+  the roster. **Caught cheating** → the move is undone and the cheat is
+  **handcuffed 🔗**: each turn they roll to snap the cuffs (**doubles** with two
+  dice, **a 6** on one) — after `CHEAT.CUFF_TURNS` turns the cuffs spring open
+  by themselves. **False accusation** → the accuser is **knocked flat and
+  shamed**; if they were *already* shamed or down it's **4–6 squares back**
+  instead, and if they were *both* it's **11–15 back**. Bots always move
+  honestly (their moves are automatic and can't be called out). The manual hop
+  skips shop pass-by browsing. *(All numbers in `CHEAT`.)*
+
 - **🥇 Match play** *(Advanced settings → 🏁 Game)* — play a **series**:
   *best of N* (3/5/7/9) or *first to N
   wins* (2–9), default **off**. The winner of each game banks a win; the HUD

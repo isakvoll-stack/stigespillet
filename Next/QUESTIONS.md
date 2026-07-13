@@ -3,6 +3,23 @@
 Standing file: autonomous sessions log clarifications here instead of stopping to ask.
 Answer whenever — each answer gets folded in and the question checked off.
 
+## 2026-07-13 (later) — Manual/cheat mode (defaults picked, say if wrong)
+
+- [ ] **Call-out window = a 3-second beat after every confirmed move** (the
+  prompt says "SPACE calls it out"); when it passes, the landing's effects
+  (tiles, coins, encounters) resolve. Undo is perfectly clean because nothing
+  has resolved yet when the call comes. Longer/shorter window? (`CHEAT.WINDOW_MS`)
+- [ ] **Snapping the cuffs ends the turn** — rolling the double/6 frees you
+  but you don't also move that turn (mirrors how standing up works, minus the
+  6-bonus). OK?
+- [ ] **Bots move automatically in manual mode** — they never cheat, so
+  there's nothing to call out on their turns. (Bots calling out human cheats
+  would make cheating near-impossible, so they stay quiet.) OK?
+- [ ] **The manual hop skips shop pass-by browsing** — the piece hops straight
+  to the square instead of walking tile by tile. OK?
+- [ ] **A busted cheater keeps the bonuses the move consumed** (a Coffee spent
+  on an undone move is wasted). OK?
+
 ## 2026-07-13 — Family Mode / two dice / match play (defaults picked, say if wrong)
 
 - [ ] **Two dice + forced rolls:** the Clover (forces a 6) and Loaded Dice
