@@ -81,8 +81,18 @@ See `LOG.md` for the running session history.
         with a board-modifier twist layered on top (ice / jungle / casino /
         night-style modifiers, accepted from the brainstorm).
       - **Leg 4 — Boss Battle** (the second-to-last leg, always).
-      - **Leg 5 — finale; base + twist unspecified** (where the «mayhem» leg
-        lands is open — QUESTIONS.md).
+      - **Leg 5 — always «MAYHEM»** (locked by Isak 2026-07-14). Mayhem is
+        its own mode: **Classic, but WAY more chaotic**:
+        - Chances of **any random event are way higher**.
+        - **All the yellow tiles are replaced with a random special tile**
+          (which "yellow" — QUESTIONS.md).
+        - Choosing things like the **wheel has a chance to spin 1 to 3 of
+          them simultaneously**.
+        - **Every round a random event fires**, exactly like the wheel's 🎲
+          would — it draws from the `WHEEL_CHAOS` everything-pool that now
+          exists in the live game (built 2026-07-14).
+        - **Two passive items can be equipped at once** (Mayhem only —
+          needs a second passive slot in inventory + scoreboard UI).
       - **Pacing**: legs should play *slightly faster* in general, balanced so
         no one wins WAAAY before anyone else (mechanism open).
       - **Leg finish**: once first place finishes a leg, everyone else gets

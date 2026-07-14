@@ -3,6 +3,38 @@
 Newest first. One entry per working session; note what shipped and what's next.
 
 ---
+## 2026-07-14 (evening) — quick-edit batch, the 🎲 chaos pool, Mayhem locked
+
+Isak's quick edits, all shipped: boss ring **12×10 → 11×11 hollow square**
+(still 40 tiles, `BOSS_MODE` only); **Monkey's Paw now teleports to a RANDOM
+tile** — no choosing, same board-scramble price; **Crown** costs 12 and pays
+**+5 coins every time you END your turn in sole first** (the payout moved from
+`startTurn` to `endTurn`; KOTH's lead trophy stays at turn start); the right
+die's pick highlight is **blue** (`#die2.pick`, matching `DUAL.MARK_COLORS[1]`)
+while the left keeps the yellow glow; mode picker: **«The Grand Tour» added as
+a greyed (not finished) teaser** (`soon:true` disables the button) and Boss
+Battle labelled (not finished).
+
+Bigger piece: the wheel's two 🎲 slices now draw from one **`WHEEL_CHAOS`
+registry — EVERYTHING**: the classic strikes, coin windfall/pickpocket (new
+`CHAOS` DATA), **any item conjured + auto-used with random choices** (target is
+temporarily puppeted through the bot paths; passives self-equip via
+`giveItem`), and **any non-interactive tile power** (`offLand` rules). Orange
+🎲 = random player, magenta 🎲 = always the spinner (Isak's rule). Mayhem (see
+below) will reuse this pool for its every-round events. **Stormstride Boots
+removed** — duplicate of the Soul Candle, which keeps the lightning-marking
+hook. Hardened `gunFx` with a fallback timer (reduced-motion setups never fire
+`animationend` — it could hang the 🎲 "picked off" effect).
+
+Isak answered the leg-5 question: **the Grand Tour always ends on «MAYHEM»** —
+classic but far more chaotic (much higher event chances, yellow tiles become
+random specials, the wheel can spin 1–3 times simultaneously, a wheel-style
+random event every round, **two passives equipped at once**). Captured in
+TASKS.md; new open points (which "yellow", pool weighting, singularity
+included, coin amounts, spin odds) in QUESTIONS.md. Verified headless 17/17
+incl. every chaos entry + 14 item casts + a full bot game.
+
+---
 ## 2026-07-14 (later) — closing rulings: Boss Battle + the full Grand Tour spec
 
 Isak's closing words for Boss Battle (mode parked until the next session) are

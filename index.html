@@ -84,6 +84,7 @@
   {visibility:visible}
   .roll-hint{font-size:13px;color:#d8c7a8}
   .die.pick{opacity:1;cursor:pointer;box-shadow:0 4px 0 #b8a079, 0 0 16px 5px rgba(255,210,62,.8);animation:pickpulse .9s ease-in-out infinite}
+  #die2.pick{box-shadow:0 4px 0 #b8a079, 0 0 16px 5px rgba(126,200,227,.9)}  /* matches DUAL.MARK_COLORS[1] */
   @keyframes pickpulse{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
   .die.dim{opacity:.35}
   .die.faded{visibility:hidden}
@@ -170,6 +171,8 @@
   .modebtn{display:flex;align-items:center;gap:14px;text-align:left;font:inherit;cursor:pointer;
     background:rgba(0,0,0,.16);border:1px solid var(--brass);border-radius:12px;padding:12px 14px;color:var(--cream)}
   .modebtn:hover{background:rgba(212,166,86,.18)}
+  .modebtn:disabled{opacity:.45;cursor:default}
+  .modebtn:disabled:hover{background:transparent}
   .modebtn .mico{font-size:30px;line-height:1;flex:none}
   .modebtn .mname{display:block;font-weight:800;font-size:17px}
   .modebtn .mdesc{display:block;font-size:13px;opacity:.75;margin-top:2px}
@@ -1030,8 +1033,8 @@ const SHOP_CATALOG = [
     desc:"When used: raises a mirror that deflects the next hit aimed at you onto someone else." },
   { id:"helmet", ico:"🪖", name:"Helmet",           kind:"passive",    cost:8,  enabled:true,
     desc:"Passive: knockdowns barely faze you — any roll gets you back on your feet." },
-  { id:"crown",  ico:"👑", name:"Crown",            kind:"passive",    cost:5,  enabled:true,
-    desc:"Passive: +1 coin every round you start in the lead." },
+  { id:"crown",  ico:"👑", name:"Crown",            kind:"passive",    cost:12, enabled:true,
+    desc:"Passive: +5 coins every round you end your turn in the lead." },
   { id:"bomb",   ico:"💣", name:"Bomb",             kind:"consumable", cost:6,  enabled:true,
     desc:"When used: lob it at a tile within 8 — the blast flattens everyone on and beside it." },
   { id:"fireegg", ico:"🔥", name:"Fire Egg",        kind:"consumable", cost:5,  enabled:true,
@@ -1046,7 +1049,7 @@ const SHOP_CATALOG = [
    strong with a hook: a curse, a permanence, a price paid later. */
 const EXOTICS = [
   { id:"monkeypaw", ico:"🐒", name:"Monkey's Paw", kind:"consumable", cost:8,  enabled:true, exotic:true,
-    desc:"When used: wish yourself to any tile you point at… the board itself recoils." },
+    desc:"When used: make a wish — the paw flings you to a random tile… and the board itself recoils." },
   { id:"loadeddice", ico:"🎲", name:"Loaded Dice", kind:"consumable", cost:12, enabled:true, exotic:true,
     desc:"When used: choose exactly what you roll — 3 charges. The dice remember being cheated." },
   { id:"soulcandle", ico:"🕯️", name:"Soul Candle", kind:"passive",    cost:9,  enabled:true, exotic:true,
@@ -1058,8 +1061,6 @@ const EXOTICS = [
    it never occupies a bag or passive slot. One offer per visit, drawn
    from the pacts the visitor doesn't already carry. */
 const CURSED = [
-  { id:"stormstride",  ico:"🥾", name:"Stormstride Boots",   cursed:true, cost:0, enabled:true,
-    desc:"Pact: +2 to every roll, forever — but every storm in the sky knows exactly where you are." },
   { id:"serpentpact",  ico:"🐍", name:"Serpent Pact",        cursed:true, cost:0, enabled:true,
     desc:"Pact: no snake will ever swallow you again — but no ladder will carry a traitor." },
   { id:"midaspurse",   ico:"💰", name:"Midas Purse",         cursed:true, cost:0, enabled:true,
@@ -1080,7 +1081,7 @@ const CURSED = [
     desc:"Pact: a coin from every purchase a rival makes lands in your pocket — but every price YOU pay is doubled." },
 ];
 const GATE  = { RANDOM_GATE:0.5, BOT_TAKE:0.5 };  // after the first-ever visit: odds the gate greets you first; a bot's odds of sealing an offered pact
-const CURSE = { STRIDE:2,        // Stormstride Boots: permanent roll bonus
+const CURSE = {
                 STONE_SLOW:1,    // Stone Hide: permanent roll malus
                 MIDAS_COINS:2,   // Midas Purse: coins at each of the holder's turn starts
                 FANG_STEAL:3,    // Vampire Fangs: coins drained per kick/bounce
@@ -1095,7 +1096,7 @@ const SNOWBALL = { RANGE:8 };                    // hits a rival within this man
 const BANANA   = { RANGE:6, SLIP:5 };            // peel goes on a plain tile up to RANGE ahead; victims slip SLIP back
 const MYSTERY  = { FALLBACK_COINS:3 };           // if no item can pop out, the box pays coins instead
 const HELMET_GETUP = 1;                          // Helmet wearers rise on any roll
-const CROWN_COINS  = 1;                          // paid at the start of each round spent in the lead
+const CROWN_COINS  = 5;                          // paid each time the holder ends their turn in the lead
 const LOADED   = { CHARGES:3, CURSE_ROLLS:3 };   // picked faces per purchase; forced 1s once the charges run dry
 const CANDLE   = { BONUS:2, LIGHTNING_MULT:2 };  // the Soul Candle's permanent stride; lightning hurls a candle holder this many times further back
 const BOMB     = { RANGE:8, NEAR:1 };            // lob range in tiles; the blast floors the target tile + NEAR grid-rings around it
@@ -1158,8 +1159,10 @@ const GAME_MODES = [
     desc:"The race: first to reach tile 90 wins." },
   { id:"koth",    ico:"🏆", name:"King of the Hill",
     desc:"Trophy hunt: lead the pack, catch fish, reach the top — most trophies when the rounds run out wins." },
-  { id:"boss",    ico:"👹", name:"Boss Battle",
+  { id:"boss",    ico:"👹", name:"Boss Battle (not finished)",
     desc:"Team up: circle the arena, dodge the boss's telegraphed attacks, land on weakpoints to chip its HP. (early skeleton)" },
+  { id:"grandtour", ico:"🗺️", name:"The Grand Tour (not finished)", soon:true,
+    desc:"Campaign: a tour of legs with twists between them — points, coins and your inventory carry across. Still being designed." },
 ];
 const KOTH = {
   ROUNDS_BY_PLAYERS:{2:20, 3:24, 4:26, 5:30, 6:32}, // default rounds by seat count (the slider overrides)
@@ -1182,7 +1185,7 @@ const defaultRounds = n => {
    or a placeholder — real bosses, attacks, obstacles, objectives and the
    co-op items are authored later with Isak. */
 const BOSS_MODE = {
-  RING_COLS: 12, RING_ROWS: 10,
+  RING_COLS: 11, RING_ROWS: 11,
   get RING_COUNT(){ return 2 * (this.RING_COLS + this.RING_ROWS) - 4; },
   CELL: 75, TOP: 145,                    // ring geometry in board-svg units (viewBox 940x1040)
   START_TILE: 1,                         // everyone starts here, walking clockwise
@@ -1479,6 +1482,7 @@ const FATE      = { CHANCE:0.005 };             // ~0.5% per turn: leader and la
 /* ---- DATA: fixed move/knock amounts (tiles) ------------------------ */
 const MOVE = { SUPPORT:5, WHEEL_NEXT:1, WHEEL_BIG:15, PILEUP_BACK:5 };  // support +5; wheel "next"/+15; chute pile-up knock-back
 const GOLD_RAIN = { COINS:30, DROP_ROWS:2, POP_WAIT_MS:700, FALL_MS:600 };   // wheel 💰: payout, rows hammered straight down, coin-shower pause, fall animation
+const CHAOS = { COINS_GAIN:8, COINS_LOSE:8 };   // wheel 🎲 chaos pool: coin windfall / pickpocket amounts
 const GRAZE = { BACK_MIN:1, BACK_MAX:3, DOWN_CHANCE:0.10, RADIUS:40 }; // clipped by a passing slider: 1-3 back, rarely floored; RADIUS = px from the drawn snake curve
 const SLIDE_CURVE = { SEG_PX:26 };         // px per segment when sampling the wavy snake (drawing + graze checks share it)
 const KILLSTREAK = { MIN:3, LABELS:{ 3:"TRIPLE KILL", 4:"QUAD KILL" } }; // sniper multi-knockdown announcer (double kill retired)
@@ -1521,7 +1525,7 @@ const BOT = {
   ITEM_VALUE:{ shoes:5, shield:4, clover:3, coffee:3, warhorn:3, gloves:2,
                mysterybox:2, snowball:3, banana:2, mirror:3, helmet:3, crown:3,
                loadeddice:4, soulcandle:4, monkeypaw:0,
-               bomb:3, fireegg:2, singcasing:0, singularity:6 },  // base shopping appeal per item id (paw 0: bots can't wish well)
+               bomb:3, fireegg:2, singcasing:0, singularity:6 },  // base shopping appeal per item id (paw 0: a random wish is a pure gamble)
   SING_SAFE_DIST:7,                             // bots only detonate the singularity this far from the epicenter
   THINK_MS:700, DECIDE_MS:650,                  // decision popup: thinking pause + verdict linger (FEATURES.botThoughts)
   SCORE:{ WIN:60, FREEZE:-8, RADIOACTIVE:-6, FISHING:-1, ORANGE:2, SHOP:2,
@@ -2153,8 +2157,6 @@ const MOVE_BONUSES = [
     },
     peek: (p, roll) => p.dizzy && DIZZY_TILES.includes(p.pos) ? -2*roll : 0,
     note: p => `😵‍💫 ${p.name} is so dizzy the world runs the wrong way!` },
-  { id:"stormstride", feature:"blackMarket",              // Stormstride pact: permanent stride
-    amount: p => hasCurse(p, "stormstride") ? CURSE.STRIDE : 0 },
   { id:"stonehide", feature:"blackMarket",                // Stone Hide pact: stone is heavy
     amount: p => hasCurse(p, "stonehide") ? -CURSE.STONE_SLOW : 0 },
   { id:"blooddice", feature:"blackMarket",                // Blood Dice pact: every throw drinks a coin — or your stride
@@ -3705,10 +3707,6 @@ async function startTurn(){
   const cur = game.players[game.current];
   // radiation sickness ticks at the start of each of the sick player's turns
   if (FEATURES.radioactive && cur.radSick) await progressRadiation(cur);
-  // the Crown pays its holder for starting a turn out in front
-  if (FEATURES.shop && cur.passive === "crown" && cur.pos > 0 && !cur.finished
-      && game.players.every(q => q === cur || q.finished || q.pos < cur.pos))
-    awardCoin(cur, "👑 Leading the pack", CROWN_COINS, "plain");
   // King of the Hill: starting your turn in sole 1st place pays a trophy
   if (isKoth() && cur.pos > 0 && game.players.every(q => q === cur || q.pos < cur.pos))
     awardTrophy(cur, "👑 First place", KOTH.TROPHY_LEAD);
@@ -3752,6 +3750,11 @@ async function startTurn(){
 
 async function endTurn(){
   if (game.over) return;
+  // the Crown pays its holder for ending a turn out in front
+  const led = game.players[game.current];
+  if (FEATURES.shop && led.passive === "crown" && led.pos > 0 && !led.finished
+      && game.players.every(q => q === led || q.finished || q.pos < led.pos))
+    awardCoin(led, "👑 Leading the pack", CROWN_COINS, "plain");
   await sleep(ANIM.HANDOFF);
   const n = game.players.length, prev = game.current;
   let c = prev;
@@ -4908,16 +4911,14 @@ async function lightningStrike(victim){
   await sleep(500);
   await resolveLanding(victim);                            // the new tile fires too
 }
-async function strikeLightning(){                          // the rare event: hits the leader — unless a Soul Candle or Stormstride pact calls it
+async function strikeLightning(){                          // the rare event: hits the leader — unless a Soul Candle calls it
   await revealRuleOnce("lightning");
   const active = game.players.filter(p => !p.finished && p.pos > 0);
   if (!active.length) return;
-  const marked = active.filter(p => (FEATURES.shop && p.passive === "soulcandle") || hasCurse(p, "stormstride"));
+  const marked = active.filter(p => FEATURES.shop && p.passive === "soulcandle");
   if (marked.length){
     const m = marked[(Math.random()*marked.length)|0];
-    log(FEATURES.shop && m.passive === "soulcandle"
-      ? `🕯️ The storm smells ${m.name}'s candle burning…`
-      : `🥾 The storm never lost track of ${m.name}'s boots…`);
+    log(`🕯️ The storm smells ${m.name}'s candle burning…`);
     await lightningStrike(m);
     return;
   }
@@ -5517,7 +5518,10 @@ async function gunFx(targetCells){
   const rms = GUN.SPIN_ROT_MS, rotCount = Math.ceil(700 / rms) + 1;
   holes.style.animation = `tgspin ${rms}ms linear ${rotCount}`;
   SFX.play("spin");
-  await new Promise(res => holes.addEventListener("animationend", res, { once: true }));
+  await new Promise(res => {                 // fallback timer: reduced-motion setups never fire animationend
+    holes.addEventListener("animationend", res, { once: true });
+    setTimeout(res, rms * rotCount + 400);
+  });
   holes.style.animation = "";
   SFX.play("click"); await sleep(220);
 
@@ -5755,27 +5759,65 @@ async function goldRain(p){
   await resolveLanding(p);
   layoutTokens(); renderScoreboard();
 }
-// Plain random event (🎲 slot): effects fire based on game state — lightning hits the
-// leader, the star carries the trailer, fate swaps leader and last. The spinner is not
-// necessarily involved. Matches the behaviour before the player-targeted slot was added.
+/* The 🎲 chaos pool: EVERYTHING the game can do — classic strikes, every item
+   forced into a player's hand (choices made at random), every non-interactive
+   tile power, coins won and lost — each entry aimed at one target player.
+   Both 🎲 slices draw from this same pool: the orange slice fires it at a
+   RANDOM player, the magenta slice ALWAYS at the spinner. */
+async function castRandomItem(t){
+  const pool = [...SHOP_CATALOG, ...EXOTICS].filter(i =>
+    i.enabled && i.id !== "singcasing" && (!i.exotic || FEATURES.blackMarket));
+  if (!pool.length) return;
+  const item = pool[(Math.random()*pool.length)|0];
+  log(`🎲${item.ico} The wheel conjures a ${item.name} — it takes hold of ${t.name}!`);
+  await sleep(400);
+  if (item.kind === "passive"){ giveItem(t, item.id); renderScoreboard(); await sleep(400); return; }
+  t.items.push(item.id);
+  if (item.id === "loadeddice") t.diceCharges = LOADED.CHARGES;
+  const wasBot = t.bot;
+  t.bot = true;                                   // the item wields itself: choices fall on the bot paths
+  try { await useItem(t, t.items.length - 1); } finally { t.bot = wasBot; }
+}
+async function castRandomTilePower(t){
+  const pool = Object.values(TILE_RULES).filter(r =>
+    r.offLand && FEATURES[r.feature] && r.tiles.length);
+  if (!pool.length) return;
+  log(`🎲 The board itself lashes out at ${t.name}!`);
+  await pool[(Math.random()*pool.length)|0].offLand(t, { offTurn:true, depth:0 });
+}
+const WHEEL_CHAOS = [
+  { run:()=> nukeEveryone("🎲 ") },
+  { run:async(t)=>{ SFX.play("chute"); noteSkip(t, t.pos, 1); t.pos = 1; layoutTokens(); renderScoreboard(); log(`🎲 Random: ${t.name} back to start!`); await sleep(600); await resolveLanding(t); } },
+  { run:async(t)=>{ log(`🎲 Random: ${t.name} inches forward.`); await advancePlayer(t, MOVE.WHEEL_NEXT); } },
+  { run:async(t)=>{ log(`🎲 Random: ${t.name} leaps 15 spaces!`); await advancePlayer(t, MOVE.WHEEL_BIG); } },
+  { id:"gun",  run:(t)=> revolverRoulette(t) },
+  { run:(t)=> runSupport(t) },
+  { run:async(t)=>{ await revealRuleOnce("lightning"); await lightningStrike(t); } },
+  { run:async(t)=>{ t.fish = (t.fish||0) + 1; SFX.play("catch"); renderScoreboard(); log(`🎲🐟 Random: ${t.name} gains a fish!`); await sleep(500); } },
+  { run:(t)=> freezeFromRandom(t) },
+  { run:async(t)=>{ await revealRuleOnce("lucky"); await luckySweep(t); } },
+  { id:"fate", run:(t)=> fateSwapYou(t) },
+  { run:(t)=> randomTeleport(t) },
+  { run:(t)=> downYou(t) },
+  { run:(t)=> goldRain(t) },
+  { run:()=> shuffleTiles() },
+  { feature:"shop", run:async(t)=>{ awardCoin(t, "🎲 Windfall", CHAOS.COINS_GAIN, "plain"); await sleep(500); } },
+  { feature:"shop", run:async(t)=>{ const n = Math.min(t.coins, CHAOS.COINS_LOSE); t.coins -= n; renderScoreboard();
+      log(n ? `🎲 The wheel shakes ${n} coins out of ${t.name}'s pockets!` : `🎲 The wheel rifles ${t.name}'s pockets — empty.`); await sleep(500); } },
+  { feature:"shop", run:(t)=> castRandomItem(t) },
+  { run:(t)=> castRandomTilePower(t) },
+  { run:async()=>{ SFX.play("click"); log(`🎲 Random: … nothing happens.`); await sleep(500); } },
+];
+function wheelChaosPool(){
+  return WHEEL_CHAOS.filter(e => (!e.feature || FEATURES[e.feature])
+    && !(game.family && FAMILY.WHEEL_SKIP.includes(e.id)));
+}
+// Orange 🎲 slice: the chaos lands on a RANDOM player (spinner included).
 async function randomBoardEvent(p){
-  const effects = [
-    { run:()=> nukeEveryone("🎲 ") },
-    { run:async()=>{ SFX.play("chute"); noteSkip(p, p.pos, 1); p.pos = 1; layoutTokens(); renderScoreboard(); log(`🎲 Random: ${p.name} back to start!`); await sleep(600); await resolveLanding(p); } },
-    { run:async()=>{ log(`🎲 Random: ${p.name} inches forward.`); await advancePlayer(p, MOVE.WHEEL_NEXT); } },
-    { run:async()=>{ log(`🎲 Random: ${p.name} leaps 15 spaces!`); await advancePlayer(p, MOVE.WHEEL_BIG); } },
-    { id:"gun",  run:()=> revolverRoulette(p) },
-    { run:()=> runSupport(p) },
-    { run:async()=>{ await revealRuleOnce("lightning"); await strikeLightning(); } },     // hits the LEADER
-    { run:async()=>{ p.fish = (p.fish||0) + 1; SFX.play("catch"); renderScoreboard(); log(`🎲🐟 Random: ${p.name} gains a fish!`); await sleep(500); } },
-    { run:()=> freezeFromRandom(p) },
-    { run:async()=>{ await revealRuleOnce("lucky"); await strikeLucky(); } },             // carries the TRAILER
-    { id:"fate", run:()=> strikeFate() },                                                  // swaps LEADER and LAST
-    { run:()=> randomTeleport(p) },
-    { run:async()=>{ SFX.play("click"); log(`🎲 Random: … nothing happens.`); await sleep(500); } },
-  ];
-  const pool = effects.filter(e => !(game.family && FAMILY.WHEEL_SKIP.includes(e.id)));
-  await pool[(Math.random()*pool.length)|0].run();
+  const active = game.players.filter(q => !q.finished);
+  const t = active.length ? active[(Math.random()*active.length)|0] : p;
+  const pool = wheelChaosPool();
+  await pool[(Math.random()*pool.length)|0].run(t, p);
 }
 
 // Special-tile placement. The canonical layout is captured at load; a scrambled
@@ -5825,26 +5867,10 @@ async function shuffleTiles(msg){
   await sleep(750);
 }
 
+// Magenta 🎲 slice: the same chaos pool, ALWAYS aimed at the spinner.
 async function randomWheelEffect(p){
-  // Every random effect centres on YOU (the spinner): lightning hits you, the star
-  // carries you, the swap trades you with the leader or the trailer, etc.
-  const effects = [
-    { run:()=> nukeEveryone("🎲 ") },
-    { run:async()=>{ SFX.play("chute"); noteSkip(p, p.pos, 1); p.pos = 1; layoutTokens(); renderScoreboard(); log(`🎲 Random: ${p.name} back to start!`); await sleep(600); await resolveLanding(p); } },
-    { run:async()=>{ log(`🎲 Random: ${p.name} inches forward.`); await advancePlayer(p, MOVE.WHEEL_NEXT); } },
-    { run:async()=>{ log(`🎲 Random: ${p.name} leaps 15 spaces!`); await advancePlayer(p, MOVE.WHEEL_BIG); } },
-    { id:"gun",  run:()=> revolverRoulette(p) },
-    { run:()=> runSupport(p) },
-    { run:async()=>{ await revealRuleOnce("lightning"); await lightningStrike(p); } },     // strikes YOU
-    { run:async()=>{ p.fish = (p.fish||0) + 1; SFX.play("catch"); renderScoreboard(); log(`🎲🐟 Random: ${p.name} gains a fish!`); await sleep(500); } },
-    { run:()=> freezeFromRandom(p) },
-    { run:async()=>{ await revealRuleOnce("lucky"); await luckySweep(p); } },              // carries YOU
-    { id:"fate", run:()=> fateSwapYou(p) },                                                 // YOU swap w/ leader or trailer
-    { run:()=> randomTeleport(p) },
-    { run:()=> downYou(p) },                                                                // YOU get picked off
-  ];
-  const pool = effects.filter(e => !(game.family && FAMILY.WHEEL_SKIP.includes(e.id)));
-  await pool[(Math.random()*pool.length)|0].run();
+  const pool = wheelChaosPool();
+  await pool[(Math.random()*pool.length)|0].run(p, p);
 }
 
 async function spinWheel(p){
@@ -6098,18 +6124,11 @@ async function springBanana(p, depth){
   return true;
 }
 
-// Monkey's Paw: wish yourself to any tile (except the finish) — then the board recoils.
+// Monkey's Paw: the paw twists the wish — a RANDOM tile (except the finish), then the board recoils.
 async function wishMonkeyPaw(p, idx){
-  let tile;
-  if (p.bot){
-    const top = Math.max(1, ...game.players.filter(q => !q.finished).map(q => q.pos));
-    tile = Math.min(BOARD.WIN - 2, top + 1);                 // bots wish just past the leader
-  } else {
-    const tiles = [];
-    for (let t = 1; t < BOARD.WIN; t++) if (t !== p.pos) tiles.push(t);
-    tile = await pickTileOnBoard(`${p.name}: point the paw at ANY tile — wish carefully…`, tiles, true);
-    if (!tile || tile === "back") return;
-  }
+  const tiles = [];
+  for (let t = 1; t < BOARD.WIN; t++) if (t !== p.pos) tiles.push(t);
+  const tile = tiles[Math.floor(Math.random()*tiles.length)];
   p.items.splice(idx, 1);
   await itemFlourish(p, "🐒");
   SFX.play("teleport"); flashScreen();
@@ -6448,7 +6467,7 @@ async function botMaybeUseItem(p){
         && p.pos - q.pos <= BANANA.RANGE + RULES.DICE_SIDES);
       if (bananaSpots(p).length && (bagFull || chaser)) await useItem(p, k);
     } else if (id === "monkeypaw"){
-      if (bagFull) await useItem(p, k);                      // bots don't really know how to wish
+      if (bagFull) await useItem(p, k);                      // the wish lands randomly — only gamble when the bag is full
     } else if (id === "loadeddice"){
       let best = -Infinity;
       for (let n = 1; n <= RULES.DICE_SIDES; n++) best = Math.max(best, landingScore(p.pos, n, p));
@@ -6823,7 +6842,8 @@ function buildModeScreen(){
     b.type = "button"; b.className = "modebtn";
     b.innerHTML = `<span class="mico">${m.ico}</span>` +
                   `<span><span class="mname">${m.name}</span><span class="mdesc">${m.desc}</span></span>`;
-    b.onclick = () => { chosenMode = m.id; openSetup(); };
+    if (m.soon) b.disabled = true;
+    else b.onclick = () => { chosenMode = m.id; openSetup(); };
     list.appendChild(b);
   });
 }

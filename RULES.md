@@ -32,7 +32,7 @@ live in the `GAME_MODES` DATA table):
     everyone's 🏆 count, and the HUD shows *Round X of Y* all game.
   *(All payouts + the rounds formula are tunables in the `KOTH` DATA block.)*
 - **👹 Boss Battle** *(early skeleton)* — co-op: the board is a **hollow
-  rectangle of 40 tiles** looped around a central arena where the boss sits.
+  11×11 square of 40 tiles** looped around a central arena where the boss sits.
   Everyone starts on the START tile and laps **clockwise forever** — there is
   no finish line; the team wins by bringing the boss's **HP to 0**. Landing on
   a purple **◎ weakpoint** chips the boss (5 weakpoints live at a time; a hit
@@ -45,6 +45,10 @@ live in the `GAME_MODES` DATA table):
   bosses themselves are `BOSSES` DATA entries — currently one placeholder
   Training Dummy while the real roster + the giant-die boss select are
   designed with Isak.)*
+- **🗺️ The Grand Tour** *(not finished)* — shown on the mode screen as a
+  teaser but not yet playable: a campaign of legs with twists between them,
+  where points, coins and inventory carry across. Canonical spec lives in
+  `Next/TASKS.md`.
 
 ## Game variants
 
@@ -365,10 +369,7 @@ so a 2-player duel and a 6-player party see the same number of strikes per
 Land on an **orange square** and pick one of three:
 - **🎡 Wheel** — spin the wheel of fortune; each slice is **1-in-8**: **Nuke**
   (knocks down everyone *not* standing on a blue tile), **back to start**,
-  **forward one square**, **forward 15 squares**, **🎲 Random event** (fires a game
-  event based on the current board state — lightning hits the leader, star carries
-  the trailer, fate swaps leader and last; may also do nothing), **🎲 Random (targets
-  you)** (same pool of effects but all aimed at the spinner), **🌀 Tile shuffle**
+  **forward one square**, **forward 15 squares**, two **🎲 Random** slices, **🌀 Tile shuffle**
   (every special tile — teleporters, orange, freeze, shops, fishing **and the dark-red
   setback square and the gray warp square** — moves to a fresh random spot, avoiding snake and ladder squares.
   A setback square reshuffled high up the board is devastating), or **💰 Gold rain**
@@ -377,6 +378,18 @@ Land on an **orange square** and pick one of three:
   If the floor is closer you fall as far as it goes; ladders, chutes and tile effects
   fire where you land. On the **bottom row** there's nowhere to fall — you're simply
   **knocked flat** where you stand. Amounts in `GOLD_RAIN`).
+
+  The two **🎲 Random** slices share one **chaos pool of EVERYTHING the game can
+  do** (the `WHEEL_CHAOS` registry): every classic strike (lightning, lucky star,
+  fate swap, nuke, freeze, teleport, roulette, support, picked off, gold rain,
+  tile shuffle, back to start, forward 1/15, gain a fish, nothing at all), a
+  **coin windfall** and a **coin pickpocketing** (`CHAOS` amounts), **any shop or
+  black-market item conjured straight into a player's hands and used on the spot**
+  (aim and choices made at random via the bot logic — passives equip themselves,
+  replacing what was worn), and **any non-interactive special-tile power** fired
+  as if the player had landed on it. The difference between the slices is the
+  target: the **orange 🎲 slice hits a RANDOM player**, while the **magenta 🎲
+  slice ALWAYS hits the spinner** — spin at your own risk.
 - **🤝 Support** — pick another player and move **them** forward 5. Picking happens
   **on the board**: a light veil falls with spotlights on every candidate; hovering a
   player highlights them and previews **where they'd land** (dotted trail, plus the
@@ -426,10 +439,11 @@ deals are exactly what they say.
 
 **The exotics** — every one is powerful, and every one has a hook:
 
-- **🐒 Monkey's Paw** — **8 coins**, consumable. When used: **teleport to ANY tile
-  you point at** (except the finish). The moment you land, **the whole board
-  scrambles** — every special tile jumps to a new random spot, and only THEN does
-  your landing tile resolve. Wish carefully.
+- **🐒 Monkey's Paw** — **8 coins**, consumable. When used: make a wish — the paw
+  **teleports you to a RANDOM tile** (except the finish; you don't choose). The
+  moment you land, **the whole board scrambles** — every special tile jumps to a
+  new random spot, and only THEN does your landing tile resolve. Wishes are
+  never quite what you hoped.
 - **🎲 Loaded Dice** — **12 coins**, consumable with **3 charges**. Each use lets you
   **choose your exact next roll** (1–6; a chosen 6 still rolls again). When the last
   charge is spent the dice crumble — and the real dice remember: your **next 3 rolls
@@ -455,11 +469,8 @@ about half the time (`GATE.BOT_TAKE`).
 Through the bars, **ONE pact is offered per visit** — drawn at random from the pacts
 you don't already carry — and it costs **no coins**: take it or leave it. A sealed
 pact is **permanent**: it never occupies a bag or passive slot, can never be removed,
-and its price is always paid. All ten (numbers in the `CURSE` DATA block):
+and its price is always paid. All nine (numbers in the `CURSE` DATA block):
 
-- **🥾 Stormstride Boots** — **+2 to every roll, forever.** But lightning **only ever
-  strikes a marked player** while one is in play — and your boots mark you exactly
-  like a Soul Candle does.
 - **🐍 Serpent Pact** — **snake heads never swallow you**; stand on them like plain
   ground. But **ladders refuse to carry you** — you climb nothing, ever again.
 - **💰 Midas Purse** — **+2 coins at the start of every one of your turns.** But get
@@ -570,7 +581,7 @@ next game.
 - **🪖 Helmet** — **8 coins.** Knockdowns barely faze you: you get back up (and break
   out of ice) on **any roll** (`HELMET_GETUP`). The sniper, the gun, shame collapses —
   none of it keeps you on the floor for more than a turn.
-- **👑 Crown** — **5 coins.** **+1 coin at the start of every turn you begin in sole
+- **👑 Crown** — **12 coins.** **+5 coins every time you end your turn in sole
   1st place** on the board (`CROWN_COINS`). Wealth flows to the front-runner.
 
 ### Crafting — the Singularity Bomb (hidden rule)

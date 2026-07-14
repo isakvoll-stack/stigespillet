@@ -55,7 +55,25 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
-Recently shipped (2026-07-14, latest): **👹 Boss Battle — design locked +
+Recently shipped (2026-07-14, evening): **quick-edit batch + the 🎲 chaos
+pool**. Boss ring reshaped to an **11×11 hollow square** (still 40 tiles);
+**Monkey's Paw teleports to a RANDOM tile** (no choosing); **Crown reworked** —
+12 coins, pays **+5 every time you END your turn in sole first** (check moved
+from `startTurn` to `endTurn`); in two-dice games the right die's pick glow is
+now **blue** to match its landing-ring colour (left stays yellow); the mode
+picker gained **«The Grand Tour» (not finished, locked/greyed)** and Boss
+Battle is labelled (not finished). The wheel's two 🎲 slices now share one
+**`WHEEL_CHAOS` everything-pool** — all classic strikes plus coin
+windfall/pickpocket (`CHAOS`), any item conjured into a player's hands and
+auto-used with random choices, and any non-interactive tile power; the orange
+slice hits a **random player**, the magenta slice **always the spinner**.
+**Stormstride Boots removed** (duplicate of the Soul Candle, which keeps the
+storm-marking hook). Isak also locked **leg 5 of the Grand Tour = MAYHEM**
+(spec captured in `Next/TASKS.md`, incl. two passives equipped at once; open
+points in `Next/QUESTIONS.md`). Verified headless: 17/17 (boss geometry, crown
+end-of-turn pay, random paw, every chaos entry + 14 item casts, full bot game).
+
+Before that (2026-07-14): **👹 Boss Battle — design locked +
 foundation skeleton**. The brainstorm with Isak fixed the vision (canonical
 spec in `Next/TASKS.md`): a hollow-rectangle ring of 40 tiles around a central
 boss, giant-die boss select (1–5 = five bosses, 6 = the Joker), weakpoint

@@ -3,10 +3,29 @@
 Standing file: autonomous sessions log clarifications here instead of stopping to ask.
 Answer whenever — each answer gets folded in and the question checked off.
 
+## 2026-07-14 (evening) — wheel chaos pool + Mayhem capture (defaults picked)
+
+- [ ] **"All the yellow tiles"** in Mayhem — which yellow: the plain cream/yellow
+  board squares, or the gold shop squares? Captured as stated for now.
+- [ ] **Chaos-pool weighting** — "conjure a random item" is ONE entry in the
+  ~20-entry pool (the item is then sub-picked uniformly). Alternative: every
+  item weighs in individually, making items ~half of all outcomes. Which feel?
+- [ ] **Singularity Bomb is IN the conjured-item pool** (craft-only in the shop,
+  but the wheel can hand it out — "everything" taken literally). Too brutal?
+- [ ] **Chaos coin amounts** — windfall +8 / pickpocket −8 (`CHAOS` DATA block).
+  Tune freely.
+- [ ] **Crown timing detail** — it now pays 5 when you END your turn in sole
+  first place (per your spec). It checks after the whole turn resolves (snakes,
+  teleports, knock-backs included) — that's the intent, right?
+- [ ] **1–3 simultaneous wheel spins** (Mayhem) — resolve one after another, or
+  all telegraphed first, then resolved? And what odds for 1 vs 2 vs 3?
+
 ## 2026-07-14 (later) — The Grand Tour (design open points)
 
-- [ ] **Leg 5, the finale** — what's its base, and is it the «mayhem» leg you
-  mentioned in the first brainstorm? (Boss Battle is locked as leg 4.)
+- [x] ~~Leg 5, the finale — is it the «mayhem» leg?~~ — ANSWERED 2026-07-14:
+  **yes, leg 5 is always MAYHEM**; full spec captured in TASKS.md (way more
+  chaos, yellow tiles → random specials, 1–3 simultaneous wheel spins, a
+  wheel-style random event every round, two passives equipped at once).
 - [ ] **Placement points per leg** — F1-style values like 10/6/4/2 OK? Needed
   before the "≥10 points behind first" shield rule can be tuned.
 - [ ] **Scoring the Boss Battle leg** — it's co-op, so how do placements/points
@@ -32,8 +51,9 @@ Answer whenever — each answer gets folded in and the question checked off.
   ease of reference (dummy HP rescaled 24→12). Still open: 5 live at a time,
   a hit one is consumed and respawns on a random free tile — or should they
   stay put / only refresh each phase?
-- [ ] **Ring locked at 40 tiles (12×10 hollow rectangle), clockwise laps** —
-  matches your sketch. OK?
+- [x] ~~Ring locked at 40 tiles (12×10 hollow rectangle)~~ — ANSWERED
+  2026-07-14: Isak reshaped it to an **11×11 hollow square** (still 40 tiles),
+  clockwise laps.
 - [ ] **Rolling a 6 still rolls again** in boss mode (kept the classic rule —
   it doubles as "dash out of danger"). Keep?
 - [ ] **Boss roster count** — the giant die implies exactly **5 bosses + the
