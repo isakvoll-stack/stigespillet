@@ -55,7 +55,23 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
-Recently shipped (2026-07-13, latest): **🖐️ Manual moves** (now a main-menu
+Recently shipped (2026-07-14, latest): **👹 Boss Battle — design locked +
+foundation skeleton**. The brainstorm with Isak fixed the vision (canonical
+spec in `Next/TASKS.md`): a hollow-rectangle ring of 40 tiles around a central
+boss, giant-die boss select (1–5 = five bosses, 6 = the Joker), weakpoint
+landings chip boss HP, attacks telegraphed yellow (two boss turns out) → red
+(next), escalation phases, obstacles/objectives and co-op items to come. The
+skeleton is playable from the mode picker: ring board + arena + HP bar, boss
+turn at every round start (strike → age telegraphs → charge anew), 5 respawning
+◎ weakpoints, phase escalation, win banner — all driven by the new `BOSS_MODE`
++ `BOSSES` DATA blocks with one placeholder Training Dummy. No real bosses,
+attacks, obstacles or lose condition yet (open questions in
+`Next/QUESTIONS.md`). A «Grand Tour» campaign mode (legs with board modifiers,
+incl. mayhem + boss legs) was seeded for a later design session. Verified
+headless: full bot boss game to the win banner + a classic regression game,
+0 errors.
+
+Before that (2026-07-13): **🖐️ Manual moves** (now a main-menu
 Settings toggle, cheat talk toned down): roll, place your own piece via
 ghost-pawn preview + Confirm, pawn walks tile-by-tile as usual. No call
 prompt/pause anymore — a move stays callable via SPACE until the next

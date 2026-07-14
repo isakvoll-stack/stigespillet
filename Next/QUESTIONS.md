@@ -3,6 +3,24 @@
 Standing file: autonomous sessions log clarifications here instead of stopping to ask.
 Answer whenever — each answer gets folded in and the question checked off.
 
+## 2026-07-14 — Boss Battle foundation (defaults picked, say if wrong)
+
+- [ ] **Lose condition** — you floated three directions: a turn-based timer,
+  players having HP, or a **unique lose condition per boss**. The skeleton has
+  NO lose condition yet (the team can only win), so this is the big open call.
+  Per-boss lose conditions would fit the phases/gimmick design nicely.
+- [ ] **Getting hit by a strike = knocked back 4 tiles** — pure placeholder
+  until real boss attacks exist. OK as the baseline effect?
+- [ ] **Weakpoints: 5 live at a time, a landing deals 2 damage**, the hit one
+  is consumed and a fresh one spawns on a random free tile. Feel right, or
+  should weakpoints stay put / only refresh each phase?
+- [ ] **Ring locked at 40 tiles (12×10 hollow rectangle), clockwise laps** —
+  matches your sketch. OK?
+- [ ] **Rolling a 6 still rolls again** in boss mode (kept the classic rule —
+  it doubles as "dash out of danger"). Keep?
+- [ ] **Boss roster count** — the giant die implies exactly **5 bosses + the
+  Joker on 6**. Confirm 5 is the target when we author them?
+
 ## 2026-07-13 (later) — Manual/cheat mode (defaults picked, say if wrong)
 
 - [x] ~~Call-out window = a 3-second pause~~ — REPLACED 2026-07-13 per Isak:

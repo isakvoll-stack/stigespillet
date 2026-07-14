@@ -3,6 +3,37 @@
 Newest first. One entry per working session; note what shipped and what's next.
 
 ---
+## 2026-07-14 — Boss Battle: design locked + foundation skeleton
+
+Brainstorm with Isak locked the Boss Battle vision (canonical spec now in
+TASKS.md): hollow-rectangle ring board (40 tiles) around a central boss, a
+giant-die boss select (faces 1–5 = five bosses, 6 = the Joker who mimics one
+per phase), weakpoint landings chip boss HP, attacks telegraphed a la
+yellow border = two boss turns out / red = next, escalation phases, obstacles +
+objectives on the ring, and new co-op support items. Grand Tour also seeded:
+multi-leg campaign with per-leg board modifiers incl. a mayhem leg and a boss
+leg — Isak wants another design session before anything is built.
+
+Shipped the foundation skeleton (deliberately nothing boss-specific authored):
+- `BOSS_MODE` + `BOSSES` DATA blocks; one placeholder Training Dummy
+  (24 HP, 3 phases that widen its random-tile attacks).
+- Boss ENGINE (pure ring maths: bossRC/bossCellCenter/bossStep/bossWalkPath),
+  RENDER (arena board build, HP bar, telegraph strokes, ◎ weakpoint marks),
+  CONTROLLER (newBossGame/bossBegin, bossTurn strike→age→charge at each round
+  start, bossRoll/bossMove, bossDamage with phase shifts, bossDefeated banner).
+- Seams into the existing game: `GAME_MODES` entry, one `isBoss()` dispatch at
+  the top of `roll()`, boss branches in startFromSetup + the Play-again button,
+  boss HP on the HUD round-line, inventory button gated off in boss mode.
+- `makePlayers()` extracted from `newGame` so both modes share one player
+  shape (single source of truth; classic behaviour unchanged).
+
+Verified headless (Edge + virtual time): full 3-bot boss game ran to the win
+banner (24→0 HP, 22 rounds, phases 1→3, weakpoints respawning, telegraphs
+cycling) with 0 JS errors; a classic 2-bot regression game also ran clean to
+its banner. Open design questions (lose condition, knockback, weakpoint
+economy, roster of 5) logged in QUESTIONS.md.
+
+---
 ## 2026-07-12 (late night) — recovery: MC tiles reverted + the chip-perf bug found and fixed
 
 Isak reported the game "very broken" after the art pass and asked for the

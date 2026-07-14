@@ -12,13 +12,46 @@ See `LOG.md` for the running session history.
 ## Active
 
 ### Queued from Isak's 8-point batch (2026-07-10)
-- [ ] **Design game mode — «Boss battle»** (Isak, 2026-07-10): a mode that is
-      *"somehow a boss battle"*. Needs a design pass with Isak first — open
-      directions: a boss piece that stalks the board and knocks players back, a
-      shared HP pool the players whittle down by landing hits/tiles, the leviathan
-      or a new monster as the boss, co-op vs. the board or last-man-standing.
-      The mode-picker + `GAME_MODES` table are ready; a boss mode will need its
-      own win condition and probably a boss-turn phase in the controller.
+- [x] **Design game mode — «Boss battle»** (Isak, 2026-07-10) — design locked in
+      the 2026-07-14 brainstorm (canonical spec below); foundation skeleton
+      shipped the same day.
+- [ ] **Boss Battle — build it out** (Isak, 2026-07-14)
+      > ⚠ KEEP THIS SPEC — Isak's canonical vision for the mode; don't delete
+      > it even as pieces ship, until Isak says so.
+
+      The board is a **hollow rectangle with 40 squares going around** and the
+      **boss in the middle**. At the start a **giant die rolls in the middle of
+      the screen** and the face picks the boss — faces **1–5 are five distinct
+      bosses**, face **6 is the Joker**, who **mimics another boss at random
+      each phase**. The boss's **HP falls every time someone lands on a
+      weakpoint tile** placed across the board. **At the beginning of every
+      round the boss gets a turn**: it **charges attacks** — tiles it will
+      strike **next turn get a red border**, tiles **two turns out get
+      yellow** — and the team navigates **obstacles and objectives** around the
+      ring while dodging the incoming strikes and chasing weakpoints. Bosses
+      **escalate in phases** (~⅔ / ~⅓ HP). There should be **new items that
+      help OTHER players** in this mode, in addition to the rest. Undecided
+      (see QUESTIONS.md): turn-based timer vs. player HP vs. a **unique lose
+      condition per boss**.
+
+      Foundation shipped 2026-07-14 (mode entry, ring board + arena render,
+      boss round-turn with yellow→red telegraphs, weakpoints/HP/phases,
+      placeholder Training Dummy, headless-verified). Still to build, roughly
+      in order:
+      - [ ] The five real bosses + the Joker, as `BOSSES` DATA entries
+            (design session — Isak seeds, Claude develops)
+      - [ ] Giant-die boss-select intro cutscene (replaces `pickBoss()`)
+      - [ ] Authored attack decks per boss (replace the random-tiles placeholder)
+      - [ ] Obstacles + objectives on the ring
+      - [ ] Lose condition (per Isak's answer in QUESTIONS.md)
+      - [ ] Co-op support items + which normal items carry over
+      - [ ] Bot brain for ring play (dodge red tiles, chase weakpoints)
+      - [ ] Strike/hit FX, boss idle animation, phase-change moment
+- [ ] **Design game mode — «The Grand Tour»** (Isak, 2026-07-14): a campaign of
+      multiple rounds/legs played back-to-back, each leg with its own **board
+      modifier**; the tour includes a **«mayhem» leg** and a **Boss Battle
+      leg**. Isak explicitly wants to discuss this more before anything is
+      built — capture ideas here, do NOT pre-author.
 - [ ] **Skins system** (Isak, 2026-07-10): proper pawn *skins*, not just colours —
       the colour picker built today is the stepping stone. Direction: a `SKINS`
       DATA table (id/name/how the pawn is drawn), `makePawn` reads the seat's

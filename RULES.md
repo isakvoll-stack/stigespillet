@@ -31,6 +31,20 @@ live in the `GAME_MODES` DATA table):
     by whoever is **furthest up the board**. The podium and leaderboard show
     everyone's 🏆 count, and the HUD shows *Round X of Y* all game.
   *(All payouts + the rounds formula are tunables in the `KOTH` DATA block.)*
+- **👹 Boss Battle** *(early skeleton)* — co-op: the board is a **hollow
+  rectangle of 40 tiles** looped around a central arena where the boss sits.
+  Everyone starts on the START tile and laps **clockwise forever** — there is
+  no finish line; the team wins by bringing the boss's **HP to 0**. Landing on
+  a purple **◎ weakpoint** chips the boss (5 weakpoints live at a time; a hit
+  one is consumed and respawns elsewhere). The boss acts **at the start of
+  every round**: tiles marked with a **yellow border** are struck in two boss
+  turns, **red** on the next — stand there when the strike lands and you're
+  knocked back. At **⅔ and ⅓ HP** the boss escalates (bigger attacks). Rolling
+  a 6 still rolls again. Items, shops and the classic special tiles are
+  **off** in this mode for now. *(Tunables in the `BOSS_MODE` DATA block; the
+  bosses themselves are `BOSSES` DATA entries — currently one placeholder
+  Training Dummy while the real roster + the giant-die boss select are
+  designed with Isak.)*
 
 ## Game variants
 

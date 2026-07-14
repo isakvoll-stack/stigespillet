@@ -1158,6 +1158,8 @@ const GAME_MODES = [
     desc:"The race: first to reach tile 90 wins." },
   { id:"koth",    ico:"🏆", name:"King of the Hill",
     desc:"Trophy hunt: lead the pack, catch fish, reach the top — most trophies when the rounds run out wins." },
+  { id:"boss",    ico:"👹", name:"Boss Battle",
+    desc:"Team up: circle the arena, dodge the boss's telegraphed attacks, land on weakpoints to chip its HP. (early skeleton)" },
 ];
 const KOTH = {
   ROUNDS_BY_PLAYERS:{2:20, 3:24, 4:26, 5:30, 6:32}, // default rounds by seat count (the slider overrides)
@@ -1173,6 +1175,39 @@ const defaultRounds = n => {
   const base = KOTH.ROUNDS_BY_PLAYERS[n] || KOTH.ROUNDS_BY_PLAYERS[6] + Math.max(0, n - 6) * KOTH.ROUNDS_EXTRA;
   return Math.min(KOTH.ROUNDS_MAX, Math.max(KOTH.ROUNDS_MIN, base));
 };
+/* ---- DATA: Boss Battle (foundation skeleton) ------------------------
+   The mode's board is a hollow rectangle: RING_COLS x RING_ROWS cells, only
+   the perimeter is walkable (2*(COLS+ROWS)-4 = 40 tiles, clockwise laps).
+   The boss sits in the arena inside the ring. Everything here is a tunable
+   or a placeholder — real bosses, attacks, obstacles, objectives and the
+   co-op items are authored later with Isak. */
+const BOSS_MODE = {
+  RING_COLS: 12, RING_ROWS: 10,
+  get RING_COUNT(){ return 2 * (this.RING_COLS + this.RING_ROWS) - 4; },
+  CELL: 75, TOP: 145,                    // ring geometry in board-svg units (viewBox 940x1040)
+  START_TILE: 1,                         // everyone starts here, walking clockwise
+  WEAKPOINTS: 5,                         // live weakpoints on the ring at any time
+  WEAKPOINT_DAMAGE: 2,                   // HP chipped per weakpoint landing
+  WEAKPOINT_COLOR: "#9b59b6", WEAKPOINT_MARK: "◎",
+  TELEGRAPH: { NEXT:"#e6402f", LATER:"#f1c40f", WIDTH:6 },  // red = strikes next boss turn, yellow = the turn after
+  CHARGE_TURNS: 2,                       // boss turns an attack charges before it strikes
+  KNOCKBACK: 4,                          // placeholder strike effect until real boss attacks are authored
+  TILE_COLOR: "#f6d55c", RING_STROKE:"#1f6fb0",
+  ARENA_COLOR: "rgba(20,30,15,.45)",
+  HPBAR: { W: 420, H: 26 },
+};
+/* One DATA entry per boss: ico / name / hp / phases (hpAbove = the fraction
+   the phase holds down to; attackTiles = how many tiles each charged attack
+   covers). The opening giant-die intro (faces 1-5 = the five bosses, 6 = the
+   Joker who mimics a random boss each phase) plugs in here once real bosses
+   are authored — until then pickBoss() returns the placeholder dummy. */
+const BOSSES = [
+  { id:"dummy", ico:"🎯", name:"Training Dummy", hp:24,
+    phases:[ { hpAbove: 2/3, attackTiles: 2 },
+             { hpAbove: 1/3, attackTiles: 3 },
+             { hpAbove: 0,   attackTiles: 4 } ] },
+];
+
 const BLUE_COLORS   = new Set(["#6fa8dc", FISH_COLOR]);   // light + dark blue squares (safe from the Nuke)
 function isBlueTile(cell){ return BLUE_COLORS.has(cellColor(cell)); }
 function isPlainTile(cell){
@@ -2274,21 +2309,25 @@ const SFX = (() => {
   return { play: (n) => { if (!FEATURES.sound || SOUND.VOLUME <= 0) return; try { (table[n]||(()=>{}))(); } catch(e){} } };
 })();
 
+function makePlayers(roster){
+  return roster.map((r,i)=>({
+    name: r.name || `Player ${i+1}`,
+    color: FANCY_BY_ID[r.color] ? FANCY_BY_ID[r.color].base : (r.color || PLAYER_COLORS[i]),
+    fancy: FANCY_BY_ID[r.color] ? r.color : null, pos:0, bot: !!r.bot,
+    downed:false, frozen:false, sniper:false, finished:false, shame:0, getupMin: SNIPER.GETUP_MIN, fish:0, fishStreak:0, fishCaught:0, onSecret:false, marketDue:false,
+    items:[], passive:null, rollBonus:0, forceSix:false, coins:COIN.START,
+    radSick:false, radTurns:0, radLevel:0, radImmune:false, shieldOn:false,
+    mirrorOn:false, forceRoll:0, diceCharges:0, curseRolls:0, singeRolls:0, craftNeed:null,
+    dizzy:false, curses:[], cuffs:0,
+    trophies:0, laps:0, downs:0, itemsUsed:0,
+    steps:0, coinsEarned:0, climbs:0, descents:0, interactions:0,
+  }));
+}
+
 function newGame(roster){
   const count = roster.length;
   game = {
-    players: roster.map((r,i)=>({
-      name: r.name || `Player ${i+1}`,
-      color: FANCY_BY_ID[r.color] ? FANCY_BY_ID[r.color].base : (r.color || PLAYER_COLORS[i]),
-      fancy: FANCY_BY_ID[r.color] ? r.color : null, pos:0, bot: !!r.bot,
-      downed:false, frozen:false, sniper:false, finished:false, shame:0, getupMin: SNIPER.GETUP_MIN, fish:0, fishStreak:0, fishCaught:0, onSecret:false, marketDue:false,
-      items:[], passive:null, rollBonus:0, forceSix:false, coins:COIN.START,
-      radSick:false, radTurns:0, radLevel:0, radImmune:false, shieldOn:false,
-      mirrorOn:false, forceRoll:0, diceCharges:0, curseRolls:0, singeRolls:0, craftNeed:null,
-      dizzy:false, curses:[], cuffs:0,
-      trophies:0, laps:0, downs:0, itemsUsed:0,
-      steps:0, coinsEarned:0, climbs:0, descents:0, interactions:0,
-    })),
+    players: makePlayers(roster),
     current:0, winner:null, over:false, busy:false, round:1, turnCount:0, autonomous: !!(roster[0] && roster[0].bot),
     mode: chosenMode, maxRounds: chosenMode === "koth" ? (chosenRounds || defaultRounds(count)) : 0,
     finishNeed: Math.max(1, Math.min(FINISH.NEED, count)), placesTaken: 0,
@@ -2329,8 +2368,10 @@ function refreshHUD(){
   const sub = document.getElementById("turnSub");
   const hint = document.getElementById("rollHint");
   const roundLine = document.getElementById("roundLine");
-  roundLine.style.display = isKoth() ? "" : "none";
+  roundLine.style.display = (isKoth() || isBoss()) ? "" : "none";
   if (isKoth()) roundLine.textContent = `🏆 Round ${Math.min(game.round, game.maxRounds)} of ${game.maxRounds}`;
+  else if (isBoss()) roundLine.textContent =
+    `${game.boss.def.ico} ${game.boss.def.name} — ❤️ ${game.boss.hp}/${game.boss.maxHp} · phase ${game.boss.phase+1}`;
   const matchLine = document.getElementById("matchLine");
   matchLine.style.display = series ? "" : "none";
   if (series) matchLine.textContent = `🥇 Match game ${series.game} · wins ${series.wins.join("–")}`;
@@ -2351,7 +2392,7 @@ function refreshHUD(){
   }
   const invBtn = document.getElementById("invBtn");
   if (invBtn){
-    const canInv = FEATURES.shop && !game.winner && !game.busy && !p.bot && !p.downed;
+    const canInv = FEATURES.shop && !isBoss() && !game.winner && !game.busy && !p.bot && !p.downed;
     invBtn.disabled = !canInv;
     invBtn.style.opacity = canInv ? "1" : ".5";
   }
@@ -2449,6 +2490,7 @@ function setDie2(v){ die2.setAttribute("data-face", v); }
 async function roll(){
   if (!game || game.winner || game.busy) return;
   if (document.querySelector(".screen.show") || document.querySelector(".modal.show")) return;
+  if (isBoss()) return bossRoll();       // Boss Battle runs its own controller
   const cur = game.players[game.current];
   if (cur.bot && !cur.downed) await botMaybeUseItem(cur);    // bots spend coffee/clover before rolling
   game.busy = true; refreshHUD();
@@ -3762,6 +3804,287 @@ function maybeAuto(){
           && !document.querySelector(".modal.show")) roll();
     }, ffms(ANIM.AUTO));
   }
+}
+
+/* =====================================================================
+   BOSS BATTLE — foundation skeleton (design pass with Isak, 2026-07-14).
+   Its own ENGINE / RENDER / CONTROLLER over the BOSS_MODE + BOSSES DATA:
+   a 40-tile ring around a central arena, laps instead of a finish line,
+   weakpoint landings chip the boss's HP, and the boss opens every round
+   by striking its red-telegraphed tiles and charging a new attack
+   (yellow = two boss turns out, red = strikes next boss turn).
+   Deliberately NOT built yet (authored later, as DATA): the real bosses
+   + the giant-die intro (1-5 = bosses, 6 = the Joker who mimics), boss
+   attack decks, obstacles/objectives on the ring, co-op support items,
+   and the lose condition (open question — see Next/QUESTIONS.md).
+   ===================================================================== */
+
+/* ---- boss ENGINE: pure ring maths (no DOM) -------------------------- */
+function isBoss(){ return !!game && game.mode === "boss"; }
+function bossRC(tile){
+  const W = BOSS_MODE.RING_COLS, H = BOSS_MODE.RING_ROWS, i = tile - 1;
+  if (i < W)               return { row: 0, col: i };                    // top edge, left → right
+  if (i < W + H - 1)       return { row: i - W + 1, col: W - 1 };        // right edge, down
+  if (i < 2*W + H - 2)     return { row: H - 1, col: 2*W + H - 3 - i };  // bottom edge, right → left
+  return { row: 2*(W + H) - 4 - i, col: 0 };                             // left edge, up
+}
+function bossCellCenter(tile){
+  const { row, col } = bossRC(tile), C = BOSS_MODE.CELL;
+  const left = (940 - BOSS_MODE.RING_COLS * C) / 2;
+  return { x: left + col*C + C/2, y: BOSS_MODE.TOP + row*C + C/2 };
+}
+function bossStep(tile, n){
+  const N = BOSS_MODE.RING_COUNT;
+  return ((tile - 1 + n) % N + N) % N + 1;
+}
+function bossWalkPath(start, steps){
+  const dir = steps < 0 ? -1 : 1, path = [];
+  for (let k = 1; k <= Math.abs(steps); k++) path.push(bossStep(start, dir*k));
+  return path;
+}
+function bossPhaseFor(hp){
+  const b = game.boss, frac = hp / b.maxHp;
+  const i = b.def.phases.findIndex(ph => frac > ph.hpAbove);
+  return i < 0 ? b.def.phases.length - 1 : i;
+}
+
+/* ---- boss RENDER: the arena board, HP bar, telegraph paint ---------- */
+let bossHpFill = null, bossHpText = null, bossMarksG = null;
+function buildBossBoard(){
+  svg.innerHTML = "";
+  const C = BOSS_MODE.CELL, W = BOSS_MODE.RING_COLS, H = BOSS_MODE.RING_ROWS;
+  const left = (940 - W*C) / 2, top = BOSS_MODE.TOP, b = game.boss;
+  svg.appendChild(el("rect",{x:2,y:2,width:936,height:1036,rx:10,fill:BOSS_MODE.RING_STROKE}));
+  svg.appendChild(el("rect",{x:left+C,y:top+C,width:(W-2)*C,height:(H-2)*C,fill:BOSS_MODE.ARENA_COLOR}));
+  for (let t = 1; t <= BOSS_MODE.RING_COUNT; t++){
+    const c = bossCellCenter(t), gx = c.x - C/2, gy = c.y - C/2;
+    svg.appendChild(el("rect",{"data-bcell":t,x:gx+1,y:gy+1,width:C-2,height:C-2,
+                               fill:BOSS_MODE.TILE_COLOR,stroke:BOSS_MODE.RING_STROKE,"stroke-width":"1.5"}));
+    const n = el("text",{x:gx+8,y:gy+17,"font-size":"12","font-weight":"700",
+                         fill:"#2a2018",opacity:".65","font-family":"Segoe UI, sans-serif"});
+    n.textContent = t;
+    svg.appendChild(n);
+  }
+  const s = bossCellCenter(BOSS_MODE.START_TILE);
+  const sl = el("text",{x:s.x,y:s.y+C/2-8,"text-anchor":"middle","font-size":"12","font-weight":"800",
+                        fill:"#2a2018","font-family":"Georgia, serif"});
+  sl.textContent = "START";
+  svg.appendChild(sl);
+  const ico = el("text",{x:470,y:top + H*C/2 + 45,"text-anchor":"middle","font-size":"130"});
+  ico.textContent = b.def.ico;
+  svg.appendChild(ico);
+  const name = el("text",{x:470,y:52,"text-anchor":"middle","font-size":"34","font-weight":"800",
+                          fill:"#f6ecd9","font-family":"Georgia, serif"});
+  name.textContent = `${b.def.ico} ${b.def.name}`;
+  svg.appendChild(name);
+  const bar = BOSS_MODE.HPBAR, bx = (940 - bar.W)/2, by = 66;
+  svg.appendChild(el("rect",{x:bx,y:by,width:bar.W,height:bar.H,rx:8,fill:"rgba(20,30,15,.55)",
+                             stroke:"#f6ecd9","stroke-width":"2"}));
+  bossHpFill = el("rect",{x:bx,y:by,width:bar.W,height:bar.H,rx:8,fill:BOSS_MODE.TELEGRAPH.NEXT});
+  svg.appendChild(bossHpFill);
+  bossHpText = el("text",{x:470,y:by + bar.H/2 + 6,"text-anchor":"middle","font-size":"17","font-weight":"800",
+                          fill:"#fff","font-family":"Segoe UI, sans-serif"});
+  svg.appendChild(bossHpText);
+  bossMarksG = el("g", {});
+  svg.appendChild(bossMarksG);
+}
+function paintBossHp(){
+  const b = game.boss;
+  bossHpFill.setAttribute("width", BOSS_MODE.HPBAR.W * Math.max(0, b.hp) / b.maxHp);
+  bossHpText.textContent = `${Math.max(0, b.hp)} / ${b.maxHp}`;
+}
+function paintBossTiles(){
+  const b = game.boss, nextT = new Set(), laterT = new Set();
+  b.charges.forEach(ch => ch.tiles.forEach(t => (ch.turnsLeft <= 1 ? nextT : laterT).add(t)));
+  for (let t = 1; t <= BOSS_MODE.RING_COUNT; t++){
+    const r = svg.querySelector(`[data-bcell="${t}"]`);
+    if (!r) continue;
+    r.setAttribute("fill", b.weakpoints.includes(t) ? BOSS_MODE.WEAKPOINT_COLOR : BOSS_MODE.TILE_COLOR);
+    const warn = nextT.has(t) ? BOSS_MODE.TELEGRAPH.NEXT : (laterT.has(t) ? BOSS_MODE.TELEGRAPH.LATER : null);
+    r.setAttribute("stroke", warn || BOSS_MODE.RING_STROKE);
+    r.setAttribute("stroke-width", warn ? BOSS_MODE.TELEGRAPH.WIDTH : 1.5);
+  }
+  bossMarksG.innerHTML = "";
+  b.weakpoints.forEach(t => {
+    const c = bossCellCenter(t);
+    const m = el("text",{x:c.x,y:c.y+12,"text-anchor":"middle","font-size":"34","font-weight":"800",
+                         fill:"#fff","font-family":"Segoe UI, sans-serif"});
+    m.textContent = BOSS_MODE.WEAKPOINT_MARK;
+    bossMarksG.appendChild(m);
+  });
+}
+function bossMoveTokenTo(i, tile, off){
+  const c = bossCellCenter(tile), o = off || {x:0, y:0};
+  tokenEls[i].style.transform = `translate(${c.x+o.x}px, ${c.y+o.y}px)`;
+}
+function bossLayoutTokens(){
+  const groups = {};
+  game.players.forEach((p,i)=> (groups[p.pos] = groups[p.pos] || []).push(i));
+  for (const t in groups){
+    const grp = groups[t];
+    grp.forEach((pi,k)=> bossMoveTokenTo(pi, +t, slotOffset(k, grp.length)));
+  }
+}
+function bossHopToken(i, a, b){
+  const A = bossCellCenter(a), B = bossCellCenter(b);
+  return tweenToken(i, ANIM.STEP, t => {
+    if (t < 0.8){
+      const u = t / 0.8;
+      return { x:A.x+(B.x-A.x)*u, y:A.y+(B.y-A.y)*u - Math.sin(u*Math.PI)*ANIM.HOP };
+    }
+    const u = (t - 0.8) / 0.2;
+    return { x:B.x, y:B.y, sx:1.12-0.12*u, sy:0.85+0.15*u };
+  });
+}
+
+/* ---- boss CONTROLLER: setup, the round loop, win ---------------------- */
+function pickBoss(){ return BOSSES[0]; }   // the giant-die intro (faces 1-5 = bosses, 6 = the Joker) replaces this
+function newBossGame(roster){
+  const def = pickBoss();
+  game = {
+    players: makePlayers(roster),
+    current:0, winner:null, over:false, busy:false, round:1, turnCount:0,
+    autonomous: !!(roster[0] && roster[0].bot),
+    mode:"boss", maxRounds:0,
+    finishNeed:1, placesTaken:0, standings:null, marketVisits:0, traps:[],
+    family:false, dualDice:false, manual:false,
+    boss:{ def, hp:def.hp, maxHp:def.hp, phase:0, charges:[], weakpoints:[] },
+  };
+  game.players.forEach(p => { p.pos = BOSS_MODE.START_TILE; });
+  FAMILY.OFF.forEach(k => { FEATURES[k] = FEATURE_BASE[k]; });
+  die2.style.display = "none";
+  die2.classList.remove("dim","faded"); die.classList.remove("dim");
+  placeState = null; lastMove = null; judging = false;
+  document.getElementById("confirmBtn").style.display = "none";
+  hideSecret();
+  buildBossBoard();
+  buildTokens(roster.length);
+  arrowEl = makeArrow();
+  for (let k = 0; k < BOSS_MODE.WEAKPOINTS; k++) spawnWeakpoint();
+  bossLayoutTokens();
+  paintBossTiles();
+  paintBossHp();
+  logEl.innerHTML = "";
+  hideBanner();
+  refreshHUD();
+}
+function spawnWeakpoint(){
+  const b = game.boss, blocked = new Set(b.weakpoints);
+  blocked.add(BOSS_MODE.START_TILE);
+  game.players.forEach(p => blocked.add(p.pos));
+  const open = [];
+  for (let t = 1; t <= BOSS_MODE.RING_COUNT; t++) if (!blocked.has(t)) open.push(t);
+  if (open.length) b.weakpoints.push(open[Math.floor(Math.random()*open.length)]);
+}
+async function bossBegin(){
+  const b = game.boss;
+  log(`${b.def.ico} ${b.def.name} guards the arena — land on the ${BOSS_MODE.WEAKPOINT_MARK} weakpoints to bring it down!`);
+  bossChargeAttack();
+  game.busy = false; refreshHUD(); maybeAuto();
+}
+function bossChargeAttack(){
+  const b = game.boss, ph = b.def.phases[b.phase], tiles = [], open = [];
+  for (let t = 1; t <= BOSS_MODE.RING_COUNT; t++)
+    if (!b.charges.some(c => c.tiles.includes(t))) open.push(t);
+  for (let k = 0; k < ph.attackTiles && open.length; k++)
+    tiles.push(open.splice(Math.floor(Math.random()*open.length), 1)[0]);
+  b.charges.push({ tiles, turnsLeft: BOSS_MODE.CHARGE_TURNS });
+  paintBossTiles();
+  log(`⚡ ${b.def.name} is charging an attack — ${tiles.length} tiles marked!`);
+}
+async function bossTurn(){
+  const b = game.boss;
+  const striking = b.charges.filter(c => c.turnsLeft <= 1);
+  b.charges = b.charges.filter(c => c.turnsLeft > 1);
+  b.charges.forEach(c => c.turnsLeft--);
+  for (const c of striking){
+    for (const p of game.players){
+      if (!c.tiles.includes(p.pos)) continue;
+      p.pos = bossStep(p.pos, -BOSS_MODE.KNOCKBACK);
+      p.downs++;
+      SFX.play("fall");
+      log(`💥 ${p.name} is caught in the strike — knocked back to tile ${p.pos}!`);
+    }
+  }
+  if (striking.length){
+    bossLayoutTokens();
+    await sleep(ANIM.HANDOFF);
+  }
+  bossChargeAttack();
+}
+async function bossRoll(){
+  const cur = game.players[game.current];
+  game.busy = true; refreshHUD();
+  die.classList.remove("dim");
+  die.classList.add("rolling");
+  SFX.play("dice");
+  const end = performance.now() + ffms(ANIM.DICE);
+  while (performance.now() < end){ setDie(1+Math.floor(Math.random()*RULES.DICE_SIDES)); await sleep(70); }
+  die.classList.remove("rolling");
+  const value = 1 + Math.floor(Math.random()*RULES.DICE_SIDES);
+  setDie(value);
+  if (value === RULES.DICE_SIDES && FEATURES.sixRollsAgain) sixEffect();
+  await sleep(160);
+  await bossMove(cur, value);
+}
+async function bossMove(p, rollValue){
+  const i = idxOf(p), path = bossWalkPath(p.pos, rollValue);
+  let at = p.pos;
+  for (const step of path){ await bossHopToken(i, at, step); at = step; p.pos = step; p.steps++; }
+  bossLayoutTokens();
+  const b = game.boss, wIdx = b.weakpoints.indexOf(p.pos);
+  if (wIdx >= 0){
+    b.weakpoints.splice(wIdx, 1);
+    spawnWeakpoint();
+    await bossDamage(BOSS_MODE.WEAKPOINT_DAMAGE, p);
+    if (game.over) return;
+    paintBossTiles();
+  } else log(`${p.name} moved to tile ${p.pos}`);
+  if (FEATURES.sixRollsAgain && rollValue === RULES.DICE_SIDES){
+    log(TXT.rollAgain);
+    game.busy = false; refreshHUD(); maybeAuto();
+  } else await endBossTurn();
+}
+async function bossDamage(n, striker){
+  const b = game.boss;
+  b.hp = Math.max(0, b.hp - n);
+  log(`${BOSS_MODE.WEAKPOINT_MARK} ${striker.name} strikes a weakpoint — ${b.def.name} takes ${n} damage!`);
+  paintBossHp();
+  if (b.hp <= 0) return bossDefeated();
+  const ph = bossPhaseFor(b.hp);
+  if (ph !== b.phase){
+    b.phase = ph;
+    log(`😡 ${b.def.name} is enraged — phase ${ph+1}!`);
+  }
+  refreshHUD();
+}
+async function bossDefeated(){
+  const b = game.boss;
+  game.over = true;
+  game.winner = game.players[game.current];   // truthy for the HUD — the whole team wins
+  log(`🏆 ${b.def.name} is defeated — the team wins!`);
+  paintBossHp();
+  refreshHUD();
+  await sleep(ANIM.HANDOFF);
+  document.getElementById("bannerNew").textContent = "Play again";
+  document.getElementById("bannerText").innerHTML =
+    `<div class="serieshead">${b.def.ico} ${b.def.name} defeated in ${game.round} rounds — the team wins! 🎉</div>`;
+  document.getElementById("banner").classList.add("show");
+  confettiBurst();
+}
+async function endBossTurn(){
+  if (game.over) return;
+  await sleep(ANIM.HANDOFF);
+  const n = game.players.length, prev = game.current;
+  game.current = (prev + 1) % n;
+  game.turnCount++;
+  game.autonomous = !!game.players[game.current].bot;
+  if (game.current <= prev){
+    game.round++;
+    await bossTurn();
+    if (game.over) return;
+  }
+  game.busy = false; refreshHUD(); maybeAuto();
 }
 
 // Celebratory flash when a 6 is rolled (and the roll-again rule is on).
@@ -6840,6 +7163,13 @@ function startFromSetup(){
     takenCols.add(col);
     roster.push({ name: nm, bot: allBots || !!setupBots[i], color: col });
   }
+  if (chosenMode === "boss"){      // Boss Battle: co-op arena, no match series
+    series = null;
+    newBossGame(roster);
+    showScreen("game");
+    bossBegin();
+    return;
+  }
   initSeries(roster.length);       // a fresh start begins a fresh match (or none)
   newGame(roster);
   showScreen("game");
@@ -6991,9 +7321,11 @@ document.getElementById("seatMinus").addEventListener("click", ()=>{ chosenSeats
 document.getElementById("seatPlus").addEventListener("click", ()=>{ chosenSeats=Math.min(MAX_PLAYERS,chosenSeats+1); buildSetup(); });
 document.getElementById("startBtn").addEventListener("click", startFromSetup);
 document.getElementById("bannerNew").addEventListener("click", ()=>{
+  const roster = game.players.map(p=>({ name:p.name, bot:p.bot, color: p.fancy || p.color }));
+  if (isBoss()){ newBossGame(roster); bossBegin(); return; } // rematch against a fresh boss
   if (series && !series.done) series.game++;                 // the match rolls on…
   else initSeries(game.players.length);                      // …or a fresh one begins
-  newGame(game.players.map(p=>({ name:p.name, bot:p.bot, color: p.fancy || p.color }))); // replay the same roster
+  newGame(roster);                                           // replay the same roster
   startTurn();
 });
 
