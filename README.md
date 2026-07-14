@@ -69,7 +69,13 @@ attacks, obstacles or lose condition yet (open questions in
 `Next/QUESTIONS.md`). A «Grand Tour» campaign mode (legs with board modifiers,
 incl. mayhem + boss legs) was seeded for a later design session. Verified
 headless: full bot boss game to the win banner + a classic regression game,
-0 errors.
+0 errors. Later the same day Isak's closing rulings landed in the spec (lap
+rewards with a far-side checkpoint, red-only normal telegraphs with yellow
+reserved for super attacks, weakpoints = 1 damage — the last one applied to
+the code) plus the full Grand Tour vision: 5 legs standard, Boss Battle as
+leg 4, catch-up shield + loser box, crown & coin debuff for the leader, and a
+5-turn no-bounce-back finish window — all in `Next/TASKS.md`, open points in
+`Next/QUESTIONS.md`.
 
 Before that (2026-07-13): **🖐️ Manual moves** (now a main-menu
 Settings toggle, cheat talk toned down): roll, place your own piece via

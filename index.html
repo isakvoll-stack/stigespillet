@@ -1187,7 +1187,7 @@ const BOSS_MODE = {
   CELL: 75, TOP: 145,                    // ring geometry in board-svg units (viewBox 940x1040)
   START_TILE: 1,                         // everyone starts here, walking clockwise
   WEAKPOINTS: 5,                         // live weakpoints on the ring at any time
-  WEAKPOINT_DAMAGE: 2,                   // HP chipped per weakpoint landing
+  WEAKPOINT_DAMAGE: 1,                   // HP chipped per weakpoint landing (Isak: 1, for ease of reference)
   WEAKPOINT_COLOR: "#9b59b6", WEAKPOINT_MARK: "◎",
   TELEGRAPH: { NEXT:"#e6402f", LATER:"#f1c40f", WIDTH:6 },  // red = strikes next boss turn, yellow = the turn after
   CHARGE_TURNS: 2,                       // boss turns an attack charges before it strikes
@@ -1202,7 +1202,7 @@ const BOSS_MODE = {
    Joker who mimics a random boss each phase) plugs in here once real bosses
    are authored — until then pickBoss() returns the placeholder dummy. */
 const BOSSES = [
-  { id:"dummy", ico:"🎯", name:"Training Dummy", hp:24,
+  { id:"dummy", ico:"🎯", name:"Training Dummy", hp:12,
     phases:[ { hpAbove: 2/3, attackTiles: 2 },
              { hpAbove: 1/3, attackTiles: 3 },
              { hpAbove: 0,   attackTiles: 4 } ] },

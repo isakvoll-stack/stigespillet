@@ -3,6 +3,23 @@
 Standing file: autonomous sessions log clarifications here instead of stopping to ask.
 Answer whenever — each answer gets folded in and the question checked off.
 
+## 2026-07-14 (later) — The Grand Tour (design open points)
+
+- [ ] **Leg 5, the finale** — what's its base, and is it the «mayhem» leg you
+  mentioned in the first brainstorm? (Boss Battle is locked as leg 4.)
+- [ ] **Placement points per leg** — F1-style values like 10/6/4/2 OK? Needed
+  before the "≥10 points behind first" shield rule can be tuned.
+- [ ] **Scoring the Boss Battle leg** — it's co-op, so how do placements/points
+  work there: shared points for a win, points by damage dealt, or no
+  placement points (bonus categories only)?
+- [ ] **"Slightly faster" legs** — via a lower win tile, more ladders, bigger
+  roll bonuses, or fewer snakes? Pick a lever.
+- [ ] **Crown debuff value** — defaulting to "leader gets half the starting
+  coins the others get each leg" per your example. OK?
+- [ ] **Night in Classic** — item, tile, or scenario set: which form first?
+- [ ] **The shields** (leg-1 starting shield + the catch-up shield) — same
+  one-hit shield as the existing shop item?
+
 ## 2026-07-14 — Boss Battle foundation (defaults picked, say if wrong)
 
 - [ ] **Lose condition** — you floated three directions: a turn-based timer,
@@ -11,9 +28,10 @@ Answer whenever — each answer gets folded in and the question checked off.
   Per-boss lose conditions would fit the phases/gimmick design nicely.
 - [ ] **Getting hit by a strike = knocked back 4 tiles** — pure placeholder
   until real boss attacks exist. OK as the baseline effect?
-- [ ] **Weakpoints: 5 live at a time, a landing deals 2 damage**, the hit one
-  is consumed and a fresh one spawns on a random free tile. Feel right, or
-  should weakpoints stay put / only refresh each phase?
+- [x] ~~Weakpoints deal 2 damage~~ — ANSWERED 2026-07-14: **1 damage**, for
+  ease of reference (dummy HP rescaled 24→12). Still open: 5 live at a time,
+  a hit one is consumed and respawns on a random free tile — or should they
+  stay put / only refresh each phase?
 - [ ] **Ring locked at 40 tiles (12×10 hollow rectangle), clockwise laps** —
   matches your sketch. OK?
 - [ ] **Rolling a 6 still rolls again** in boss mode (kept the classic rule —

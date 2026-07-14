@@ -3,6 +3,28 @@
 Newest first. One entry per working session; note what shipped and what's next.
 
 ---
+## 2026-07-14 (later) — closing rulings: Boss Battle + the full Grand Tour spec
+
+Isak's closing words for Boss Battle (mode parked until the next session) are
+folded into the TASKS.md canonical spec: lap rewards (coins/item box) with a
+crossed-the-far-side checkpoint so knockback can't farm laps, a boss move deck
+(different actions every round), and a telegraph rework — red borders only for
+normal attacks; yellow reserved for super attacks (yellow → idle turn while it
+progresses to red → strike). Weakpoints now deal **1 damage** (his call, for
+ease of reference) — the only code change this session (`WEAKPOINT_DAMAGE` 2→1,
+dummy HP 24→12, boss smoke re-run clean).
+
+The Grand Tour vision captured as canonical spec in TASKS.md: 5 legs standard;
+leg 1 always plain classic but everyone starts with coffee + a shield; legs
+2–3 are 50/50 classic-or-KOTH base + a modifier twist; leg 4 = Boss Battle;
+leg 5 open. F1-style carry-over points with the KOTH bonus categories reused
+between legs; 5-turn finish window after the leg winner (no bounce-back);
+catch-up shield (≥10 pts behind AND under half of first); consumables-only
+mystery box for each leg's loser (may overflow the bag); crown + half starting
+coins for the points leader. Spin-off task: «Night in Classic» (item/tile/
+scenario that turns night on for a while). Open points in QUESTIONS.md.
+
+---
 ## 2026-07-14 — Boss Battle: design locked + foundation skeleton
 
 Brainstorm with Isak locked the Boss Battle vision (canonical spec now in

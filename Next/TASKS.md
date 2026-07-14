@@ -34,24 +34,74 @@ See `LOG.md` for the running session history.
       (see QUESTIONS.md): turn-based timer vs. player HP vs. a **unique lose
       condition per boss**.
 
+      **Closing rulings (Isak, 2026-07-14 later — fold in when the mode work
+      resumes; these supersede the spec above where they overlap):**
+      - **Lap rewards**: completing a lap pays coins and/or an item box (or
+        both). Anti-abuse: a lap only counts once the player has **crossed the
+        far side of the board** since their last lap credit — getting knocked
+        back over START and re-crossing it must not pay again.
+      - **Boss move variety**: the boss should have *different things it can
+        do* every round (a move deck), not just tile strikes.
+      - **Telegraph rework**: normal attacks use **red borders only** (marked
+        on the boss's turn → strike next boss turn). **Yellow is reserved for
+        "super-powerful" attacks**: yellow marks first; next boss turn the
+        boss does nothing except progress yellow → red; it strikes the turn
+        after that.
+      - **Weakpoints deal exactly 1 damage** (ease of reference) — already
+        applied to the skeleton (`WEAKPOINT_DAMAGE`, dummy HP rescaled 24→12).
+
       Foundation shipped 2026-07-14 (mode entry, ring board + arena render,
-      boss round-turn with yellow→red telegraphs, weakpoints/HP/phases,
-      placeholder Training Dummy, headless-verified). Still to build, roughly
-      in order:
+      boss round-turn with telegraphs, weakpoints/HP/phases, placeholder
+      Training Dummy, headless-verified). Still to build, roughly in order:
       - [ ] The five real bosses + the Joker, as `BOSSES` DATA entries
             (design session — Isak seeds, Claude develops)
       - [ ] Giant-die boss-select intro cutscene (replaces `pickBoss()`)
-      - [ ] Authored attack decks per boss (replace the random-tiles placeholder)
+      - [ ] Telegraph rework per the ruling above (red = normal, yellow = super)
+      - [ ] Boss move deck (varied actions per round) + authored attacks per
+            boss (replace the random-tiles placeholder)
+      - [ ] Lap rewards + far-side-crossing lap checkpoint
       - [ ] Obstacles + objectives on the ring
       - [ ] Lose condition (per Isak's answer in QUESTIONS.md)
       - [ ] Co-op support items + which normal items carry over
       - [ ] Bot brain for ring play (dodge red tiles, chase weakpoints)
       - [ ] Strike/hit FX, boss idle animation, phase-change moment
-- [ ] **Design game mode — «The Grand Tour»** (Isak, 2026-07-14): a campaign of
-      multiple rounds/legs played back-to-back, each leg with its own **board
-      modifier**; the tour includes a **«mayhem» leg** and a **Boss Battle
-      leg**. Isak explicitly wants to discuss this more before anything is
-      built — capture ideas here, do NOT pre-author.
+- [ ] **«The Grand Tour» — campaign mode** (Isak, 2026-07-14; design still
+      open — capture only, do NOT build until Isak says go)
+      > ⚠ KEEP THIS SPEC — Isak's canonical vision so far ("that is what I
+      > have for now"); more design sessions to come.
+
+      A tour of **5 legs standard** (longer/shorter tour variants maybe
+      later). Points carry across legs — F1-style placement points accepted
+      from the brainstorm (exact values TBD) — and the **between-leg bonus
+      points reuse the KOTH end-of-game bonus categories** (two birds, one
+      stone). Persistent inventory + coins across legs (accepted).
+      - **Leg 1 — always a normal classic leg**, no twist, but everyone starts
+        with a ☕ coffee in inventory and an **active shield**.
+      - **Legs 2–3 — 50/50 whether the base is Classic or King of the Hill**,
+        with a board-modifier twist layered on top (ice / jungle / casino /
+        night-style modifiers, accepted from the brainstorm).
+      - **Leg 4 — Boss Battle** (the second-to-last leg, always).
+      - **Leg 5 — finale; base + twist unspecified** (where the «mayhem» leg
+        lands is open — QUESTIONS.md).
+      - **Pacing**: legs should play *slightly faster* in general, balanced so
+        no one wins WAAAY before anyone else (mechanism open).
+      - **Leg finish**: once first place finishes a leg, everyone else gets
+        **5 turns** to climb as high as they can or reach 90 — and during
+        those turns **overshoot does NOT bounce back**.
+      - **Catch-up shield**: last place *in total points* gets a shield if
+        they are BOTH **≥10 points behind first** AND **under half of first
+        place's total**.
+      - **Loser box**: each leg's loser gets a **mystery box that only gives
+        consumables**, added to their inventory **even past the bag cap** —
+        they just can't buy more items until they're back under it (down to 2).
+      - **Leader pressure**: first place in total points wears a visible
+        **crown on their token**, and takes a very slight debuff — e.g. only
+        **half the starting coins** the others get each leg (value TBD).
+- [ ] **Night in Classic** (Isak, 2026-07-14): the Grand Tour «night» modifier
+      (tiles ahead hidden until someone lands nearby) is loved enough to also
+      exist in Classic — as **an item, a tile, or a set of scenarios** that
+      switches night on for a period of time. Form TBD (QUESTIONS.md); design
+      before building.
 - [ ] **Skins system** (Isak, 2026-07-10): proper pawn *skins*, not just colours —
       the colour picker built today is the stepping stone. Direction: a `SKINS`
       DATA table (id/name/how the pawn is drawn), `makePawn` reads the seat's
