@@ -31,24 +31,80 @@ live in the `GAME_MODES` DATA table):
     by whoever is **furthest up the board**. The podium and leaderboard show
     everyone's 🏆 count, and the HUD shows *Round X of Y* all game.
   *(All payouts + the rounds formula are tunables in the `KOTH` DATA block.)*
-- **👹 Boss Battle** *(early skeleton)* — co-op: the board is a **hollow
-  11×11 square of 40 tiles** looped around a central arena where the boss sits.
-  Everyone starts on the START tile and laps **clockwise forever** — there is
+- **👹 Boss Battle** — co-op: the board is a **hollow 11×11 square of 40
+  tiles** looped around a central arena where the boss sits. A **giant die
+  opens the fight**: faces 1–5 are the five bosses, a 6 summons **🃏 the
+  Joker**. Everyone starts on the START tile and laps **clockwise forever** —
   no finish line; the team wins by bringing the boss's **HP to 0**. Landing on
-  a purple **◎ weakpoint** chips the boss (5 weakpoints live at a time; a hit
-  one is consumed and respawns elsewhere). The boss acts **at the start of
-  every round**: tiles marked with a **yellow border** are struck in two boss
-  turns, **red** on the next — stand there when the strike lands and you're
-  knocked back. At **⅔ and ⅓ HP** the boss escalates (bigger attacks). Rolling
-  a 6 still rolls again. Items, shops and the classic special tiles are
-  **off** in this mode for now. *(Tunables in the `BOSS_MODE` DATA block; the
-  bosses themselves are `BOSSES` DATA entries — currently one placeholder
-  Training Dummy while the real roster + the giant-die boss select are
-  designed with Isak.)*
-- **🗺️ The Grand Tour** *(not finished)* — shown on the mode screen as a
-  teaser but not yet playable: a campaign of legs with twists between them,
-  where points, coins and inventory carry across. Canonical spec lives in
-  `Next/TASKS.md`.
+  a purple **◎ weakpoint** chips 1 HP (5 live at a time; a hit one respawns
+  elsewhere). The boss acts **at the start of every round**: **red-bordered
+  tiles** are where its charging attack will land — stand there when it
+  strikes and you eat the boss's signature blow. At **⅔ and ⅓ HP** the boss
+  escalates AND winds up a **SUPER** — marked **yellow** while it cooks, red
+  on its final turn, double size and power. The roster:
+  - **🐉 Ember Dragon** — sweeping arcs of flame; a hit blows you back 3 and
+    **singes** your next roll (−2).
+  - **🐙 Deep Kraken** — tentacles on scattered tiles; a hit **drags you 6
+    tiles back**.
+  - **🧊 Frost Titan** — huge, slow arcs (3-turn charge); a hit **freezes you
+    for a turn**.
+  - **⚡ Storm Wyrm** — small strikes that charge in **a single turn**; a hit
+    **floors you for a turn**. Keep moving.
+  - **🕳️ Void Maw** — a hit hurls you to a **random tile**, and its
+    **weakpoints wander every boss turn**.
+  - **🃏 The Joker** — mimics a random boss's style and **reshuffles at every
+    phase change**.
+  Rolling a 6 still rolls again. Items, shops and the classic special tiles
+  are **off** in this mode for now; lose conditions, lap rewards and co-op
+  items are still to come. *(Tunables: `BOSS_MODE`, `BOSSES`, `BOSS_SUPER`.)*
+- **🌪️ Mayhem** — Classic gone feral. **Every plain square hides a random
+  special tile** (weights in `MAYHEM.REPLACE_WEIGHTS`), rare-event chances are
+  **tripled**, once a round the **chaos pool surges** and strikes a random
+  player with anything the game can do, the orange square's wheel can **split
+  into 1–3 simultaneous spins**, and you can wear **two passives at once**.
+  First to tile 90 still wins — if you can adapt faster than the others.
+  *(Tunables in the `MAYHEM` DATA block.)*
+- **🗺️ The Grand Tour** — the campaign: **five legs**, with placement points
+  (**10/6/4/2/1**, `TOUR.POINTS`) plus **two bonus categories** (+2 each,
+  drawn from the KOTH list) banked between legs. **Bags, purses, passives and
+  pacts carry across legs.** Most tour points after leg 5 wins.
+  - **Leg 1** — plain classic; everyone starts with ☕ + an active 🛡️ and the
+    🪙6 stipend.
+  - **Legs 2–3** — classic or King of the Hill (50/50), plus **one leg twist**
+    drawn from the list below (no repeats). Tour KOTH legs run ~25% shorter.
+  - **Leg 4** — Boss Battle, scored by **damage dealt**.
+  - **Leg 5** — **Mayhem**, always.
+  - **Finish window**: once someone reaches 90 on a race leg, everyone else
+    has **5 rounds** to climb — and **overshoot stops bouncing back**.
+  - **Leader pressure**: the points leader wears a 👑 and draws only **half
+    the stipend**. **Catch-up**: dead last starts with a shield if ≥10 points
+    behind AND under half of first place. **Pity box**: each leg's loser gets
+    2 random consumables, even past the bag cap.
+
+### The leg twists (Grand Tour legs 2–3)
+
+Ten twists live in the `LEG_MODS` registry; each modifier leg draws one at
+random. They're built to bend what you take for granted:
+
+- **🌙 Forever Night** — the board ahead of the pack is pitch dark; ladders,
+  snakes and specials only reveal as someone approaches.
+- **🪞 Mirror World** — the drawn ladders/snakes are lies: their FAR ends do
+  the carrying. Ladder tops drop you to the bottom, snake tails lift you to
+  the head; the usual trigger squares do nothing.
+- **🧊 Black Ice** — every move skids **+2 tiles** past where you aimed.
+- **🔄 Opposite Day** — you walk **7 minus your roll**. Sixes crawl, ones fly
+  (a rolled 6 still grants the bonus roll — but walks 1).
+- **🌊 Rising Flood** — from round 3 the bottom rows flood one by one (max 3);
+  start your turn in the water and you're knocked flat.
+- **🧲 Magnet Storm** — land within 2 tiles of someone and you're yanked onto
+  their square, encounter rules and all.
+- **💸 Troll Toll** — ladders cost **🪙4** to climb (can't pay = no climb);
+  snakes pay **🪙2** sympathy.
+- **🎶 Musical Squares** — every round two random players swap places.
+- **💰 Gold Rush** — every coin payout is **doubled**; tiles 10, 20, … pay a
+  bonus on landing.
+- **⚡ Lightning Pace** — no die lands below 3. Fast for everyone — including
+  into the snakes.
 
 ## Game variants
 
@@ -571,7 +627,8 @@ next game.
   — their **next roll burns 2 steps shorter** (`FIRE_EGG.SINGE`; a low roll can shrink
   to nothing, or even drag them backwards like radiation).
 
-**Passive** (1 slot, always on while equipped):
+**Passive** (1 slot, always on while equipped — **Mayhem fits 2 at once**;
+a new passive fills a free slot first, then replaces a non-Candle one):
 
 - **👟 Running Shoes** — **10 coins.** +1 to *every* roll while worn. Buying or
   receiving any new passive **immediately replaces** the one you have, which is **lost

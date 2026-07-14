@@ -3,6 +3,44 @@
 Newest first. One entry per working session; note what shipped and what's next.
 
 ---
+## 2026-07-14 (late evening) — THE BIG BUILD-OUT: Grand Tour, Mayhem, twists, bosses
+
+Isak: *"Build everything and fill in the gaps as best you can"* + answered the
+yellow-tiles question (plain board squares). Shipped in one autonomous batch:
+
+**The Grand Tour** (mode picker, no longer a teaser): `TOUR` DATA + controller
+(`startTour`/`nextTourLeg`/`tourDress`/`tourLegDone`). Legs: classic w/ ☕🛡️ →
+two 50/50 classic-or-KOTH legs each with a random twist → Boss Battle (scored
+by damage) → Mayhem. Points 10/6/4/2/1 + 2 KOTH bonus categories between legs;
+carry = items/coins/passives/curses/fish; finish window 5 rounds with bounce
+disabled (`game.noBounce` in walkPath); leader 👑 + half stipend; catch-up
+shield; loser pity box past the bag cap; interstitial + champion banners
+hooked into `bannerNew`.
+
+**Mayhem** (standalone mode + tour leg 5): `MAYHEM` DATA; `mayhemScramble()`
+pushes every plain square into a special-tile role (weighted, setback rare);
+rare-event chance ×3; `mayhemSurge()` fires a chaos-pool entry at a random
+player each round; the wheel splits into 1–3 spins (`spinWheel` →
+`spinWheelOnce`); **two passive slots** — all `p.passive === x` checks moved
+to `hasPassive()`/`passivesOf()`, `giveItem`/`canBuy` fill-then-replace.
+
+**Leg twists**: `LEG_MODS` registry (10 entries) + generic engine hooks —
+one MOVE_BONUSES entry, one RARE_EVENTS entry, `linkAt` override, `linkGate`
+in applyLink, `rollAdjust` in pactAdjustRoll, `coinMult` in awardCoin,
+onRoundStart/afterLanding in the turn flow, fog/flood SVG overlays.
+
+**Bosses**: 5 authored + the Joker (mimics style, reshuffles each phase),
+giant-die intro, per-boss `pattern`/`strike`/`chargeTurns`, `BOSS_STRIKES`
+(burn/pull/freeze/shock/scatter — skips ride `bossSkip`, singe `bossSinge`),
+SUPER on each phase change (2× tiles/power, +1 turn), telegraphs per Isak's
+ruling: red = normal whole charge, yellow = super until final turn. Void Maw's
+weakpoints wander. `bossDamage` tracks per-player damage for the tour.
+
+Verified: suite A 35/35 (units incl. every twist + every boss strike +
+regressions), suite B full 3-bot Grand Tour to the champion banner (twists
+drawn: mirror + musical). Open tuning points logged in QUESTIONS.md.
+
+---
 ## 2026-07-14 (evening) — quick-edit batch, the 🎲 chaos pool, Mayhem locked
 
 Isak's quick edits, all shipped: boss ring **12×10 → 11×11 hollow square**

@@ -747,6 +747,7 @@ const FEATURES = {
   crafting:      true,   // carried item pieces fuse by themselves into secret crafts (the Singularity)
   botThoughts:   true,   // bots pause to show the decision they're weighing (slower, watchable bot turns)
   sound:         true,   // sound effects
+  legMods:       true,   // Grand Tour leg twists (the generic MOVE_BONUSES / RARE_EVENTS hooks they ride on)
 };
 const FEATURE_BASE = Object.assign({}, FEATURES);   // the authored defaults; Family Mode flips a set off per game
 
@@ -1160,9 +1161,11 @@ const GAME_MODES = [
   { id:"koth",    ico:"🏆", name:"King of the Hill",
     desc:"Trophy hunt: lead the pack, catch fish, reach the top — most trophies when the rounds run out wins." },
   { id:"boss",    ico:"👹", name:"Boss Battle (not finished)",
-    desc:"Team up: circle the arena, dodge the boss's telegraphed attacks, land on weakpoints to chip its HP. (early skeleton)" },
-  { id:"grandtour", ico:"🗺️", name:"The Grand Tour (not finished)", soon:true,
-    desc:"Campaign: a tour of legs with twists between them — points, coins and your inventory carry across. Still being designed." },
+    desc:"Team up: circle the arena, dodge the boss's telegraphed attacks, land on weakpoints to chip its HP. Five bosses — and the Joker." },
+  { id:"mayhem",  ico:"🌪️", name:"Mayhem",
+    desc:"Classic gone feral: every plain square hides a special tile, chaos surges every round, the wheel spins in bursts — adapt or drown." },
+  { id:"grandtour", ico:"🗺️", name:"The Grand Tour",
+    desc:"The campaign: five legs with twists between them — points, coins and your whole bag carry across. It ends in Mayhem." },
 ];
 const KOTH = {
   ROUNDS_BY_PLAYERS:{2:20, 3:24, 4:26, 5:30, 6:32}, // default rounds by seat count (the slider overrides)
@@ -1178,6 +1181,144 @@ const defaultRounds = n => {
   const base = KOTH.ROUNDS_BY_PLAYERS[n] || KOTH.ROUNDS_BY_PLAYERS[6] + Math.max(0, n - 6) * KOTH.ROUNDS_EXTRA;
   return Math.min(KOTH.ROUNDS_MAX, Math.max(KOTH.ROUNDS_MIN, base));
 };
+/* ---- DATA: Mayhem ----------------------------------------------------
+   Classic gone feral (also the Grand Tour's final leg): every plain square
+   hides a special tile, rare-event chances multiply, the wheel can split
+   into simultaneous spins, the chaos pool surges every round, and two
+   passives fit at once. */
+const MAYHEM = {
+  EVENT_MULT: 3,                        // rare-event chance ×
+  SPIN_WEIGHTS: [3, 2, 1],              // odds of 1 / 2 / 3 wheel spins at once
+  PASSIVE_SLOTS: 2,
+  REPLACE_WEIGHTS: { teleport:3, orange:3, freeze:3, shop:2, fishing:3, dizzy:3, setback:1, radioactive:1 },
+};
+/* ---- DATA: The Grand Tour --------------------------------------------
+   The 5-leg campaign. Leg 1 = plain classic (coffee + shield for all);
+   legs 2-3 = classic or KOTH base + a LEG_MODS twist; leg 4 = Boss Battle;
+   leg 5 = Mayhem. Placement points carry across; bag/coins/passives too. */
+const TOUR = {
+  LEGS: 5,
+  POINTS: [10, 6, 4, 2, 1],             // placement points; seats past the list score 0
+  BONUS: { COUNT: 2, POINTS: 2, REVEAL_MS: 1100 },   // between-leg categories (KOTH_BONUS_CATS reused)
+  START_COINS: 6,                       // stipend added at each leg start…
+  LEADER_COIN_FACTOR: 0.5,              // …the points leader only gets this share of it
+  CATCHUP: { GAP: 10 },                 // catch-up shield: ≥GAP behind AND under half of first
+  FINISH_WINDOW: 5,                     // rounds the rest get once someone is home (no bounce-back)
+  LOSER_BOX_ITEMS: 2,                   // consumables in the leg loser's pity box (may overflow the bag)
+  KOTH_ROUNDS_FACTOR: 0.75,             // tour KOTH legs run slightly shorter
+  MOD_LEGS: [2, 3], BOSS_LEG: 4,
+};
+/* ---- DATA + WIRING: leg twists (LEG_MODS) -----------------------------
+   One twist is drawn per modifier leg (tour legs 2-3, no repeats). Each
+   entry is data plus small hooks the engine consults generically:
+   moveBonus/note (via MOVE_BONUSES), turnStartWhen/turnStartRun (via
+   RARE_EVENTS), linkAt (replaces ladder/snake lookup), linkGate (may veto
+   or tax a link), rollAdjust (bends the die), coinMult, onRoundStart,
+   afterLanding, afterMove, apply/remove (leg start/end). */
+const NIGHT_MOD = { AHEAD: 8 };                       // tiles past the leading pawn stay dark
+const ICE_MOD   = { SKID: 2 };
+const FLOOD_MOD = { START_ROUND: 3, EVERY: 2, MAX_ROWS: 3 };
+const MAGNET_MOD= { RANGE: 2 };
+const TOLL_MOD  = { LADDER: 4, SNAKE_PAY: 2 };
+const PACE_MOD  = { MIN_FACE: 3 };
+const RUSH_MOD  = { MULT: 2, TENS_PAY: 2 };
+const LEG_MODS = [
+  { id:"night", ico:"🌙", name:"Forever Night",
+    desc:"The board ahead is swallowed by dark — ladders, snakes and tiles reveal themselves only as the pack advances.",
+    apply(){ buildFog(); updateFog(); }, remove(){ clearFog(); } },
+  { id:"mirror", ico:"🪞", name:"Mirror World",
+    desc:"Every ladder and snake is a lie: the FAR ends do the carrying — ladder tops drop you, snake tails lift you.",
+    linkAt(cell){
+      if (LADDER_TOPS.has(cell)) for (const b in LADDERS){ if (LADDERS[b] === cell) return { kind:"slide", to:+b }; }
+      if (SNAKE_TAILS.has(cell)) for (const h in SLIDES){ if (SLIDES[h] === cell) return { kind:"ladder", to:+h }; }
+      return null;
+    } },
+  { id:"ice", ico:"🧊", name:"Black Ice",
+    desc:"Every move skids two tiles further than you meant. Aim short.",
+    moveBonus(){ return ICE_MOD.SKID; },
+    note:p=>`🧊 ${p.name} skids on the black ice!` },
+  { id:"opposite", ico:"🔄", name:"Opposite Day",
+    desc:"You walk the OTHER side of the die (7 minus your roll). Sixes crawl, ones fly.",
+    moveBonus(p, roll){ return 7 - 2*roll; },
+    note:p=>`🔄 The die lands upside-down!` },
+  { id:"flood", ico:"🌊", name:"Rising Flood",
+    desc:"Water climbs the board row by row. Start your turn in the water and you're swept off your feet.",
+    apply(){ game.floodRows = 0; }, remove(){ clearFlood(); },
+    async onRoundStart(){
+      if (game.round >= FLOOD_MOD.START_ROUND && (game.floodRows||0) < FLOOD_MOD.MAX_ROWS
+          && (game.round - FLOOD_MOD.START_ROUND) % FLOOD_MOD.EVERY === 0){
+        game.floodRows = (game.floodRows||0) + 1;
+        paintFlood();
+        SFX.play("chute");
+        log(`🌊 The water rises — the bottom ${game.floodRows > 1 ? game.floodRows + " rows are" : "row is"} flooded!`);
+        await sleep(500);
+      }
+    },
+    turnStartWhen(p){ return (game.floodRows||0) > 0 && p.pos >= 1 && p.pos <= game.floodRows * BOARD.COLS && !p.downed && !p.finished; },
+    async turnStartRun(p){
+      log(`🌊 ${p.name} starts the turn in the flood — swept off their feet!`);
+      downPlayer(p); layoutTokens(); renderScoreboard();
+      await sleep(500);
+    } },
+  { id:"magnet", ico:"🧲", name:"Magnet Storm",
+    desc:"Land near another player and you're yanked onto their square — brace for the crowd.",
+    async afterLanding(p){
+      if (p.pos <= RULES.SAFE_TILES || p.pos >= BOARD.WIN) return;
+      const near = game.players.filter(q => q !== p && !q.finished && q.pos > 0
+        && q.pos !== p.pos && Math.abs(q.pos - p.pos) <= MAGNET_MOD.RANGE);
+      if (!near.length) return;
+      near.sort((x,y) => Math.abs(x.pos - p.pos) - Math.abs(y.pos - p.pos));
+      SFX.play("bounce");
+      log(`🧲 The magnet storm yanks ${p.name} onto ${near[0].name}'s square!`);
+      p.pos = near[0].pos;
+      layoutTokens(); renderScoreboard();
+      await sleep(400);
+      if (FEATURES.encounter) await resolveEncounters(p);
+    } },
+  { id:"toll", ico:"💸", name:"Troll Toll",
+    desc:"A troll owns every ladder: pay 4 coins to climb or be shrugged off. Snakes pay 2 in sympathy.",
+    async linkGate(p, link){
+      if (link.kind === "ladder"){
+        if ((p.coins||0) >= TOLL_MOD.LADDER){
+          p.coins -= TOLL_MOD.LADDER; renderScoreboard();
+          log(`💸 ${p.name} pays the troll 🪙${TOLL_MOD.LADDER} to climb.`);
+          return true;
+        }
+        log(`💸 The troll wants 🪙${TOLL_MOD.LADDER} — ${p.name} can't pay, and the ladder shrugs them off.`);
+        return false;
+      }
+      awardCoin(p, "💸 Snake sympathy", TOLL_MOD.SNAKE_PAY, "plain");
+      return true;
+    } },
+  { id:"musical", ico:"🎶", name:"Musical Squares",
+    desc:"When the music stops each round, two players trade places. Get attached to nothing.",
+    async onRoundStart(){
+      const pool = game.players.filter(q => !q.finished && q.pos > 0);
+      if (pool.length < 2) return;
+      const a = pool[(Math.random()*pool.length)|0];
+      let b = a; while (b === a) b = pool[(Math.random()*pool.length)|0];
+      SFX.play("teleport"); flashScreen();
+      const ap = a.pos; a.pos = b.pos; b.pos = ap;
+      layoutTokens(); renderScoreboard();
+      log(`🎶 The music stops — ${a.name} and ${b.name} trade places!`);
+      await sleep(600);
+    } },
+  { id:"goldrush", ico:"💰", name:"Gold Rush",
+    desc:"Every coin pays double, and the round-number squares gush gold. Wealth wins races here.",
+    coinMult: RUSH_MOD.MULT,
+    async afterLanding(p){
+      if (p.pos > 0 && p.pos < BOARD.WIN && p.pos % 10 === 0)
+        awardCoin(p, "💰 Gold vein", RUSH_MOD.TENS_PAY, "gold");
+    } },
+  { id:"pace", ico:"⚡", name:"Lightning Pace",
+    desc:"No die lands below 3 — everyone is fast, nobody can creep. Snakes feast on the reckless.",
+    rollAdjust(p, v){
+      if (v >= PACE_MOD.MIN_FACE) return v;
+      log(`⚡ The pace holds ${p.name}'s die up to a ${PACE_MOD.MIN_FACE}.`);
+      return PACE_MOD.MIN_FACE;
+    } },
+];
+function activeLegMod(){ return game && game.legModId ? LEG_MODS.find(m => m.id === game.legModId) : null; }
 /* ---- DATA: Boss Battle (foundation skeleton) ------------------------
    The mode's board is a hollow rectangle: RING_COLS x RING_ROWS cells, only
    the perimeter is walkable (2*(COLS+ROWS)-4 = 40 tiles, clockwise laps).
@@ -1199,17 +1340,36 @@ const BOSS_MODE = {
   ARENA_COLOR: "rgba(20,30,15,.45)",
   HPBAR: { W: 420, H: 26 },
 };
-/* One DATA entry per boss: ico / name / hp / phases (hpAbove = the fraction
-   the phase holds down to; attackTiles = how many tiles each charged attack
-   covers). The opening giant-die intro (faces 1-5 = the five bosses, 6 = the
-   Joker who mimics a random boss each phase) plugs in here once real bosses
-   are authored — until then pickBoss() returns the placeholder dummy. */
+/* One DATA entry per boss. The giant die picks the fight: faces 1-5 are the
+   five bosses, 6 is the Joker, who mimics a random boss's STYLE (pattern,
+   strike, charge speed) and reshuffles at every phase change.
+   phases: hpAbove = the fraction the phase holds down to; attackTiles = tiles
+   per charged attack. pattern: "arc" = one contiguous sweep of the ring,
+   "scatter" = random single tiles. strike = what a hit does (BOSS_STRIKES).
+   chargeTurns = boss turns an attack cooks before striking. wander = the
+   weakpoints move every boss turn. A SUPER charges at each phase change:
+   yellow telegraph, more tiles, doubled power (BOSS_SUPER). */
 const BOSSES = [
-  { id:"dummy", ico:"🎯", name:"Training Dummy", hp:12,
-    phases:[ { hpAbove: 2/3, attackTiles: 2 },
-             { hpAbove: 1/3, attackTiles: 3 },
-             { hpAbove: 0,   attackTiles: 4 } ] },
+  { id:"dragon", ico:"🐉", name:"Ember Dragon",  hp:14, chargeTurns:2, pattern:"arc",
+    strike:{ type:"burn", knock:3, singe:1 },
+    phases:[ { hpAbove: 2/3, attackTiles: 4 }, { hpAbove: 1/3, attackTiles: 6 }, { hpAbove: 0, attackTiles: 8 } ] },
+  { id:"kraken", ico:"🐙", name:"Deep Kraken",   hp:14, chargeTurns:2, pattern:"scatter",
+    strike:{ type:"pull", amount:6 },
+    phases:[ { hpAbove: 2/3, attackTiles: 3 }, { hpAbove: 1/3, attackTiles: 4 }, { hpAbove: 0, attackTiles: 6 } ] },
+  { id:"titan",  ico:"🧊", name:"Frost Titan",   hp:12, chargeTurns:3, pattern:"arc",
+    strike:{ type:"freeze", skip:1 },
+    phases:[ { hpAbove: 2/3, attackTiles: 5 }, { hpAbove: 1/3, attackTiles: 7 }, { hpAbove: 0, attackTiles: 9 } ] },
+  { id:"wyrm",   ico:"⚡", name:"Storm Wyrm",    hp:16, chargeTurns:1, pattern:"scatter",
+    strike:{ type:"shock", skip:1 },
+    phases:[ { hpAbove: 2/3, attackTiles: 2 }, { hpAbove: 1/3, attackTiles: 3 }, { hpAbove: 0, attackTiles: 4 } ] },
+  { id:"maw",    ico:"🕳️", name:"Void Maw",      hp:14, chargeTurns:2, pattern:"scatter", wander:true,
+    strike:{ type:"scatter" },
+    phases:[ { hpAbove: 2/3, attackTiles: 3 }, { hpAbove: 1/3, attackTiles: 4 }, { hpAbove: 0, attackTiles: 5 } ] },
+  { id:"joker",  ico:"🃏", name:"The Joker",     hp:15, mimic:true,
+    phases:[ { hpAbove: 2/3, attackTiles: 3 }, { hpAbove: 1/3, attackTiles: 4 }, { hpAbove: 0, attackTiles: 5 } ] },
 ];
+const BOSS_SUPER = { TILES_MULT: 2, CHARGE_EXTRA: 1, POWER_MULT: 2 };   // phase-change super attacks
+const BOSS_INTRO = { CYCLES: 10, TICK_MS: 130, HOLD_MS: 900 };          // the giant-die boss select
 
 const BLUE_COLORS   = new Set(["#6fa8dc", FISH_COLOR]);   // light + dark blue squares (safe from the Nuke)
 function isBlueTile(cell){ return BLUE_COLORS.has(cellColor(cell)); }
@@ -1590,7 +1750,7 @@ function cellCenter(cell){
 // Walk path for a roll. With FEATURES.exactFinish the last square needs an exact
 // roll and an overshoot bounces back; otherwise any overshoot just reaches the end.
 function walkPath(start, roll){
-  if (!FEATURES.exactFinish){
+  if (!FEATURES.exactFinish || (typeof game !== "undefined" && game && game.noBounce)){
     const path = [];
     for (let c = start+1; c <= Math.min(start+roll, BOARD.WIN); c++) path.push(c);
     return path.length ? path : [start];
@@ -1610,6 +1770,8 @@ function walkBackPath(start, n){
 }
 
 function linkAt(cell){
+  const m = activeLegMod();
+  if (m && m.linkAt) return m.linkAt(cell);   // a twist like Mirror World owns ALL links for the leg
   if (cell in LADDERS) return { kind:"ladder", to: LADDERS[cell] };
   if (cell in SLIDES)  return { kind:"slide",  to: SLIDES[cell]  };
   return null;
@@ -1840,6 +2002,7 @@ function hideSecret(){ if (secretEl){ secretEl.remove(); secretEl = null; } }
 // Arrange every token: those on the hidden secret square sit there (revealing it),
 // those still off-board (pos 0) wait in the START lane, the rest share their tile.
 function layoutTokens(){
+  if (fogG) updateFog();                 // Forever Night: the dark recedes as the pack advances
   const groups = {}, waiting = [], secret = [];
   game.players.forEach((p,i)=>{
     if (p.onSecret){ secret.push(i); return; }
@@ -2141,9 +2304,9 @@ const MOVE_BONUSES = [
     peek:   p => p.singeRolls ? -FIRE_EGG.SINGE : 0,
     note: (p,n) => `🔥 ${p.name} is singed — ${n} on this roll.` },
   { id:"shoes",  feature:"shop",                          // Running Shoes: +1 on every roll while worn
-    amount: p => p.passive === "shoes" ? ITEM.SHOES_BONUS : 0 },
+    amount: p => hasPassive(p, "shoes") ? ITEM.SHOES_BONUS : 0 },
   { id:"soulcandle", feature:"shop",                      // the Soul Candle burns +2 into every roll, forever
-    amount: p => p.passive === "soulcandle" ? CANDLE.BONUS : 0 },
+    amount: p => hasPassive(p, "soulcandle") ? CANDLE.BONUS : 0 },
   { id:"radSick", feature:"radioactive",                  // radiation sickness saps the roll
     amount: p => p.radLevel || 0,
     note: (p,n) => n < 0 ? `☢️ Radiation saps ${p.name}'s stride (${n}).` : null },
@@ -2171,6 +2334,10 @@ const MOVE_BONUSES = [
     },
     peek: p => hasCurse(p, "blooddice") && !(p.coins > 0) ? -CURSE.BLOOD_SLOW : 0,
     note: p => `🎲🩸 ${p.name}'s purse is dry — the Blood Dice drink their stride instead!` },
+  { id:"legmod", feature:"legMods",                       // the active Grand Tour twist's step modifier
+    amount: (p, roll) => { const m = activeLegMod(); return m && m.moveBonus ? m.moveBonus(p, roll) : 0; },
+    peek:   (p, roll) => { const m = activeLegMod(); return m && m.moveBonus ? m.moveBonus(p, roll) : 0; },
+    note:   (p, n)    => { const m = activeLegMod(); return m && m.note ? m.note(p, n) : null; } },
 ];
 
 function moveBonusTotal(p, roll){
@@ -2219,6 +2386,9 @@ const RARE_EVENTS = [
     when:p=>hasCurse(p, "vampirefangs") && p.pos > 0 && !p.downed
          && game.players.every(q => q === p || q.finished || q.pos < p.pos),
     run:()=>sunScorch(game.players[game.current]) },
+  { id:"legmod", feature:"legMods",                                  // the active Grand Tour twist's turn-start strike
+    when:p=>{ const m = activeLegMod(); return !!(m && m.turnStartWhen && m.turnStartWhen(p)); },
+    run:()=>activeLegMod().turnStartRun(game.players[game.current]) },
 ];
 
 // A jagged screen-space lightning-bolt path from (x1,y1) to (x2,y2).
@@ -2317,7 +2487,8 @@ function makePlayers(roster){
     color: FANCY_BY_ID[r.color] ? FANCY_BY_ID[r.color].base : (r.color || PLAYER_COLORS[i]),
     fancy: FANCY_BY_ID[r.color] ? r.color : null, pos:0, bot: !!r.bot,
     downed:false, frozen:false, sniper:false, finished:false, shame:0, getupMin: SNIPER.GETUP_MIN, fish:0, fishStreak:0, fishCaught:0, onSecret:false, marketDue:false,
-    items:[], passive:null, rollBonus:0, forceSix:false, coins:COIN.START,
+    items:[], passive:null, passive2:null, rollBonus:0, forceSix:false, coins:COIN.START,
+    tourPts:0, crowned:false, bossSkip:0, bossSinge:0, bossDamage:0,
     radSick:false, radTurns:0, radLevel:0, radImmune:false, shieldOn:false,
     mirrorOn:false, forceRoll:0, diceCharges:0, curseRolls:0, singeRolls:0, craftNeed:null,
     dizzy:false, curses:[], cuffs:0,
@@ -2335,6 +2506,7 @@ function newGame(roster){
     finishNeed: Math.max(1, Math.min(FINISH.NEED, count)), placesTaken: 0,
     standings: null, marketVisits: 0, traps: [],
     family: VARIANTS.family, dualDice: VARIANTS.dualDice, manual: VARIANTS.manual,
+    tour:false, legModId:null, floodRows:0, noBounce:false, windowCloseRound:0,
   };
   // Family Mode flips its feature set off for this game (and back for a normal one)
   FAMILY.OFF.forEach(k => { FEATURES[k] = game.family ? false : FEATURE_BASE[k]; });
@@ -2349,6 +2521,8 @@ function newGame(roster){
   setSpecialTiles(boardOpt("scrambledStart") ? scrambledLayout() : DEFAULT_SPECIALS);
   rulesSeen = {};
   buildBoard();
+  fogG = null; floodG = null;                      // the board wipe destroyed any twist overlays
+  if (game.mode === "mayhem") mayhemScramble();    // every plain square hides a special tile
   buildTokens(count);
   buildOverlays();                // spotlight + laser layers, sitting above the tokens
   arrowEl = makeArrow();          // fresh "whose turn" arrow for this game
@@ -2370,10 +2544,17 @@ function refreshHUD(){
   const sub = document.getElementById("turnSub");
   const hint = document.getElementById("rollHint");
   const roundLine = document.getElementById("roundLine");
-  roundLine.style.display = (isKoth() || isBoss()) ? "" : "none";
-  if (isKoth()) roundLine.textContent = `🏆 Round ${Math.min(game.round, game.maxRounds)} of ${game.maxRounds}`;
-  else if (isBoss()) roundLine.textContent =
+  roundLine.style.display = (isKoth() || isBoss() || isMayhem() || game.tour) ? "" : "none";
+  let roundTxt = "";
+  if (isKoth()) roundTxt = `🏆 Round ${Math.min(game.round, game.maxRounds)} of ${game.maxRounds}`;
+  else if (isBoss()) roundTxt =
     `${game.boss.def.ico} ${game.boss.def.name} — ❤️ ${game.boss.hp}/${game.boss.maxHp} · phase ${game.boss.phase+1}`;
+  else if (isMayhem()) roundTxt = `🌪️ Round ${game.round}`;
+  if (game.tour){
+    const m = activeLegMod();
+    roundTxt = `🗺️ Leg ${tour.leg}/${TOUR.LEGS}` + (m ? ` · ${m.ico} ${m.name}` : "") + (roundTxt ? " · " + roundTxt : "");
+  }
+  roundLine.textContent = roundTxt;
   const matchLine = document.getElementById("matchLine");
   matchLine.style.display = series ? "" : "none";
   if (series) matchLine.textContent = `🥇 Match game ${series.game} · wins ${series.wins.join("–")}`;
@@ -2412,10 +2593,11 @@ function renderScoreboard(){
     row.className = "row" + (isTurn ? " active" : "");
     const medal = p.finished ? (MEDALS[p.place-1] || ("#"+p.place)) : "";
     const bagMark  = (p.items||[]).map(id=>itemDef(id).ico).join("");
-    const passMark = p.passive ? itemDef(p.passive).ico : "";
+    const passMark = passivesOf(p).map(id=>itemDef(id).ico).join("");
     const shopMark = (bagMark || passMark) ? " " + bagMark + passMark : "";
     const pactMark = (p.curses||[]).length ? " ⛓️" + p.curses.map(id=>itemDef(id).ico).join("") : "";
     const mark = (isKoth() && (p.trophies||0) > 0 ? " 🏆"+p.trophies : "")
+               + (game.tour ? (p.crowned ? " 👑" : "") + " ⭐" + (p.tourPts||0) : "")
                + (p.finished ? " "+medal : "") + (p.downed ? (p.frozen ? " 🧊" : " 🤕") : "")
                + (p.sniper ? " 🎯" : "") + (p.shame>0 ? " 😳" : "") + (p.cuffs>0 ? " 🔗"+p.cuffs : "")
                + (p.fish>0 ? " 🐟"+(p.fish>1?p.fish:"") : "") + shopMark + pactMark
@@ -2966,6 +3148,13 @@ async function settleLanding(p, i, from, landed, rollsAgain, dual){
     awardCoin(p, blue ? "Blue tile" : "Plain tile", blue ? COIN.BLUE : COIN.PLAIN, blue ? "blue" : "plain");
   }
 
+  // the active leg twist gets a word once the square is settled
+  const lm = activeLegMod();
+  if (lm && lm.afterLanding && !slipped && !p.finished && !game.over){
+    await lm.afterLanding(p);
+    if (game.over) return;
+  }
+
   // a 6 (or doubles) earns another roll for the same player; otherwise end the turn
   if (rollsAgain){
     if (FEATURES.coins) awardCoin(p, dual ? "Rolled doubles" : "Rolled a 6", 1, "six");
@@ -3052,6 +3241,11 @@ async function finishPlayer(p){
   p.place = ++game.placesTaken;
   SFX.play("win");
   log(`${p.name} reached the exit — ${MEDALS[p.place-1] || "#"+p.place}!`, "win");
+  if (game.tour && game.placesTaken === 1 && !game.windowCloseRound){   // the tour's finish window opens
+    game.windowCloseRound = game.round + TOUR.FINISH_WINDOW;
+    game.noBounce = true;
+    log(`⏱️ ${p.name} is home — ${TOUR.FINISH_WINDOW} rounds left to climb, and overshoot no longer bounces!`);
+  }
   const unfinished = game.players.filter(q => !q.finished);
   if (game.placesTaken < game.finishNeed && unfinished.length > 1){
     confettiBurst(30);
@@ -3075,6 +3269,7 @@ function endClassic(){
   game.standings.forEach((q,idx) => { q.place = idx + 1; });
   game.winner = game.standings[0];
   log(TXT.won(game.winner.name), "win");
+  if (game.tour){ tourLegDone(); game.busy = false; refreshHUD(); return; }
   recordSeriesResult();
   showStandings();
   game.busy = false; refreshHUD();
@@ -3161,6 +3356,7 @@ async function finishKoth(){
   s.forEach((q,idx) => { q.place = idx + 1; });
   SFX.play("win");
   log(`⏰ Time! ${game.winner.name} takes the hill with ${game.winner.trophies||0} 🏆!`, "win");
+  if (game.tour){ tourLegDone(); game.busy = false; refreshHUD(); return; }
   recordSeriesResult();
   showStandings();
   game.busy = false; refreshHUD();
@@ -3175,6 +3371,8 @@ async function applyLink(p, idx, depth){       // climb a ladder / slide a chute
     log(`🐍 The ladder shudders and refuses ${p.name} — traitors climb alone.`);
     return false;
   }
+  const gm = activeLegMod();                   // a twist like Troll Toll may tax or veto the ride
+  if (gm && gm.linkGate && !(await gm.linkGate(p, link))) return false;
   // fish power quirk: a fishy grip slips off a ladder now and then
   if (link.kind === "ladder" && FEATURES.fishPowers && (p.fish||0) >= FISH.SLIP_FISH
       && Math.random() < FISH.SLIP_CHANCE){
@@ -3725,7 +3923,7 @@ async function startTurn(){
   // the turn-start strikes — chance() entries roll their odds (scaled by seat
   // count so chaos-per-round stays what a REF_PLAYERS table gets); when(p)
   // entries fire deterministically on their condition
-  const rareScale = BALANCE.REF_PLAYERS / game.players.length;
+  const rareScale = (BALANCE.REF_PLAYERS / game.players.length) * (isMayhem() ? MAYHEM.EVENT_MULT : 1);
   for (const ev of RARE_EVENTS){
     if (!FEATURES[ev.feature]) continue;
     if (!(ev.when ? ev.when(cur) : Math.random() < ev.chance() * rareScale)) continue;
@@ -3752,7 +3950,7 @@ async function endTurn(){
   if (game.over) return;
   // the Crown pays its holder for ending a turn out in front
   const led = game.players[game.current];
-  if (FEATURES.shop && led.passive === "crown" && led.pos > 0 && !led.finished
+  if (FEATURES.shop && hasPassive(led, "crown") && led.pos > 0 && !led.finished
       && game.players.every(q => q === led || q.finished || q.pos < led.pos))
     awardCoin(led, "👑 Leading the pack", CROWN_COINS, "plain");
   await sleep(ANIM.HANDOFF);
@@ -3765,6 +3963,14 @@ async function endTurn(){
   if (c <= prev){                                          // wrapped past the end -> new round
     game.round++;
     if (isKoth() && game.round > game.maxRounds){ await finishKoth(); return; }   // the final whistle
+    if (game.tour && game.windowCloseRound && game.round > game.windowCloseRound && !game.over){
+      log(`⏱️ Time! The leg is over.`);
+      endClassic(); return;
+    }
+    const rm = activeLegMod();
+    if (rm && rm.onRoundStart){ game.busy = true; refreshHUD(); await rm.onRoundStart(); game.busy = false; }
+    if (isMayhem() && !game.over){ game.busy = true; refreshHUD(); await mayhemSurge(); game.busy = false; }
+    if (game.over) return;
   }
   grantSniperIfDue();
   game.busy = false; refreshHUD();
@@ -3776,7 +3982,7 @@ async function endTurn(){
 function getupNeed(p){
   let need = p.getupMin || SNIPER.GETUP_MIN;
   if (FEATURES.fishPowers && p.frozen && (p.fish||0) >= FISH.ICE_FISH) need = Math.min(need, FISH.ICE_GETUP);
-  if (FEATURES.shop && p.passive === "helmet") need = Math.min(need, HELMET_GETUP);   // the Helmet shrugs it off
+  if (FEATURES.shop && hasPassive(p, "helmet")) need = Math.min(need, HELMET_GETUP);   // the Helmet shrugs it off
   return need;
 }
 
@@ -3824,6 +4030,7 @@ function maybeAuto(){
 
 /* ---- boss ENGINE: pure ring maths (no DOM) -------------------------- */
 function isBoss(){ return !!game && game.mode === "boss"; }
+function isMayhem(){ return !!game && game.mode === "mayhem"; }
 function bossRC(tile){
   const W = BOSS_MODE.RING_COLS, H = BOSS_MODE.RING_ROWS, i = tile - 1;
   if (i < W)               return { row: 0, col: i };                    // top edge, left → right
@@ -3897,8 +4104,10 @@ function paintBossHp(){
   bossHpText.textContent = `${Math.max(0, b.hp)} / ${b.maxHp}`;
 }
 function paintBossTiles(){
+  // Isak's telegraph ruling: normal attacks paint RED for their whole charge;
+  // YELLOW is reserved for supers, which turn red on their final turn.
   const b = game.boss, nextT = new Set(), laterT = new Set();
-  b.charges.forEach(ch => ch.tiles.forEach(t => (ch.turnsLeft <= 1 ? nextT : laterT).add(t)));
+  b.charges.forEach(ch => ch.tiles.forEach(t => (ch.super && ch.turnsLeft > 1 ? laterT : nextT).add(t)));
   for (let t = 1; t <= BOSS_MODE.RING_COUNT; t++){
     const r = svg.querySelector(`[data-bcell="${t}"]`);
     if (!r) continue;
@@ -3941,7 +4150,31 @@ function bossHopToken(i, a, b){
 }
 
 /* ---- boss CONTROLLER: setup, the round loop, win ---------------------- */
-function pickBoss(){ return BOSSES[0]; }   // the giant-die intro (faces 1-5 = bosses, 6 = the Joker) replaces this
+// The giant die decides the fight: faces 1-5 are the five bosses, 6 the Joker.
+function pickBoss(){ return BOSSES[Math.floor(Math.random()*BOSSES.length)]; }
+// The boss's STYLE (pattern / strike / charge speed): its own — or, for the
+// Joker, whichever boss it is currently mimicking.
+function bossStyle(){ const b = game.boss; return b.style || b.def; }
+function jokerMimic(){
+  const pool = BOSSES.filter(x => !x.mimic);
+  game.boss.style = pool[(Math.random()*pool.length)|0];
+  log(`🃏 The Joker shuffles the deck — now fighting like the ${game.boss.style.ico} ${game.boss.style.name}!`);
+}
+// The opening cutscene: a giant die tumbles through the six faces, then lands.
+async function bossIntro(){
+  const b = game.boss;
+  const t = el("text",{x:470,y:560,"text-anchor":"middle","font-size":"150","font-weight":"800"});
+  svg.appendChild(t);
+  SFX.play("dice");
+  for (let k = 0; k < BOSS_INTRO.CYCLES; k++){
+    t.textContent = BOSSES[k % BOSSES.length].ico;
+    await sleep(BOSS_INTRO.TICK_MS);
+  }
+  t.textContent = b.def.ico;
+  SFX.play("six"); flashScreen();
+  await sleep(BOSS_INTRO.HOLD_MS);
+  t.remove();
+}
 function newBossGame(roster){
   const def = pickBoss();
   game = {
@@ -3951,7 +4184,8 @@ function newBossGame(roster){
     mode:"boss", maxRounds:0,
     finishNeed:1, placesTaken:0, standings:null, marketVisits:0, traps:[],
     family:false, dualDice:false, manual:false,
-    boss:{ def, hp:def.hp, maxHp:def.hp, phase:0, charges:[], weakpoints:[] },
+    boss:{ def, hp:def.hp, maxHp:def.hp, phase:0, charges:[], weakpoints:[], style:null },
+    tour:false, legModId:null, floodRows:0, noBounce:false, windowCloseRound:0,
   };
   game.players.forEach(p => { p.pos = BOSS_MODE.START_TILE; });
   FAMILY.OFF.forEach(k => { FEATURES[k] = FEATURE_BASE[k]; });
@@ -3981,42 +4215,114 @@ function spawnWeakpoint(){
 }
 async function bossBegin(){
   const b = game.boss;
+  game.busy = true; refreshHUD();
+  await bossIntro();
+  if (b.def.mimic) jokerMimic();
   log(`${b.def.ico} ${b.def.name} guards the arena — land on the ${BOSS_MODE.WEAKPOINT_MARK} weakpoints to bring it down!`);
   bossChargeAttack();
   game.busy = false; refreshHUD(); maybeAuto();
 }
-function bossChargeAttack(){
-  const b = game.boss, ph = b.def.phases[b.phase], tiles = [], open = [];
+// One charged attack: the style picks the shape (arc = contiguous sweep,
+// scatter = random tiles) and the cook time; a SUPER doubles the tiles,
+// charges a turn longer, and doubles the strike's power.
+function bossAttackTiles(count, pattern){
+  if (pattern === "arc"){
+    const start = 1 + Math.floor(Math.random()*BOSS_MODE.RING_COUNT), tiles = [];
+    for (let k = 0; k < count; k++){
+      const t = bossStep(start, k);
+      if (t !== BOSS_MODE.START_TILE) tiles.push(t);
+    }
+    return tiles;
+  }
+  const open = [];
   for (let t = 1; t <= BOSS_MODE.RING_COUNT; t++)
-    if (!b.charges.some(c => c.tiles.includes(t))) open.push(t);
-  for (let k = 0; k < ph.attackTiles && open.length; k++)
+    if (t !== BOSS_MODE.START_TILE && !game.boss.charges.some(c => c.tiles.includes(t))) open.push(t);
+  const tiles = [];
+  for (let k = 0; k < count && open.length; k++)
     tiles.push(open.splice(Math.floor(Math.random()*open.length), 1)[0]);
-  b.charges.push({ tiles, turnsLeft: BOSS_MODE.CHARGE_TURNS });
-  paintBossTiles();
-  log(`⚡ ${b.def.name} is charging an attack — ${tiles.length} tiles marked!`);
+  return tiles;
 }
+function bossChargeAttack(superAttack){
+  const b = game.boss, st = bossStyle(), ph = b.def.phases[b.phase];
+  const count = Math.round(ph.attackTiles * (superAttack ? BOSS_SUPER.TILES_MULT : 1));
+  const tiles = bossAttackTiles(count, st.pattern || "scatter");
+  b.charges.push({ tiles, super: !!superAttack,
+    turnsLeft: (st.chargeTurns || BOSS_MODE.CHARGE_TURNS) + (superAttack ? BOSS_SUPER.CHARGE_EXTRA : 0) });
+  paintBossTiles();
+  log(superAttack
+    ? `🟡 ${b.def.name} winds up a SUPER attack — ${tiles.length} tiles marked in yellow!`
+    : `⚡ ${b.def.name} is charging an attack — ${tiles.length} tiles marked!`);
+}
+/* What a landed strike does to a caught player, per boss style. `mult` is
+   the super multiplier. Skips park the player for whole turns (bossRoll). */
+const BOSS_STRIKES = {
+  burn: async (p, s, mult) => {
+    p.pos = bossStep(p.pos, -(s.knock * mult));
+    p.bossSinge = (p.bossSinge||0) + s.singe * mult;
+    log(`🔥 ${p.name} is scorched — blown back to tile ${p.pos}, and the burns slow the next roll${s.singe*mult > 1 ? "s" : ""}!`);
+  },
+  pull: async (p, s, mult) => {
+    p.pos = bossStep(p.pos, -(s.amount * mult));
+    log(`🐙 A tentacle coils around ${p.name} — dragged back to tile ${p.pos}!`);
+  },
+  freeze: async (p, s, mult) => {
+    p.bossSkip = (p.bossSkip||0) + s.skip * mult;
+    p.frozen = true; updateFrozen(idxOf(p));
+    log(`🧊 ${p.name} is flash-frozen — loses ${s.skip*mult > 1 ? s.skip*mult + " turns" : "a turn"}!`);
+  },
+  shock: async (p, s, mult) => {
+    p.bossSkip = (p.bossSkip||0) + s.skip * mult;
+    p.downed = true; updateDowned(idxOf(p));
+    log(`⚡ ${p.name} is struck down — loses ${s.skip*mult > 1 ? s.skip*mult + " turns" : "a turn"}!`);
+  },
+  scatter: async (p) => {
+    const open = [];
+    for (let t = 1; t <= BOSS_MODE.RING_COUNT; t++)
+      if (t !== p.pos && !game.boss.weakpoints.includes(t)) open.push(t);
+    p.pos = open[(Math.random()*open.length)|0];
+    SFX.play("teleport");
+    log(`🕳️ The void swallows ${p.name} — spat out at tile ${p.pos}!`);
+  },
+};
 async function bossTurn(){
-  const b = game.boss;
+  const b = game.boss, st = bossStyle();
   const striking = b.charges.filter(c => c.turnsLeft <= 1);
   b.charges = b.charges.filter(c => c.turnsLeft > 1);
   b.charges.forEach(c => c.turnsLeft--);
   for (const c of striking){
     for (const p of game.players){
       if (!c.tiles.includes(p.pos)) continue;
-      p.pos = bossStep(p.pos, -BOSS_MODE.KNOCKBACK);
       p.downs++;
       SFX.play("fall");
-      log(`💥 ${p.name} is caught in the strike — knocked back to tile ${p.pos}!`);
+      await BOSS_STRIKES[(st.strike && st.strike.type) || "burn"](p, st.strike || { knock:BOSS_MODE.KNOCKBACK, singe:0, type:"burn" },
+                                                                  c.super ? BOSS_SUPER.POWER_MULT : 1);
     }
   }
   if (striking.length){
     bossLayoutTokens();
     await sleep(ANIM.HANDOFF);
   }
+  if (st.wander && b.weakpoints.length){   // the Void Maw's weakpoints never sit still
+    b.weakpoints.splice(0, Infinity);
+    for (let k = 0; k < BOSS_MODE.WEAKPOINTS; k++) spawnWeakpoint();
+    log(`🕳️ The weakpoints drift — every ${BOSS_MODE.WEAKPOINT_MARK} finds a new home.`);
+  }
   bossChargeAttack();
 }
 async function bossRoll(){
   const cur = game.players[game.current];
+  if ((cur.bossSkip||0) > 0){                    // frozen / struck down: the turn slips by
+    game.busy = true; refreshHUD();
+    cur.bossSkip--;
+    log(`${cur.frozen ? "🧊" : "💫"} ${cur.name} ${cur.frozen ? "is frozen solid" : "is still reeling"} — the turn slips by.`);
+    if (!cur.bossSkip){
+      cur.frozen = false; cur.downed = false;
+      updateFrozen(idxOf(cur)); updateDowned(idxOf(cur));
+    }
+    await sleep(600);
+    await endBossTurn();
+    return;
+  }
   game.busy = true; refreshHUD();
   die.classList.remove("dim");
   die.classList.add("rolling");
@@ -4024,8 +4330,15 @@ async function bossRoll(){
   const end = performance.now() + ffms(ANIM.DICE);
   while (performance.now() < end){ setDie(1+Math.floor(Math.random()*RULES.DICE_SIDES)); await sleep(70); }
   die.classList.remove("rolling");
-  const value = 1 + Math.floor(Math.random()*RULES.DICE_SIDES);
+  let value = 1 + Math.floor(Math.random()*RULES.DICE_SIDES);
   setDie(value);
+  if ((cur.bossSinge||0) > 0){                   // the Dragon's burns: this roll runs short
+    cur.bossSinge--;
+    const burnt = Math.max(1, value - 2);
+    if (burnt !== value) log(`🔥 ${cur.name}'s burns sting — the ${value} limps to a ${burnt}.`);
+    value = burnt;
+    setDie(value);
+  }
   if (value === RULES.DICE_SIDES && FEATURES.sixRollsAgain) sixEffect();
   await sleep(160);
   await bossMove(cur, value);
@@ -4051,6 +4364,7 @@ async function bossMove(p, rollValue){
 async function bossDamage(n, striker){
   const b = game.boss;
   b.hp = Math.max(0, b.hp - n);
+  striker.bossDamage = (striker.bossDamage||0) + n;   // the Grand Tour scores the boss leg by damage dealt
   log(`${BOSS_MODE.WEAKPOINT_MARK} ${striker.name} strikes a weakpoint — ${b.def.name} takes ${n} damage!`);
   paintBossHp();
   if (b.hp <= 0) return bossDefeated();
@@ -4058,6 +4372,8 @@ async function bossDamage(n, striker){
   if (ph !== b.phase){
     b.phase = ph;
     log(`😡 ${b.def.name} is enraged — phase ${ph+1}!`);
+    if (b.def.mimic) jokerMimic();                    // the Joker changes faces with every phase
+    bossChargeAttack(true);                           // and every phase change winds up a SUPER
   }
   refreshHUD();
 }
@@ -4069,6 +4385,12 @@ async function bossDefeated(){
   paintBossHp();
   refreshHUD();
   await sleep(ANIM.HANDOFF);
+  if (game.tour){                             // tour leg: placements by damage dealt
+    game.standings = [...game.players].sort((a,b) => (b.bossDamage||0) - (a.bossDamage||0) || (b.coins||0) - (a.coins||0));
+    game.standings.forEach((q,idx) => { q.place = idx + 1; });
+    tourLegDone();
+    return;
+  }
   document.getElementById("bannerNew").textContent = "Play again";
   document.getElementById("bannerText").innerHTML =
     `<div class="serieshead">${b.def.ico} ${b.def.name} defeated in ${game.round} rounds — the team wins! 🎉</div>`;
@@ -4898,7 +5220,7 @@ async function lightningStrike(victim){
   if (!victim || victim.finished || victim.pos <= 0) return;
   const fromTile = victim.pos;
   await lightningFx(fromTile);                             // clouds → flickers → forked multi-strike + electric impact
-  const candleStruck = FEATURES.shop && victim.passive === "soulcandle";
+  const candleStruck = FEATURES.shop && hasPassive(victim, "soulcandle");
   const back = LIGHTNING.BACK * (candleStruck ? CANDLE.LIGHTNING_MULT : 1);
   const onSecret = setBackPos(victim, victim.pos - back);
   victim.downed = true; victim.getupMin = SNIPER.GETUP_MIN; updateDowned(idxOf(victim));
@@ -4915,7 +5237,7 @@ async function strikeLightning(){                          // the rare event: hi
   await revealRuleOnce("lightning");
   const active = game.players.filter(p => !p.finished && p.pos > 0);
   if (!active.length) return;
-  const marked = active.filter(p => FEATURES.shop && p.passive === "soulcandle");
+  const marked = active.filter(p => FEATURES.shop && hasPassive(p, "soulcandle"));
   if (marked.length){
     const m = marked[(Math.random()*marked.length)|0];
     log(`🕯️ The storm smells ${m.name}'s candle burning…`);
@@ -5051,8 +5373,10 @@ async function runWarp(){
 
 /* ---- orange square: Wheel / Support / Gun -------------------------- */
 function awardCoin(p, reason, n, fx){
-  const k = n === undefined ? 1 : n;
+  let k = n === undefined ? 1 : n;
   if (k < 1) return;
+  const gm = activeLegMod();
+  if (gm && gm.coinMult) k *= gm.coinMult;     // Gold Rush pays double on everything
   p.coins = (p.coins||0) + k;
   p.coinsEarned = (p.coinsEarned||0) + k;
   const f = COIN_FX[fx] || COIN_FX.plain;
@@ -5068,7 +5392,7 @@ function awardCoin(p, reason, n, fx){
 // one, Vampire Fangs drain more — both if you carry both.
 function stealCoin(thief, victim){
   let take = 0;
-  if (FEATURES.shop && thief.passive === "gloves") take += 1;
+  if (FEATURES.shop && hasPassive(thief, "gloves")) take += 1;
   if (hasCurse(thief, "vampirefangs")) take += CURSE.FANG_STEAL;
   take = Math.min(take, victim.coins||0);
   if (take < 1) return;
@@ -5854,6 +6178,65 @@ function setSpecialTiles(lay){
   WARP_TILES.splice(0, Infinity, ...lay.wp);
   DIZZY_TILES.splice(0, Infinity, ...lay.dz);
 }
+/* Mayhem's board scramble: EVERY remaining plain square (Isak: "the yellow
+   tiles") joins a special-tile role, drawn by MAYHEM.REPLACE_WEIGHTS. The
+   role arrays are the live registries, so painting and rules follow along. */
+const MAYHEM_ROLES = { teleport:TELEPORTERS, orange:ORANGE_TILES, freeze:FREEZE_TILES,
+                       shop:SHOP_TILES, fishing:FISH.TILES, dizzy:DIZZY_TILES,
+                       setback:SETBACK_TILES, radioactive:RAD_TILES };
+function mayhemScramble(){
+  const taken = new Set([...TELEPORTERS, ...ORANGE_TILES, ...FREEZE_TILES, ...SHOP_TILES,
+                         ...FISH.TILES, ...SETBACK_TILES, ...WARP_TILES, ...DIZZY_TILES,
+                         ...TRAP89_TILES, ...RAD_TILES]);
+  const bag = [];
+  for (const role in MAYHEM.REPLACE_WEIGHTS)
+    for (let k = 0; k < MAYHEM.REPLACE_WEIGHTS[role]; k++) bag.push(role);
+  for (let cell = 2; cell < BOARD.WIN; cell++){
+    if (taken.has(cell) || cell in LADDERS || LADDER_TOPS.has(cell)
+        || cell in SLIDES || SNAKE_TAILS.has(cell)) continue;
+    MAYHEM_ROLES[bag[(Math.random()*bag.length)|0]].push(cell);
+    repaintCell(cell);
+  }
+}
+// Mayhem's round surge: once a round, the chaos pool fires at a random player.
+async function mayhemSurge(){
+  const active = game.players.filter(q => !q.finished);
+  if (!active.length) return;
+  const t = active[(Math.random()*active.length)|0];
+  log(`🌪️ Round ${game.round}: the mayhem surges!`);
+  const pool = wheelChaosPool();
+  await pool[(Math.random()*pool.length)|0].run(t, t);
+  layoutTokens(); renderScoreboard();
+}
+
+/* Leg-twist overlays: Forever Night's fog and the Rising Flood's water.
+   Both are pointer-transparent SVG groups appended above the board art. */
+let fogG = null, floodG = null;
+function buildFog(){ clearFog(); fogG = el("g", {"pointer-events":"none"}); svg.appendChild(fogG); }
+function clearFog(){ if (fogG){ fogG.remove(); fogG = null; } }
+function updateFog(){
+  if (!fogG || !game) return;
+  const reveal = Math.max(1, ...game.players.map(q => q.pos)) + NIGHT_MOD.AHEAD;
+  fogG.innerHTML = "";
+  const C = BOARD.CELL;
+  for (let cell = reveal + 1; cell <= BOARD.COUNT; cell++){
+    const c = cellCenter(cell);
+    fogG.appendChild(el("rect",{x:c.x-C/2+1,y:c.y-C/2+1,width:C-2,height:C-2,rx:3,
+      fill:"#12162a",opacity:".94"}));
+  }
+}
+function paintFlood(){
+  if (!floodG){ floodG = el("g", {"pointer-events":"none"}); svg.appendChild(floodG); }
+  floodG.innerHTML = "";
+  const C = BOARD.CELL;
+  for (let t = 1; t <= (game.floodRows||0) * BOARD.COLS && t < BOARD.COUNT; t++){
+    const c = cellCenter(t);
+    floodG.appendChild(el("rect",{x:c.x-C/2+1,y:c.y-C/2+1,width:C-2,height:C-2,
+      fill:"rgba(46,134,193,.5)"}));
+  }
+}
+function clearFlood(){ if (floodG){ floodG.remove(); floodG = null; } }
+
 // Tile shuffle (🌀 slot): every special tile moves to a new random spot mid-game.
 async function shuffleTiles(msg){
   const oldPositions = [...TELEPORTERS, ...ORANGE_TILES, ...FREEZE_TILES, ...SHOP_TILES, ...FISH.TILES, ...SETBACK_TILES, ...WARP_TILES, ...DIZZY_TILES];
@@ -5873,7 +6256,21 @@ async function randomWheelEffect(p){
   await pool[(Math.random()*pool.length)|0].run(p, p);
 }
 
+// In Mayhem the wheel can split into 1-3 simultaneous spins (MAYHEM.SPIN_WEIGHTS).
 async function spinWheel(p){
+  let spins = 1;
+  if (isMayhem()){
+    const w = MAYHEM.SPIN_WEIGHTS;
+    let r = Math.random() * w.reduce((a,b)=>a+b, 0);
+    spins = Math.max(1, 1 + w.findIndex(x => (r -= x) < 0));
+    if (spins > 1) log(`🌪️ The wheel splits into ${spins}!`);
+  }
+  for (let k = 0; k < spins; k++){
+    if (game.over || p.finished) return;
+    await spinWheelOnce(p);
+  }
+}
+async function spinWheelOnce(p){
   const idx = Math.floor(Math.random()*WHEEL_LABELS.length);   // uniform: one chance per slice
   const pick = WHEEL_PICKS[idx];
   await showWheel(idx);
@@ -5906,22 +6303,35 @@ function itemDef(id){
       || CURSED.find(i => i.id === id)
       || {ico:"", name:id, desc:"", kind:"consumable", cost:0};
 }
+// Passive slots: normally one; Mayhem fits two. The helpers below are the ONLY
+// way the rest of the code asks about worn passives, so the slot count can grow.
+function passiveSlots(){ return isMayhem() ? MAYHEM.PASSIVE_SLOTS : INV.PASSIVES; }
+function hasPassive(p, id){ return p.passive === id || p.passive2 === id; }
+function passivesOf(p){ return [p.passive, p.passive2].filter(Boolean); }
 // Can this player buy this item right now? (enough coins, and room/sense for its kind)
 function canBuy(p, item){
   if (p.coins < priceFor(p, item)) return false;
   if (item.id === "loadeddice" && p.items.includes("loadeddice")) return false;  // one set of dice at a time
   if (item.kind === "passive"){
-    if (p.passive === "soulcandle") return false;                // the candle never lets go
-    return p.passive !== item.id;                                // a new passive replaces the old one
+    if (hasPassive(p, item.id)) return false;
+    if (!p.passive || (passiveSlots() > 1 && !p.passive2)) return true;          // a free slot
+    if (p.passive !== "soulcandle") return true;                                 // the candle never lets go
+    return passiveSlots() > 1 && p.passive2 !== "soulcandle";
   }
   return p.items.length < INV.CONSUMABLES;
 }
-// Put an item in the player's bag. A new passive replaces (and discards) the old.
+// Put an item in the player's bag. A new passive fills a free slot, else
+// replaces (and discards) an old one — the Soul Candle can never be bumped.
 function giveItem(p, id){
   const def = itemDef(id);
   if (def.kind === "passive"){
-    const old = p.passive;
-    p.passive = id;
+    if (hasPassive(p, id)) return false;
+    let slot = !p.passive ? "passive" : (passiveSlots() > 1 && !p.passive2 ? "passive2" : null);
+    if (!slot) slot = p.passive !== "soulcandle" ? "passive"
+                    : (passiveSlots() > 1 && p.passive2 !== "soulcandle" ? "passive2" : null);
+    if (!slot) return false;
+    const old = p[slot];
+    p[slot] = id;
     if (old && old !== id) log(`${itemDef(old).ico} ${p.name}'s ${itemDef(old).name} was replaced — gone for good.`);
     return true;
   }
@@ -6147,7 +6557,7 @@ async function useLoadedDice(p, idx){
   if (p.bot){
     face = 1; let best = -Infinity;
     for (let n = 1; n <= RULES.DICE_SIDES; n++){
-      const s = landingScore(p.pos, n + (p.passive === "shoes" ? ITEM.SHOES_BONUS : 0), p);
+      const s = landingScore(p.pos, n + (hasPassive(p, "shoes") ? ITEM.SHOES_BONUS : 0), p);
       if (s > best){ best = s; face = n; }
     }
   } else {
@@ -6450,7 +6860,7 @@ async function botMaybeUseItem(p){
     if (id === "coffee"){
       if (bagFull || p.pos < BOT.COFFEE_MAX_POS) await useItem(p, k);
     } else if (id === "clover"){
-      const steps = RULES.DICE_SIDES + (p.passive === "shoes" ? ITEM.SHOES_BONUS : 0);
+      const steps = RULES.DICE_SIDES + (hasPassive(p, "shoes") ? ITEM.SHOES_BONUS : 0);
       if (bagFull || landingScore(p.pos, steps, p) >= BOT.CLOVER_MIN_SCORE) await useItem(p, k);
     } else if (id === "shield"){
       if (!p.shieldOn && (bagFull || botShieldThreat(p))) await useItem(p, k);
@@ -6502,11 +6912,12 @@ function renderInventory(){
     `🎒 ${p.name} — ${p.items.length}/${INV.CONSUMABLES} items · 🪙${p.coins}`;
   const list = document.getElementById("invList"); list.innerHTML = "";
 
-  const pdef = p.passive ? itemDef(p.passive) : null;
+  const worn = passivesOf(p);
   const prow = document.createElement("div");
   prow.style.cssText = "padding:8px 10px;border:1px dashed var(--brass);border-radius:10px;color:var(--cream);font-size:14px;text-align:left";
-  prow.innerHTML = pdef ? `${pdef.ico} <b>${pdef.name}</b> — ${pdef.desc}`
-                        : `<span style="opacity:.6">No passive equipped</span>`;
+  prow.innerHTML = worn.length
+    ? worn.map(id => { const d = itemDef(id); return `${d.ico} <b>${d.name}</b> — ${d.desc}`; }).join("<br>")
+    : `<span style="opacity:.6">No passive equipped</span>`;
   list.appendChild(prow);
 
   (p.curses||[]).forEach(id => {
@@ -6599,6 +7010,8 @@ function renderShop(p, close, stock, bought, market, offer){
 function hasCurse(p, id){ return FEATURES.blackMarket && FEATURES.brokenGate && !!(p.curses && p.curses.includes(id)); }
 // Blood Dice never land below their floor; the Everburning Heart snuffs the top face.
 function pactAdjustRoll(p, value){
+  const m = activeLegMod();
+  if (m && m.rollAdjust) value = m.rollAdjust(p, value);   // a twist like Lightning Pace bends the die first
   if (hasCurse(p, "blooddice") && value < CURSE.DICE_MIN){
     log(`🎲🩸 ${p.name}'s Blood Dice refuse to land low — a ${CURSE.DICE_MIN}.`);
     value = CURSE.DICE_MIN;
@@ -6759,6 +7172,156 @@ async function runOrange(p){
     }
     await spinWheel(p); return;
   }
+}
+
+/* ---- THE GRAND TOUR: 5-leg campaign CONTROLLER ----------------------
+   Leg 1 = plain classic (coffee + shield for all). Legs 2-3 = classic or
+   KOTH base + one LEG_MODS twist (no repeats). Leg 4 = Boss Battle
+   (scored by damage dealt). Leg 5 = Mayhem. Placement points + KOTH-style
+   bonus categories bank into tour.points; bags/coins/passives/pacts carry
+   between legs (tour.carry). All tunables in the TOUR DATA block. */
+let tour = null;
+function startTour(roster){
+  series = null;
+  tour = { leg:0, roster, points:roster.map(()=>0), carry:null, usedMods:[], done:false, legBase:null, legModId:null };
+  nextTourLeg();
+}
+function nextTourLeg(){
+  tour.leg++;
+  let base = "classic", mod = null;
+  if (TOUR.MOD_LEGS.includes(tour.leg)){
+    base = Math.random() < 0.5 ? "classic" : "koth";
+    const pool = LEG_MODS.filter(m => !tour.usedMods.includes(m.id));
+    mod = pool[(Math.random()*pool.length)|0];
+    tour.usedMods.push(mod.id);
+  } else if (tour.leg === TOUR.BOSS_LEG) base = "boss";
+  else if (tour.leg >= TOUR.LEGS) base = "mayhem";
+  tour.legBase = base; tour.legModId = mod ? mod.id : null;
+  chosenMode = base;
+  if (base === "boss"){
+    newBossGame(tour.roster);
+    tourDress();
+    showScreen("game");
+    bossBegin();
+    return;
+  }
+  const savedRounds = chosenRounds;   // tour KOTH legs run shorter without touching the slider pick
+  if (base === "koth")
+    chosenRounds = Math.max(KOTH.ROUNDS_MIN, Math.round(defaultRounds(tour.roster.length) * TOUR.KOTH_ROUNDS_FACTOR));
+  newGame(tour.roster);
+  chosenRounds = savedRounds;
+  tourDress();
+  showScreen("game");
+  startTurn();
+}
+// Dress the fresh leg game in its tour clothes: carried bags, the stipend,
+// the leader's crown + lean purse, the catch-up shield, and the leg twist.
+function tourDress(){
+  game.tour = true;
+  game.legModId = tour.legModId;
+  const first = Math.max(...tour.points);
+  game.players.forEach((p, i) => {
+    p.tourPts = tour.points[i];
+    p.crowned = false;
+    if (tour.carry){
+      const c = tour.carry[i];
+      p.items = [...c.items]; p.passive = c.passive; p.passive2 = c.passive2;
+      p.coins = c.coins; p.curses = [...c.curses]; p.diceCharges = c.diceCharges; p.fish = c.fish;
+    }
+    if (tour.leg === 1){
+      p.coins = TOUR.START_COINS;
+      giveItem(p, "coffee");
+      p.shieldOn = true; updateShield(i);
+    } else {
+      const lead = first > 0 && tour.points[i] === first;
+      p.coins += Math.round(TOUR.START_COINS * (lead ? TOUR.LEADER_COIN_FACTOR : 1));
+      if (lead) p.crowned = true;
+    }
+  });
+  if (tour.leg === 1) log(`🗺️ The Grand Tour begins — ☕ + 🛡️ for everyone, and 🪙${TOUR.START_COINS} in the purse!`);
+  if (tour.leg > 1 && game.mode !== "boss"){
+    const min = Math.min(...tour.points);
+    game.players.forEach((p, i) => {
+      if (tour.points[i] === min && first - min >= TOUR.CATCHUP.GAP && min < first / 2){
+        p.shieldOn = true; updateShield(i);
+        log(`🛡️ Catch-up: ${p.name} starts the leg with a shield.`);
+      }
+    });
+    game.players.filter(p => p.crowned).forEach(p =>
+      log(`👑 ${p.name} leads the tour — fame, and a lighter stipend.`));
+  }
+  if (game.mode === "classic" || game.mode === "mayhem") game.finishNeed = game.players.length;
+  const m = activeLegMod();
+  if (m){
+    log(`${m.ico} Leg twist — ${m.name}: ${m.desc}`);
+    if (m.apply) m.apply();
+  }
+  renderScoreboard(); refreshHUD();
+}
+async function tourLegDone(){
+  const m = activeLegMod();
+  if (m && m.remove) m.remove();
+  game.legModId = null;
+  const s = game.standings;
+  s.forEach((p, idx) => {
+    const pts = TOUR.POINTS[idx] || 0;
+    if (pts){
+      tour.points[game.players.indexOf(p)] += pts;
+      log(`⭐ ${MEDALS[idx] || "#" + (idx+1)} ${p.name} banks ${pts} tour points.`);
+    }
+  });
+  const pool = KOTH_BONUS_CATS.filter(c => Math.max(...game.players.map(c.stat)) > 0);
+  for (let i = pool.length - 1; i > 0; i--){ const j = (Math.random()*(i+1))|0; [pool[i], pool[j]] = [pool[j], pool[i]]; }
+  for (const c of pool.slice(0, TOUR.BONUS.COUNT)){
+    const best = Math.max(...game.players.map(c.stat));
+    game.players.filter(p => c.stat(p) === best).forEach(w => {
+      tour.points[game.players.indexOf(w)] += TOUR.BONUS.POINTS;
+      log(`🎁 ${c.ico} ${c.name} (${best}) — ${w.name} banks +${TOUR.BONUS.POINTS} tour points!`);
+    });
+    await sleep(TOUR.BONUS.REVEAL_MS);
+  }
+  const loser = s[s.length - 1];
+  const consum = SHOP_CATALOG.filter(i => i.enabled && !i.craftOnly && i.kind === "consumable");
+  if (loser && consum.length){
+    const got = [];
+    for (let k = 0; k < TOUR.LOSER_BOX_ITEMS; k++){
+      const it = consum[(Math.random()*consum.length)|0];
+      loser.items.push(it.id);                 // the pity box ignores the bag cap
+      if (it.id === "loadeddice") loser.diceCharges = LOADED.CHARGES;
+      got.push(it.ico);
+    }
+    log(`📦 Pity box! ${loser.name} finds ${got.join(" ")} inside.`);
+  }
+  tour.carry = game.players.map(p => ({ items:[...p.items], passive:p.passive, passive2:p.passive2,
+    coins:p.coins||0, curses:[...(p.curses||[])], diceCharges:p.diceCharges||0, fish:p.fish||0 }));
+  game.players.forEach((p, i) => { p.tourPts = tour.points[i]; });
+  renderScoreboard();
+  if (tour.leg >= TOUR.LEGS) showTourChampion();
+  else showTourStandings();
+}
+function tourTableHtml(){
+  const order = game.players.map((p, i) => ({ p, pts: tour.points[i] })).sort((a, b) => b.pts - a.pts);
+  return '<div class="lbtitle">Tour standings</div><div class="lb">' + order.map((e, k) =>
+    `<div class="lbrow"><span class="place">${k+1}. ${MEDALS[k]||""}</span>` +
+    `<b style="color:${e.p.color}">${e.p.name}</b><span class="lbstats">⭐ ${e.pts}</span></div>`).join("") + '</div>';
+}
+function showTourStandings(){
+  document.getElementById("bannerNew").textContent = `▶ Leg ${tour.leg + 1} of ${TOUR.LEGS}`;
+  document.getElementById("bannerText").innerHTML =
+    `<div class="serieshead">🗺️ The Grand Tour — leg ${tour.leg} of ${TOUR.LEGS} complete!</div>` + tourTableHtml();
+  document.getElementById("banner").classList.add("show");
+  confettiBurst(30);
+  game.busy = false;
+}
+function showTourChampion(){
+  tour.done = true;
+  const order = game.players.map((p, i) => ({ p, pts: tour.points[i] })).sort((a, b) => b.pts - a.pts);
+  document.getElementById("bannerNew").textContent = "New tour";
+  document.getElementById("bannerText").innerHTML =
+    `<div class="serieshead">🗺️👑 ${order[0].p.name} wins the Grand Tour with ⭐${order[0].pts}!</div>` + tourTableHtml();
+  document.getElementById("banner").classList.add("show");
+  confettiBurst();
+  game.busy = false;
 }
 
 /* ---- banner / final standings -------------------------------------- */
@@ -7183,6 +7746,8 @@ function startFromSetup(){
     takenCols.add(col);
     roster.push({ name: nm, bot: allBots || !!setupBots[i], color: col });
   }
+  tour = null;                     // any previous tour is abandoned at the menu
+  if (chosenMode === "grandtour"){ startTour(roster); return; }
   if (chosenMode === "boss"){      // Boss Battle: co-op arena, no match series
     series = null;
     newBossGame(roster);
@@ -7341,6 +7906,11 @@ document.getElementById("seatMinus").addEventListener("click", ()=>{ chosenSeats
 document.getElementById("seatPlus").addEventListener("click", ()=>{ chosenSeats=Math.min(MAX_PLAYERS,chosenSeats+1); buildSetup(); });
 document.getElementById("startBtn").addEventListener("click", startFromSetup);
 document.getElementById("bannerNew").addEventListener("click", ()=>{
+  if (tour){
+    hideBanner();
+    if (tour.done){ startTour(tour.roster); return; }   // a fresh tour, same crew
+    nextTourLeg(); return;
+  }
   const roster = game.players.map(p=>({ name:p.name, bot:p.bot, color: p.fancy || p.color }));
   if (isBoss()){ newBossGame(roster); bossBegin(); return; } // rematch against a fresh boss
   if (series && !series.done) series.game++;                 // the match rolls on…

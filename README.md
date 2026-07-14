@@ -55,7 +55,31 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
-Recently shipped (2026-07-14, evening): **quick-edit batch + the 🎲 chaos
+Recently shipped (2026-07-14, late evening): **THE BIG BUILD-OUT** — Isak's
+"build everything" go-ahead, all headless-verified (35/35 units + a full
+5-leg bot tour):
+- **🗺️ The Grand Tour is playable**: 5 legs (classic → 2× twist legs →
+  Boss Battle → Mayhem), placement points 10/6/4/2/1 + 2 bonus categories
+  between legs, bags/coins/passives/pacts carry across, finish window
+  (5 rounds, no bounce), leader crown + half stipend, catch-up shield,
+  loser pity box, tour standings interstitials + champion banner. `TOUR`
+  DATA + controller; open tuning points in `Next/QUESTIONS.md`.
+- **🌪️ Mayhem mode** (standalone + tour leg 5): every plain square becomes a
+  random special tile, event chances ×3, a chaos-pool surge every round,
+  wheel splits into 1–3 spins, **two passive slots** (`hasPassive`/
+  `passivesOf` refactor).
+- **10 leg twists** (`LEG_MODS`): Forever Night (fog of war), Mirror World
+  (far ends of ladders/snakes do the carrying), Black Ice, Opposite Day
+  (walk 7−roll), Rising Flood, Magnet Storm, Troll Toll, Musical Squares,
+  Gold Rush, Lightning Pace — all via generic hooks (moveBonus, linkAt,
+  linkGate, rollAdjust, coinMult, onRoundStart, afterLanding, turn-start).
+- **5 real bosses + the Joker** with the giant-die intro: per-boss patterns
+  (arc/scatter), signature strikes (burn/pull/freeze/shock/void-scatter),
+  charge speeds, wandering weakpoints; SUPERs on every phase change
+  (yellow telegraph per Isak's ruling — red is for normal charges);
+  Joker mimics and reshuffles each phase. Damage tracked for tour scoring.
+
+Before that (2026-07-14, evening): **quick-edit batch + the 🎲 chaos
 pool**. Boss ring reshaped to an **11×11 hollow square** (still 40 tiles);
 **Monkey's Paw teleports to a RANDOM tile** (no choosing); **Crown reworked** —
 12 coins, pays **+5 every time you END your turn in sole first** (check moved

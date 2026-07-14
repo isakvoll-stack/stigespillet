@@ -3,10 +3,35 @@
 Standing file: autonomous sessions log clarifications here instead of stopping to ask.
 Answer whenever — each answer gets folded in and the question checked off.
 
+## 2026-07-14 (late evening) — the big build-out (defaults picked, tune freely)
+
+Everything below was BUILT with sensible defaults per Isak's "build everything
+and fill in the gaps" go-ahead. Flag anything that feels wrong:
+
+- [ ] **Tour placement points 10/6/4/2/1** (`TOUR.POINTS`) + **2 bonus
+  categories × 2 points** between legs. Feel right?
+- [ ] **Boss leg scoring = damage dealt** (weakpoint hits), ties by coins.
+- [ ] **"Slightly faster" legs** = tour KOTH legs at 0.75× rounds + the 5-round
+  finish window on race legs. Different lever wanted?
+- [ ] **Leader debuff** = half the 🪙6 per-leg stipend (leader gets 3). Crown is
+  a scoreboard 👑 for now — want it drawn on the pawn itself?
+- [ ] **Mayhem numbers**: event chance ×3, wheel bursts 1/2/3 at odds 3:2:1,
+  plain-square replacement weights in `MAYHEM.REPLACE_WEIGHTS` (setback kept
+  rare on purpose). All in the `MAYHEM` DATA block.
+- [ ] **Ten leg twists shipped** (night, mirror, ice, opposite, flood, magnet,
+  toll, musical, gold rush, pace) — all tunables in their `*_MOD` DATA consts.
+  Any to cut, or new ones to seed?
+- [ ] **First-pass boss stats** (hp 12-16, per-boss patterns/strikes in
+  `BOSSES`) — balance session with Isak pending. Supers: 2× tiles, +1 charge
+  turn, 2× power (`BOSS_SUPER`).
+- [ ] **Two passives in Mayhem**: a third passive replaces the first non-candle
+  slot. OK?
+
 ## 2026-07-14 (evening) — wheel chaos pool + Mayhem capture (defaults picked)
 
-- [ ] **"All the yellow tiles"** in Mayhem — which yellow: the plain cream/yellow
-  board squares, or the gold shop squares? Captured as stated for now.
+- [x] ~~"All the yellow tiles" in Mayhem — which yellow?~~ — ANSWERED
+  2026-07-14: **the plain board squares**; built that way (every remaining
+  plain square joins a special-tile role).
 - [ ] **Chaos-pool weighting** — "conjure a random item" is ONE entry in the
   ~20-entry pool (the item is then sub-picked uniformly). Alternative: every
   item weighs in individually, making items ~half of all outcomes. Which feel?
@@ -26,18 +51,15 @@ Answer whenever — each answer gets folded in and the question checked off.
   **yes, leg 5 is always MAYHEM**; full spec captured in TASKS.md (way more
   chaos, yellow tiles → random specials, 1–3 simultaneous wheel spins, a
   wheel-style random event every round, two passives equipped at once).
-- [ ] **Placement points per leg** — F1-style values like 10/6/4/2 OK? Needed
-  before the "≥10 points behind first" shield rule can be tuned.
-- [ ] **Scoring the Boss Battle leg** — it's co-op, so how do placements/points
-  work there: shared points for a win, points by damage dealt, or no
-  placement points (bonus categories only)?
-- [ ] **"Slightly faster" legs** — via a lower win tile, more ladders, bigger
-  roll bonuses, or fewer snakes? Pick a lever.
-- [ ] **Crown debuff value** — defaulting to "leader gets half the starting
-  coins the others get each leg" per your example. OK?
+- [x] ~~Placement points per leg~~ — BUILT with default **10/6/4/2/1** (see
+  the late-evening section above).
+- [x] ~~Scoring the Boss Battle leg~~ — BUILT: **points by damage dealt**.
+- [x] ~~"Slightly faster" legs~~ — BUILT: KOTH legs 0.75× rounds + the finish
+  window; other levers still on the table.
+- [x] ~~Crown debuff value~~ — BUILT: leader gets **half the per-leg stipend**.
 - [ ] **Night in Classic** — item, tile, or scenario set: which form first?
-- [ ] **The shields** (leg-1 starting shield + the catch-up shield) — same
-  one-hit shield as the existing shop item?
+  (The Forever Night twist itself is built and tour legs can draw it.)
+- [x] ~~The shields~~ — BUILT: same one-hit shield as the shop item.
 
 ## 2026-07-14 — Boss Battle foundation (defaults picked, say if wrong)
 

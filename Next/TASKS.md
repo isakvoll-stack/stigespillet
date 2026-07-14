@@ -51,22 +51,37 @@ See `LOG.md` for the running session history.
         applied to the skeleton (`WEAKPOINT_DAMAGE`, dummy HP rescaled 24→12).
 
       Foundation shipped 2026-07-14 (mode entry, ring board + arena render,
-      boss round-turn with telegraphs, weakpoints/HP/phases, placeholder
-      Training Dummy, headless-verified). Still to build, roughly in order:
-      - [ ] The five real bosses + the Joker, as `BOSSES` DATA entries
-            (design session — Isak seeds, Claude develops)
-      - [ ] Giant-die boss-select intro cutscene (replaces `pickBoss()`)
-      - [ ] Telegraph rework per the ruling above (red = normal, yellow = super)
-      - [ ] Boss move deck (varied actions per round) + authored attacks per
-            boss (replace the random-tiles placeholder)
+      boss round-turn with telegraphs, weakpoints/HP/phases, headless-verified).
+      **2026-07-14 evening build-out ("fill in the gaps"):**
+      - [x] Five real bosses + the Joker (`BOSSES` DATA: Ember Dragon 🐉 arc
+            burns + singe, Deep Kraken 🐙 scatter pulls, Frost Titan 🧊 slow
+            huge arcs that freeze a turn, Storm Wyrm ⚡ 1-turn fast strikes
+            that floor you, Void Maw 🕳️ void-teleports + wandering weakpoints;
+            Joker 🃏 mimics a style and reshuffles each phase) — first-pass
+            stats, tune with Isak
+      - [x] Giant-die boss-select intro (icon-cycling reveal; a fancier
+            cutscene can replace it)
+      - [x] Telegraph rework per the ruling (red = normal for whole charge,
+            yellow = SUPER until its final turn)
+      - [x] SUPER attacks: every phase change winds one up (2× tiles, +1
+            charge turn, 2× power)
+      Still open:
+      - [ ] Boss move deck (varied actions beyond tile strikes)
       - [ ] Lap rewards + far-side-crossing lap checkpoint
       - [ ] Obstacles + objectives on the ring
       - [ ] Lose condition (per Isak's answer in QUESTIONS.md)
       - [ ] Co-op support items + which normal items carry over
       - [ ] Bot brain for ring play (dodge red tiles, chase weakpoints)
       - [ ] Strike/hit FX, boss idle animation, phase-change moment
-- [ ] **«The Grand Tour» — campaign mode** (Isak, 2026-07-14; design still
-      open — capture only, do NOT build until Isak says go)
+- [x] **«The Grand Tour» — campaign mode** — **BUILT 2026-07-14 evening**
+      (Isak: "build everything and fill in the gaps"). Playable from the mode
+      picker; `TOUR` DATA block + tour controller; full bot tour verified
+      headless. Defaults picked where the spec was open (see QUESTIONS.md):
+      placement points **10/6/4/2/1**, boss leg scored by **damage dealt**,
+      "slightly faster" = KOTH legs at **0.75× rounds** + the finish window,
+      leader debuff = **half the per-leg coin stipend**, catch-up/leg-1
+      shields = the normal one-hit shield. Mayhem also exists as its own
+      standalone mode. Spec kept below for reference/tuning:
       > ⚠ KEEP THIS SPEC — Isak's canonical vision so far ("that is what I
       > have for now"); more design sessions to come.
 
