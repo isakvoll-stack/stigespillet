@@ -3,6 +3,29 @@
 Newest first. One entry per working session; note what shipped and what's next.
 
 ---
+## 2026-07-17 — Classic hazards on the boss ring
+
+Isak asked for classic special tiles in the boss fights to make the ring
+interesting. Ported the four that fit a looping co-op arena: ⛔ setback,
+❄️ freeze, 😵‍💫 dizzy, 🌀 teleport — 2 of each scattered per fight.
+
+- DATA: `BOSS_CLASSIC` (count/mark/tunables per hazard); colour + feature
+  flag reused from `TILE_RULES`, so family-mode toggles carry over.
+- Seeded in `scatterRingRoles` into `game.boss.classicTiles`, reserved in
+  `bossOpenTiles`, painted (fill + emoji mark) in `paintBossTiles`.
+- Landings dispatch from `bossArrive` → `BOSS_CLASSIC_LAND` handlers:
+  setback drags to START + forfeits the lap; freeze = frozen + `bossSkip`
+  (wool socks immune); dizzy sets `bossDizzy` → next roll in `bossRoll`
+  negates the walk (ring walks backwards); teleport re-lands via `bossArrive`
+  (can chain onto weakpoints/crates/hazards; teleport tiles excluded so no
+  loops). Lap checkpoint + payout in `bossMove` now require forward motion.
+- RULES.md boss section documents all four; README Next updated.
+- Verified headless (Edge virtual-time, 6 bot fights): no JS errors, seeding
+  disjoint + painted, landings fired 15–27× each; one boss killed at hp 0.
+
+Next: nothing queued from this session — `Next/TASKS.md` unchanged.
+
+---
 ## 2026-07-16/17 — Isak's 9-point batch: bonus stage, boss patterns + losses + KONG, snake eyes, warp countdown, 20 new items
 
 Isak's 9-point list + two mid-session adds (danger signs / clearer telegraphs,

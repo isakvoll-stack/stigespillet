@@ -1467,6 +1467,15 @@ const KONG_BOSS  = { THROW_OFFSET: 20, SPEED: 5, ROLL_MS: 90 };   // barrels ent
 const BOSS_RING  = { COIN_TILES: 5, BOX_TILES: 3, COIN_PAY: 3,    // the ring's normal squares: blue pays coins, 🎁 crates hold support kit
   COIN_COLOR:"#6fa8dc", BOX_COLOR:"#d4a656", LIGHT_COLOR:"#f8e473",
   LAP_COINS: 5 };                                                 // full-lap reward: coins + a crate (far side must be crossed first)
+/* Classic board hazards looped onto the boss ring: `count` tiles of each are
+   scattered per fight. Colour + feature flag come from TILE_RULES, so the
+   arena honours the same toggles as the classic board. */
+const BOSS_CLASSIC = {
+  setback:  { count:2, mark:"⛔" },        // dragged back to START, lap forfeit
+  freeze:   { count:2, mark:"❄️", skip:1 },// frozen solid: turns lost (wool socks still work)
+  dizzy:    { count:2, mark:"😵‍💫" },       // next roll walks BACKWARDS around the ring
+  teleport: { count:2, mark:"🌀" },        // whisked to a random ring tile — and whatever waits there
+};
 /* ---- DATA: the boss-arena support kit --------------------------------
    Found only in the 🎁 crates on the ring (and lap rewards) — never sold.
    Every one of them helps the TEAM: patch an ally up, shield the line,
@@ -4394,6 +4403,7 @@ function paintBossTiles(){
       : (b.coinTiles||[]).includes(t) ? BOSS_RING.COIN_COLOR
       : (b.boxTiles||[]).includes(t) ? BOSS_RING.BOX_COLOR
       : (b.lightTiles||[]).includes(t) ? BOSS_RING.LIGHT_COLOR
+      : bossClassicAt(t) ? TILE_RULES[bossClassicAt(t)].color
       : BOSS_MODE.TILE_COLOR);
     const warn = nextT.has(t) ? "next" : (laterT.has(t) ? "later" : null);
     r.setAttribute("stroke", warn ? (warn === "next" ? TG.NEXT : TG.LATER) : BOSS_MODE.RING_STROKE);
@@ -4422,6 +4432,12 @@ function paintBossTiles(){
     const c = bossCellCenter(t);
     const m = el("text",{x:c.x,y:c.y+10,"text-anchor":"middle","font-size":"28"});
     m.textContent = "✨";
+    bossMarksG.appendChild(m);
+  });
+  for (const id in b.classicTiles||{}) b.classicTiles[id].forEach(t => {
+    const c = bossCellCenter(t);
+    const m = el("text",{x:c.x,y:c.y+9,"text-anchor":"middle","font-size":"22"});
+    m.textContent = BOSS_CLASSIC[id].mark;
     bossMarksG.appendChild(m);
   });
   nextT.forEach(t => {                                         // the danger sign rides the red tiles
@@ -4507,7 +4523,7 @@ function newBossGame(roster){
     boss:{ def, hp:def.hp, maxHp:def.hp, phase:0, charges:[], weakpoints:[], style:null,
            teamHits:0, bonusRounds:0, banner:0, paint:0, barrels:[],
            light: def.lose.type === "light" ? def.lose.start : 0,
-           coinTiles:[], boxTiles:[], lightTiles:[] },
+           coinTiles:[], boxTiles:[], lightTiles:[], classicTiles:{} },
     tour:false, legModId:null, floodRows:0, noBounce:false, windowCloseRound:0,
   };
   game.players.forEach(p => { p.pos = BOSS_MODE.START_TILE; p.bossHalf = false; p.bossRollPlus = 0; });
@@ -4536,6 +4552,7 @@ function bossOpenTiles(){
   const b = game.boss;
   const used = new Set([BOSS_MODE.START_TILE, ...b.weakpoints,
                         ...(b.coinTiles||[]), ...(b.boxTiles||[]), ...(b.lightTiles||[])]);
+  Object.values(b.classicTiles||{}).forEach(a => a.forEach(t => used.add(t)));
   game.players.forEach(p => used.add(p.pos));
   const open = [];
   for (let t = 1; t <= BOSS_MODE.RING_COUNT; t++) if (!used.has(t)) open.push(t);
@@ -4559,6 +4576,15 @@ function scatterRingRoles(){
   take(b.coinTiles, BOSS_RING.COIN_TILES);
   take(b.boxTiles, BOSS_RING.BOX_TILES);
   if (b.def.lose.type === "light") take(b.lightTiles, b.def.lose.tiles);
+  for (const id in BOSS_CLASSIC){
+    b.classicTiles[id] = [];
+    if (FEATURES[TILE_RULES[id].feature]) take(b.classicTiles[id], BOSS_CLASSIC[id].count);
+  }
+}
+function bossClassicAt(tile){
+  const ct = game.boss.classicTiles || {};
+  for (const id in ct) if (ct[id].includes(tile)) return id;
+  return null;
 }
 async function bossBegin(){
   const b = game.boss;
@@ -4791,6 +4817,11 @@ async function bossRoll(){
     value += cur.bossRollPlus;
     cur.bossRollPlus = 0;
   }
+  if (cur.bossDizzy){                            // the tan square's revenge: this walk runs backwards
+    cur.bossDizzy = false;
+    log(`😵‍💫 ${cur.name}'s feet betray them — the ${value} walks BACKWARDS!`);
+    value = -value;
+  }
   if (rolled === RULES.DICE_SIDES && FEATURES.sixRollsAgain) sixEffect();
   await sleep(160);
   await bossMove(cur, value, rolled);
@@ -4801,8 +4832,8 @@ async function bossMove(p, rollValue, rolledFace){
   let at = p.pos;
   for (const step of path){
     await bossHopToken(i, at, step); at = step; p.pos = step; p.steps++;
-    if (step === farTile) p.bossHalf = true;                 // the far side is the lap checkpoint
-    if (step === BOSS_MODE.START_TILE && p.bossHalf){        // a full honest lap pays out
+    if (step === farTile && rollValue > 0) p.bossHalf = true;          // the far side is the lap checkpoint (forward only)
+    if (step === BOSS_MODE.START_TILE && p.bossHalf && rollValue > 0){ // a full honest lap pays out
       p.bossHalf = false;
       await bossLapReward(p);
     }
@@ -4855,8 +4886,58 @@ async function bossArrive(p){
     paintBossTiles(); paintBossLose();
     return true;
   }
+  const cid = bossClassicAt(p.pos);
+  if (cid) return await BOSS_CLASSIC_LAND[cid](p);
   return false;
 }
+/* The classic hazards, arena edition — one landing handler per BOSS_CLASSIC id. */
+const BOSS_CLASSIC_LAND = {
+  async setback(p){
+    await revealRuleOnce("setback");
+    SFX.play("chute");
+    log(`🔴 ${p.name} hit the penalty tile — dragged back to START, the lap forfeit!`);
+    await sleep(500);
+    p.pos = BOSS_MODE.START_TILE; p.bossHalf = false;
+    bossLayoutTokens(); renderScoreboard();
+    return true;
+  },
+  async freeze(p){
+    if (hasPassive(p, "socks")){
+      log(`🧦 ${p.name}'s wool socks keep the frost out!`);
+      return true;
+    }
+    await revealRuleOnce("freeze");
+    p.frozen = true;
+    p.bossSkip = (p.bossSkip||0) + BOSS_CLASSIC.freeze.skip;
+    updateFrozen(idxOf(p));
+    SFX.play("fall");
+    iconPopup(p, "🧊", 1);
+    log(`🧊 ${p.name} lands on the icy square and freezes solid!`);
+    return true;
+  },
+  async dizzy(p){
+    await revealRuleOnce("dizzy");
+    p.bossDizzy = true;
+    SFX.play("bounce");
+    iconPopup(p, "😵‍💫");
+    log(`😵‍💫 ${p.name} stops on the tan square and turns very dizzy…`);
+    return true;
+  },
+  async teleport(p){
+    await revealRuleOnce("teleport");
+    const b = game.boss, dests = [];
+    for (let t = 1; t <= BOSS_MODE.RING_COUNT; t++)
+      if (t !== p.pos && t !== BOSS_MODE.START_TILE && !b.classicTiles.teleport.includes(t)) dests.push(t);
+    const dest = dests[(Math.random()*dests.length)|0];
+    SFX.play("sparkle");
+    iconPopup(p, "🌀", 1);
+    log(`🌀 The teleporter fizzes — ${p.name} is whisked to tile ${dest}!`);
+    await sleep(500);
+    p.pos = dest;
+    bossLayoutTokens();
+    return await bossArrive(p) || true;
+  },
+};
 async function bossLapReward(p){
   SFX.play("win");
   confettiBurst(16);

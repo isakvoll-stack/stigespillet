@@ -88,8 +88,17 @@ live in the `GAME_MODES` DATA table):
   (scraps the oldest charge), **💨 Gust Feather** (whole team +2 tiles), **🧪
   Team Elixir** (buys more of whatever doom meter is running out). The kit
   vanishes when the arena falls. Rolling a 6 still rolls again.
-  *(Tunables: `BOSS_MODE`, `BOSSES`, `BOSS_SUPER`, `BOSS_RING`, `KONG_BOSS`,
-  `BOSS_ITEMS`.)*
+  **Classic hazards haunt the ring too** — 2 of each are scattered per fight
+  (they honour the same feature toggles as the classic board):
+  - **⛔ penalty tile** (deep red) — dragged back to START, lap forfeit.
+  - **❄️ icy tile** (pale blue) — frozen solid, lose a turn (🧦 Wool Socks
+    still keep the frost out).
+  - **😵‍💫 dizzy tile** (tan) — your next roll walks BACKWARDS around the
+    ring (backwards steps never count toward a lap).
+  - **🌀 teleporter** (teal) — whisked to a random ring tile and whatever
+    waits there: a weakpoint, a crate… or the penalty tile.
+  *(Tunables: `BOSS_MODE`, `BOSSES`, `BOSS_SUPER`, `BOSS_RING`, `BOSS_CLASSIC`,
+  `KONG_BOSS`, `BOSS_ITEMS`.)*
 - **🌪️ Mayhem** — Classic gone feral. **Every plain square hides a random
   special tile** (weights in `MAYHEM.REPLACE_WEIGHTS`), rare-event chances are
   **tripled**, once a round the **chaos pool surges** and strikes a random

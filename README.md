@@ -55,6 +55,13 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
+Recently shipped (2026-07-17): **Classic hazards on the boss ring** — 2 each of
+the ⛔ penalty, ❄️ icy, 😵‍💫 dizzy and 🌀 teleporter tiles are scattered per
+fight (`BOSS_CLASSIC` DATA + `BOSS_CLASSIC_LAND` handlers, resolved through
+`bossArrive`); dizzy walks the next roll backwards (backwards steps never score
+a lap), teleport can drop you on a weakpoint or another hazard. Honours the
+classic feature toggles. Verified with 6 headless bot fights.
+
 Recently shipped (2026-07-16/17): **Isak's 9-point batch + mid-session extras** —
 - **🎁 Bonus points get a stage**: KOTH's end bonus round AND the tour's
   between-leg bonuses each reveal on a full-screen suspense card — category
