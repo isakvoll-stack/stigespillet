@@ -19,9 +19,14 @@ was rejected by Isak 2026-07-18 and is recorded as such in the doc.)*
 - [ ] **Scrambled board default**: in drawn games the special-tile layout starts
   scrambled every game (so tile spots can't be memorised). OK as default, or
   keep classic spots and let 🌀 stay opt-in?
-- [ ] **Twist of the Night odds**: 1 in 3 games carries one secret leg twist,
-  announced at a random early-mid round. Right frequency? Any of the 10 twists
-  you'd EXCLUDE from Classic (they were built for Tour legs)?
+- [ ] **Twist of the Night odds** *(Phase 1 BUILT 2026-07-18 with these
+  defaults — play a few games and say what's off)*: 1 in 3 Classic games
+  carries one secret leg twist; announced on the suspense card at the start
+  of a random round 2–5; toggle lives in Advanced → 🗺️ Board (ON by
+  default); runs in Family mode too (the twists are gentle); KOTH/Tour/
+  Mayhem never draw one; no twist repeats until all 10 have been seen
+  (`TWIST_NIGHT`, `EXCLUDE` list empty). Right frequency/window? Any twist
+  you'd exclude from Classic? Should KOTH games draw one too?
 - [ ] **End-screen "Tonight's board" reveal**: full draw shown after the podium
   (what was live, what never existed). Keep, or should some things stay secret
   even then?

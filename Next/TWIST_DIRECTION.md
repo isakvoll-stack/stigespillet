@@ -133,10 +133,12 @@ game 20 surprising — the game quietly rations its own novelty.
 
 ## 4. Build plan (phased; each ships alone; registry recipe as always)
 
-**Phase 1 — Twist of the Night.** Smallest, biggest payoff, everything exists.
-`TWIST_NIGHT` DATA (chance, announce-round window, no-repeat memory) reusing the
-`LEG_MODS` registry + the suspense-card presentation. Headless: full games with
-each twist forced terminate cleanly outside Tour. **Isak playtest gate.**
+**Phase 1 — Twist of the Night.** ✅ **SHIPPED 2026-07-18** (defaults picked by
+Claude, logged in QUESTIONS.md): `TWIST_NIGHT` DATA (1-in-3 chance, announce
+window rounds 2–5), `drawNightTwist`/`rememberNightTwist` no-repeat memory,
+suspense-card announce, HUD line, 🗺️ Board toggle (ON). Headless-verified: all
+10 twists forced → announced on schedule, games terminate, 0 errors. **Isak
+playtest gate still open** — card feel, odds, window.
 
 **Phase 2 — The Nightly Draw.** `DRAW` block (rule pool w/ weights + `requires`,
 item-subset size, scrambled-board default), applied as a per-game overlay — never

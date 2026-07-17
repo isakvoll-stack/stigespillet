@@ -3,6 +3,37 @@
 Newest first. One entry per working session; note what shipped and what's next.
 
 ---
+## 2026-07-18 — Twist of the Night (Twist Direction v2, Phase 1)
+
+Isak rejected the v1 story/Director plan (party game, replayability first —
+ruling recorded in `Next/TWIST_DIRECTION.md`) and asked for Phase 1 of the
+reworked plan, defaults picked by Claude and logged for later.
+
+- **🃏 Twist of the night**: ~1 in 3 Classic games secretly carry ONE Grand
+  Tour leg twist. Drawn in `newGame` (Classic only, never tour/koth/mayhem),
+  announced with the `bonuscard` suspense card at the start of a random round
+  2–5 (`TWIST_NIGHT`), then live for the rest of the game via the existing
+  `game.legModId` hooks. HUD round-line names the running twist.
+- **No-repeat memory**: `drawNightTwist`/`rememberNightTwist` +
+  `stigespillet.twistNight.seen.v1` in localStorage — seen twists sit out
+  until the pool cycles; never the same twist twice in a row; recorded at
+  announce (an unseen draw isn't burned).
+- **Rising Flood made activation-relative**: its round math now counts from
+  `game.twistBaseRound` (tour legs unchanged — base 1).
+- **Toggle**: Advanced settings → 🗺️ Board → "Twist of the night", ON by
+  default, persisted like the other board options.
+- **Verified headless** (Chrome, 13 full 4-bot games): all 10 twists forced
+  once → each announced at its scheduled round, game terminated with a
+  winner, 0 JS errors; chance-0 control clean; 25-draw cycling test = full
+  coverage, no immediate repeats. One first-batch flood miss was a harness
+  race (next game started while the old game's turn chain drained) — not a
+  product path; 3/3 targeted flood reruns clean (flood games run long, 26–42
+  rounds, as swimmers get floored).
+- RULES.md (Game variants) + TWIST_DIRECTION.md/TASKS.md/QUESTIONS.md
+  updated. **Next**: Isak feel-pass on the card + odds, then Phase 2 (the
+  Nightly Draw).
+
+---
 ## 2026-07-17 (evening) — intuition & clarity audit (no code changes)
 
 Isak asked for a thorough look at the whole game: make it intuitive,

@@ -222,6 +222,16 @@ random. They're built to bend what you take for granted:
   and can't be called out). The manual walk skips shop pass-by browsing.
   *(All numbers in `CHEAT`.)*
 
+- **🃏 Twist of the night** *(Advanced settings → 🗺️ Board — ON by default)* —
+  some Classic games (about **1 in 3**) secretly carry **one** of the Grand Tour
+  **leg twists** (the full list lives under *The leg twists* above). Nothing shows
+  at the start — the twist announces itself on a full-screen suspense card at the
+  start of a **random early round**, then bends the rest of the game. The HUD names
+  the running twist. Twists the table has seen recently **sit out** until the whole
+  pool has cycled (remembered like the settings), so game nights keep drawing fresh
+  ones. Classic mode only (the Grand Tour keeps its own leg twists; other modes are
+  untouched). *(Tunables in `TWIST_NIGHT`: chance, announce-round window, exclusions.)*
+
 - **🥇 Match play** *(Advanced settings → 🏁 Game)* — play a **series**:
   *best of N* (3/5/7/9) or *first to N
   wins* (2–9), default **off**. The winner of each game banks a win; the HUD

@@ -24,6 +24,10 @@ See `LOG.md` for the running session history.
       guardrails** (anti-burden law, in the doc). Build order: Phase 1 = Twist
       of the Night (cheapest big win, playtest gate) → Draw → Pop-ups → freshness
       weighting + default flip. Questions in QUESTIONS.md (2026-07-18 section).
+      - [x] **Phase 1 — Twist of the Night** shipped 2026-07-18 (1-in-3 Classic
+            games, suspense-card announce round 2–5, no-repeat memory, 🗺️ Board
+            toggle ON; headless-verified 13 games / 0 errors). Awaiting Isak's
+            feel pass before Phase 2 (the Nightly Draw).
 
 ### Queued from Isak's 8-point batch (2026-07-10)
 - [x] **Design game mode — «Boss battle»** (Isak, 2026-07-10) — design locked in
