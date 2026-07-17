@@ -165,6 +165,11 @@
     padding:3px 2px;cursor:pointer}
   .adv-item input{width:17px;height:17px;flex:none;accent-color:var(--barn-red);cursor:pointer}
   .adv-item .adv-desc{opacity:.65;font-size:12.5px}
+  .shophint{display:flex;gap:6px 16px;align-items:center;justify-content:center;flex-wrap:wrap;
+    padding:8px 12px;border:1px dashed var(--brass);border-radius:10px;color:var(--cream);font-size:14px}
+  .shophint .swatch{width:16px;height:16px;border-radius:4px;display:inline-block;
+    border:2px solid #1f6fb0;vertical-align:-3px;margin-right:5px}
+  .shophint .shoprow{white-space:nowrap}
 
   /* game-mode picker + King-of-the-Hill rounds slider */
   .modelist{display:flex;flex-direction:column;gap:10px;margin:6px 0 14px}
@@ -578,6 +583,7 @@
       <label class="toggle"><input type="checkbox" id="optRgb"> RGB player 🌈 (the 11th seat's natural colour)</label>
       <label class="toggle"><input type="checkbox" id="optFamily"> Family mode 👨‍👩‍👧 (the calmer, more skill-based rules — applies to new games)</label>
       <label class="toggle"><input type="checkbox" id="optManual"> Manual moves 🖐️ (move your own piece each roll — applies to new games)</label>
+      <label class="toggle"><input type="checkbox" id="optFull"> 🔓 Full experience (unlock the other game modes & every advanced setting)</label>
       <label class="toggle">🔊 Volume <input type="range" id="optVolume" min="0" max="100" value="100" style="width:150px;vertical-align:middle;margin-left:8px"></label>
       <button class="btn ghost" id="settingsBack">Back</button>
     </div>
@@ -663,7 +669,7 @@
     <div class="box">
       <h3 id="invTitle">Inventory</h3>
       <div id="invList" style="display:flex;flex-direction:column;gap:8px;min-width:260px"></div>
-      <button class="btn" id="invDone" style="margin-top:12px">Done — roll when ready</button>
+      <button class="btn" id="invDone" style="margin-top:12px">Back</button>
     </div>
   </div>
   <div class="modal" id="wheel">
@@ -1384,9 +1390,13 @@ const BOSS_MODE = {
   get RING_COUNT(){ return 2 * (this.RING_COLS + this.RING_ROWS) - 4; },
   CELL: 75, TOP: 145,                    // ring geometry in board-svg units (viewBox 940x1040)
   START_TILE: 1,                         // everyone starts here, walking clockwise
-  WEAKPOINTS: 5,                         // live weakpoints on the ring at any time
   WEAKPOINT_DAMAGE: 1,                   // HP chipped per weakpoint landing (Isak: 1, for ease of reference)
   WEAKPOINT_COLOR: "#9b59b6", WEAKPOINT_MARK: "◎",
+  WEAKPOINT_PATTERNS: [                  // pre-arranged symmetrical layouts (ring tiles 1-40); one is drawn per fight and stays put
+    [6, 16, 26, 36],                     // compass: the middle of each wall
+    [5, 13, 21, 29, 37],                 // star: five points, evenly spaced
+    [4, 8, 14, 18, 24, 28, 34, 38],      // lattice: a pair flanking every corner
+  ],
   TELEGRAPH: { NEXT:"#e6402f", LATER:"#f1c40f", WIDTH:10, LATER_WIDTH:8,   // fat outlines so red/yellow read at a glance
                TINT_NEXT:0.30, TINT_LATER:0.20, SIGN:"⚠️", SIGN_SIZE:26 }, // fill tint + the danger sign on red tiles
   CHARGE_TURNS: 2,                       // boss turns an attack charges before it strikes
@@ -1415,6 +1425,8 @@ const BOSS_MODE = {
    doubled power (BOSS_SUPER). */
 const BOSSES = [
   { id:"dragon", ico:"🐉", name:"Ember Dragon",  hp:14, chargeTurns:2,
+    intro:"The old fire of the mountain, woken and furious.",
+    gimmick:"Breathes cones of flame that bloom on the tiles ahead of a runner — the lower its health, the wider the fire.",
     fx:{ color:"#ff6b35", sfx:"boom" },
     lose:{ type:"rounds", n:20 },
     strike:{ type:"burn", knock:3, singe:1 },
@@ -1422,6 +1434,8 @@ const BOSSES = [
              { hpAbove: 1/3, attackTiles: 5, moves:["breath","crossfire"] },
              { hpAbove: 0,   attackTiles: 7, moves:["crossfire","inferno"] } ] },
   { id:"kraken", ico:"🐙", name:"Deep Kraken",   hp:14, chargeTurns:2,
+    intro:"Something vast stirs beneath the arena floor.",
+    gimmick:"Slams tentacles evenly around the whole ring, and grabs at whoever stands closest — a hit drags you 6 tiles back.",
     fx:{ color:"#17b5a3", sfx:"leviathan" },
     lose:{ type:"hits", n:12 },
     strike:{ type:"pull", amount:6 },
@@ -1429,6 +1443,8 @@ const BOSSES = [
              { hpAbove: 1/3, attackTiles: 5, moves:["tentacles","grab"] },
              { hpAbove: 0,   attackTiles: 6, moves:["tentacles","grab"] } ] },
   { id:"titan",  ico:"🧊", name:"Frost Titan",   hp:12, chargeTurns:3,
+    intro:"A glacier with a heartbeat — and it has noticed you.",
+    gimmick:"Slow but enormous: it freezes entire walls of the arena at once, and a hit ices you solid for a turn.",
     fx:{ color:"#7ec8e3", sfx:"crack" },
     lose:{ type:"wipe" },
     strike:{ type:"freeze", skip:1 },
@@ -1436,6 +1452,8 @@ const BOSSES = [
              { hpAbove: 1/3, attackTiles: 11, moves:["wall","twinwalls"] },
              { hpAbove: 0,   attackTiles: 11, moves:["twinwalls"] } ] },
   { id:"wyrm",   ico:"⚡", name:"Storm Wyrm",    hp:16, chargeTurns:1,
+    intro:"The storm itself, coiled into a serpent.",
+    gimmick:"Strikes FAST — its attacks charge in a single turn and zap the tiles right in front of the runners.",
     fx:{ color:"#f7dc6f", sfx:"thunder" },
     lose:{ type:"rounds", n:16 },
     strike:{ type:"shock", skip:1 },
@@ -1443,6 +1461,8 @@ const BOSSES = [
              { hpAbove: 1/3, attackTiles: 2, moves:["front","zigzag"] },
              { hpAbove: 0,   attackTiles: 2, moves:["zigzag","front"] } ] },
   { id:"maw",    ico:"🕳️", name:"Void Maw",      hp:14, chargeTurns:2, wander:true,
+    intro:"A hole in the world that wants the rest of it.",
+    gimmick:"Tears mirrored rifts into far sides of the ring, scatters whoever it swallows — and its weakpoints drift every turn.",
     fx:{ color:"#b39ddb", sfx:"teleport" },
     lose:{ type:"light", start:6, gain:2, tiles:2 },
     strike:{ type:"scatter" },
@@ -1450,6 +1470,8 @@ const BOSSES = [
              { hpAbove: 1/3, attackTiles: 6, moves:["pairs"] },
              { hpAbove: 0,   attackTiles: 8, moves:["pairs"] } ] },
   { id:"kong",   ico:"🦍", name:"Kong",          hp:14, barrels:true,
+    intro:"He found the barrels. He is not sharing.",
+    gimmick:"No telegraphs, no mercy: he hurls barrels that roll backwards around the ring — more of them the angrier he gets.",
     fx:{ color:"#a5673f", sfx:"boom" },
     lose:{ type:"hits", n:10 },
     strike:{ type:"barrel", knock:2, skip:1 },
@@ -1457,6 +1479,8 @@ const BOSSES = [
              { hpAbove: 1/3, attackTiles: 2, moves:[] },
              { hpAbove: 0,   attackTiles: 3, moves:[] } ] },
   { id:"joker",  ico:"🃏", name:"The Joker",     hp:15, mimic:true,
+    intro:"The giant die landed on its EDGE — the rules belong to him now.",
+    gimmick:"Wears another boss's whole fighting style as a mask — and swaps to a new one every time the fight changes phase.",
     fx:{ color:"#e84393", sfx:"spin" },
     lose:{ type:"rounds", n:20 },
     phases:[ { hpAbove: 2/3, attackTiles: 3 }, { hpAbove: 1/3, attackTiles: 4 }, { hpAbove: 0, attackTiles: 5 } ] },
@@ -1685,6 +1709,12 @@ const FX = {
   SIX:    { count:15, colors:["#ffd23e","#fff3b0","#ff9500"], speed:[120,300], up:60,
             life:.75, size:[3,6], shape:"star" },           // star burst off the die
 };
+/* ---- DATA: the full-experience unlock (Settings screen) --------------
+   OFF by default: the game presents as a plain classic ladder game — Play
+   skips the mode picker and goes straight to Classic, and Advanced settings
+   shows only the 🏁 Game group. The Settings toggle reveals the rest. */
+const UNLOCKS = { full:false };
+
 /* ---- DATA: sound + pacing (Settings screen) ------------------------- */
 const SOUND = { VOLUME:1 };                      // master volume 0..1 (0 = mute)
 const SPEED = { FF_DIV:3, fastForward:false };   // ⏩ bot-turn pacing divided by FF_DIV when on
@@ -1769,7 +1799,12 @@ const RAD_COLOR = "#58c81b";               // radioactive green
 const RAD = { PER_NUKE:2, IMMUNE_BONUS:1,                  // tiles per nuke; survive the curve = permanent +1
   CURVE:        [-1,-2,-3,-4,-5,-4,-3,-2,-1],              // roll modifier per sick turn; past the end = recovered
   FAMILY_CURVE: [-1,-3,-5,-4,-2] };                        // Family Mode: sharper but shorter sickness
-const COIN = { PLAIN:1, BLUE:3, START:10 }; // coins per plain-tile landing (yellow pays quietly, blue pays big) + the opening purse
+const COIN = { PLAIN:1, BLUE:3, SIX:1, START:10 }; // coins per plain-tile landing (yellow pays quietly, blue pays big), per rolled 6, + the opening purse
+const SHOP_EARN = [                        // the shop's "how do I earn coins?" hint rows
+  { color: CELL_PALETTE[0], label:"Yellow tile", pay: COIN.PLAIN },
+  { color: CELL_PALETTE[4], label:"Blue tile",   pay: COIN.BLUE  },
+  { ico:"🎲",               label:"Roll a 6",    pay: COIN.SIX   },
+];
 const COIN_FX = {                          // how each coin source announces itself
   six:   { SOUND:false, POPS:0 },                          // rolled-6 bonus: silent — you only see it on the scoreboard
   plain: { SOUND:true,  POPS:0 },                          // yellow tile: the ping only, no icon
@@ -2480,7 +2515,7 @@ const MOVE_BONUSES = [
       if (!hasCurse(p, "blooddice")) return 0;
       if ((p.coins||0) > 0){
         p.coins--; renderScoreboard();
-        log(`🎲🩸 The Blood Dice drink one of ${p.name}'s coins. (${p.coins} left)`);
+        log(`🎲🩸 The Blood Dice drink one of ${p.name}'s coins.`);
         return 0;
       }
       return -CURSE.BLOOD_SLOW;
@@ -2755,7 +2790,6 @@ function renderScoreboard(){
                + (p.sniper ? " 🎯" : "") + (p.shame>0 ? " 😳" : "") + (p.cuffs>0 ? " 🔗"+p.cuffs : "")
                + (p.fish>0 ? " 🐟"+(p.fish>1?p.fish:"") : "") + shopMark + pactMark
                + (p.mirrorOn ? " 🪞" : "") + (p.dizzy ? " 😵‍💫" : "")
-               + (p.coins>0 ? " 🪙"+p.coins : "")
                + (p.radSick ? " ☢️"+(p.radLevel||"") : (p.radImmune ? " ☢️+"+RAD.IMMUNE_BONUS : ""));
     const cellTxt = p.finished ? "done" : (p.onSecret ? "secret 🚪" : (p.pos === 0 ? "—" : "tile " + p.pos));
     row.innerHTML =
@@ -3341,7 +3375,7 @@ async function settleLanding(p, i, from, landed, rollsAgain, dual){
   // a 6 (or doubles) earns another roll for the same player; otherwise end the turn
   if (rollsAgain){
     if (FEATURES.coins) awardCoin(p, dual ? "Rolled doubles" : "Rolled a 6",
-      hasPassive(p, "tophat") ? TOPHAT_SIX : 1, hasPassive(p, "tophat") ? "blue" : "six");
+      hasPassive(p, "tophat") ? TOPHAT_SIX : COIN.SIX, hasPassive(p, "tophat") ? "blue" : "six");
     log(dual ? TXT.rollAgainDual : TXT.rollAgain);
     game.busy = false; refreshHUD(); maybeAuto();
   } else {
@@ -3497,7 +3531,7 @@ function awardTrophy(p, reason, n){
 async function afterKothLap(p, rollsAgain){
   if (rollsAgain){
     if (FEATURES.coins) awardCoin(p, game.dualDice ? "Rolled doubles" : "Rolled a 6",
-      hasPassive(p, "tophat") ? TOPHAT_SIX : 1, hasPassive(p, "tophat") ? "blue" : "six");
+      hasPassive(p, "tophat") ? TOPHAT_SIX : COIN.SIX, hasPassive(p, "tophat") ? "blue" : "six");
     log(game.dualDice ? TXT.rollAgainDual : TXT.rollAgain);
     game.busy = false; refreshHUD(); maybeAuto();
   } else {
@@ -4536,7 +4570,7 @@ function newBossGame(roster){
   buildBossBoard();
   buildTokens(roster.length);
   arrowEl = makeArrow();
-  for (let k = 0; k < BOSS_MODE.WEAKPOINTS; k++) spawnWeakpoint();
+  placeWeakpoints();
   scatterRingRoles();
   bossLayoutTokens();
   paintBossTiles();
@@ -4558,9 +4592,9 @@ function bossOpenTiles(){
   for (let t = 1; t <= BOSS_MODE.RING_COUNT; t++) if (!used.has(t)) open.push(t);
   return open;
 }
-function spawnWeakpoint(){
-  const b = game.boss, open = bossOpenTiles();
-  if (open.length) b.weakpoints.push(open[Math.floor(Math.random()*open.length)]);
+function placeWeakpoints(){
+  const pats = BOSS_MODE.WEAKPOINT_PATTERNS;
+  game.boss.weakpoints = [...pats[(Math.random()*pats.length)|0]];
 }
 // The ring's "normal squares": blue pays coins, 🎁 crates hold the support
 // kit — and the Void Maw scatters its ✨ emberlight sparks.
@@ -4586,18 +4620,41 @@ function bossClassicAt(tile){
   for (const id in ct) if (ct[id].includes(tile)) return id;
   return null;
 }
+function bossLoseLine(def){
+  const L = def.lose;
+  return L.type === "rounds" ? `⏳ But hurry: after ${L.n} rounds the fight is LOST.`
+    : L.type === "hits"   ? `💢 And hold the line: ${L.n} strikes on the team and the fight is LOST.`
+    : L.type === "wipe"   ? `☠️ And never ALL go down at once — a full team wipe LOSES the fight.`
+    : L.type === "light"  ? `✨ And guard the emberlight: it fades every round — land on the ✨ sparks to rekindle it, or the void wins.`
+    : "";
+}
+// The introduction card: who guards the arena, what their gimmick is, and
+// how the team can lose — shown once, right after the giant die has spoken.
+function bossIntroCard(def){
+  return new Promise(res => {
+    SFX.play("rule");
+    document.getElementById("revealIco").textContent = def.ico;
+    document.getElementById("revealTitle").textContent = "Boss Battle";
+    document.getElementById("revealName").textContent = def.name;
+    document.getElementById("revealText").innerHTML =
+      `<i>${def.intro}</i><br><br>${def.gimmick}<br><br>${bossLoseLine(def)}`;
+    document.getElementById("reveal").classList.add("show");
+    revealResolve = () => {
+      document.getElementById("reveal").classList.remove("show");
+      revealResolve = null; res();
+    };
+    if (game.autonomous && game.players.every(q => q.bot))
+      setTimeout(() => { if (revealResolve) revealResolve(); }, 3800);
+  });
+}
 async function bossBegin(){
   const b = game.boss;
   game.busy = true; refreshHUD();
   await bossIntro();
   if (b.def.mimic) jokerMimic();
+  await bossIntroCard(b.def);
   log(`${b.def.ico} ${b.def.name} guards the arena — land on the ${BOSS_MODE.WEAKPOINT_MARK} weakpoints to bring it down!`);
-  const L = b.def.lose;
-  log(L.type === "rounds" ? `⏳ But hurry: after ${L.n} rounds the fight is LOST.`
-    : L.type === "hits"   ? `💢 And hold the line: ${L.n} strikes on the team and the fight is LOST.`
-    : L.type === "wipe"   ? `☠️ And never ALL go down at once — a full team wipe LOSES the fight.`
-    : L.type === "light"  ? `✨ And guard the emberlight: it fades every round — land on the ✨ sparks to rekindle it, or the void wins.`
-    : "");
+  log(bossLoseLine(b.def));
   bossChargeAttack();
   paintBossLose();
   game.busy = false; refreshHUD(); maybeAuto();
@@ -4766,9 +4823,9 @@ async function bossTurn(){
     await sleep(ANIM.HANDOFF);
   }
   if (await bossWipeCheck()) return;
-  if (st.wander && b.weakpoints.length){   // the Void Maw's weakpoints never sit still
-    b.weakpoints.splice(0, Infinity);
-    for (let k = 0; k < BOSS_MODE.WEAKPOINTS; k++) spawnWeakpoint();
+  if (st.wander && b.weakpoints.length){   // the Void Maw's weakpoints never sit still — the whole pattern rotates, symmetry intact
+    const drift = 1 + ((Math.random()*(BOSS_MODE.RING_COUNT - 1))|0);
+    b.weakpoints = b.weakpoints.map(t => bossStep(t, drift));
     log(`🕳️ The weakpoints drift — every ${BOSS_MODE.WEAKPOINT_MARK} finds a new home.`);
   }
   if (b.def.lose.type === "light"){        // the emberlight burns a little lower
@@ -4853,10 +4910,7 @@ async function bossMove(p, rollValue, rolledFace){
 // rekindle the emberlight. Shared by walks, grapples and gusts.
 async function bossArrive(p){
   const b = game.boss;
-  const wIdx = b.weakpoints.indexOf(p.pos);
-  if (wIdx >= 0){
-    b.weakpoints.splice(wIdx, 1);
-    spawnWeakpoint();
+  if (b.weakpoints.includes(p.pos)){     // the point takes the hit and stays exactly where it is
     await bossDamage(BOSS_MODE.WEAKPOINT_DAMAGE, p);
     if (!game.over) paintBossTiles();
     return true;
@@ -6030,7 +6084,7 @@ function awardCoin(p, reason, n, fx){
     for (let i = 0; i < f.POPS; i++)
       setTimeout(()=>{ if (f.SOUND) SFX.play("coin"); coinPopup(p, 1, f.SCALE); }, i * f.GAP_MS);
   } else if (f.SOUND) SFX.play("coin");
-  log(`🪙 ${reason} — ${p.name} earns ${k === 1 ? "a coin" : k + " coins"}! (${p.coins} total)`);
+  log(`🪙 ${reason} — ${p.name} earns ${k === 1 ? "a coin" : k + " coins"}!`);
   renderScoreboard();
 }
 
@@ -7859,7 +7913,7 @@ function closeInventory(){ document.getElementById("inv").classList.remove("show
 function renderInventory(){
   const p = game.players[game.current];
   document.getElementById("invTitle").textContent =
-    `🎒 ${p.name} — ${p.items.length}/${INV.CONSUMABLES} items · 🪙${p.coins}`;
+    `🎒 ${p.name} — ${p.items.length}/${INV.CONSUMABLES} items`;
   const list = document.getElementById("invList"); list.innerHTML = "";
 
   const worn = passivesOf(p);
@@ -7937,6 +7991,11 @@ function renderShop(p, close, stock, bought, market, offer){
     ? `🕯️ Black market — ${p.name} has 🪙${p.coins}`
     : `🏪 Shop — ${p.name} has 🪙${p.coins}`;
   const list = document.getElementById("pickerList"); list.innerHTML = "";
+  const hint = document.createElement("div");
+  hint.className = "shophint";
+  hint.innerHTML = `<b>Earning coins:</b>` + SHOP_EARN.map(r =>
+    `<span class="shoprow">${r.color ? `<span class="swatch" style="background:${r.color}"></span>` : r.ico + " "}${r.label} → 🪙${r.pay}</span>`).join("");
+  list.appendChild(hint);
   if (market && offer) marketTabs(p, list, "stall", close, offer, stock, bought);
   stock.forEach(item => {
     const sold = bought.has(item.id);
@@ -8468,7 +8527,8 @@ function buildMatchRow(list){
 }
 function buildAdvanced(){
   const body = document.getElementById("advBody");
-  ADV_SECTIONS.forEach(sec => {
+  body.innerHTML = "";
+  ADV_SECTIONS.filter(sec => UNLOCKS.full || sec.id === "game").forEach(sec => {
     const group = document.createElement("details"); group.className = "adv-group";
     const head = document.createElement("summary"); head.textContent = sec.title;
     const list = document.createElement("div"); list.className = "adv-list";
@@ -8496,6 +8556,7 @@ function openSetup(){
   }
   const m = GAME_MODES.find(x => x.id === chosenMode) || GAME_MODES[0];
   document.getElementById("setupSub").textContent = `${m.ico} ${m.name} · name them · set each to Player or Bot`;
+  buildAdvanced();
   buildSetup();
   showScreen("setup");
 }
@@ -8726,6 +8787,7 @@ function saveSettings(){
       volume: SOUND.VOLUME,
       fastForward: SPEED.fastForward,
       rgb: RGB.enabled,
+      full: UNLOCKS.full,
       theme: THEMES[THEME.current].id,
       finishNeed: FINISH.NEED,
       variants: { family: VARIANTS.family, dualDice: VARIANTS.dualDice, dualPreview: VARIANTS.dualPreview, manual: VARIANTS.manual },
@@ -8743,6 +8805,7 @@ function loadSettings(){
     if (typeof s.volume === "number") SOUND.VOLUME = Math.min(1, Math.max(0, s.volume));
     if (typeof s.fastForward === "boolean") SPEED.fastForward = s.fastForward;
     if (typeof s.rgb === "boolean") RGB.enabled = s.rgb;
+    if (typeof s.full === "boolean") UNLOCKS.full = s.full;
     if (typeof s.finishNeed === "number") FINISH.NEED = Math.max(1, Math.min(MAX_PLAYERS, s.finishNeed));
     if (s.variants){
       if (typeof s.variants.family === "boolean") VARIANTS.family = s.variants.family;
@@ -8825,7 +8888,11 @@ document.getElementById("optGun").addEventListener("click", ()=>{ if (orangeReso
 
 document.getElementById("invBtn").addEventListener("click", openInventory);
 document.getElementById("invDone").addEventListener("click", closeInventory);
-document.getElementById("playBtn").addEventListener("click", ()=>showScreen("mode"));
+function openPlay(){
+  if (UNLOCKS.full) showScreen("mode");
+  else { chosenMode = "classic"; openSetup(); }
+}
+document.getElementById("playBtn").addEventListener("click", openPlay);
 document.getElementById("modeBack").addEventListener("click", ()=>showScreen("title"));
 document.getElementById("roundsRange").addEventListener("input", e=>{
   chosenRounds = +e.target.value;
@@ -8837,12 +8904,14 @@ document.getElementById("settingsBtn").addEventListener("click", ()=>{
   document.getElementById("optRgb").checked = RGB.enabled;
   document.getElementById("optFamily").checked = VARIANTS.family;
   document.getElementById("optManual").checked = VARIANTS.manual;
+  document.getElementById("optFull").checked = UNLOCKS.full;
   document.getElementById("optVolume").value = Math.round(SOUND.VOLUME * 100);
   showScreen("settings");
 });
 document.getElementById("optFamily").addEventListener("change", e=>{ VARIANTS.family = e.target.checked; saveSettings(); });
 document.getElementById("optManual").addEventListener("change", e=>{ VARIANTS.manual = e.target.checked; saveSettings(); });
 document.getElementById("optRgb").addEventListener("change", e=>{ RGB.enabled = e.target.checked; saveSettings(); });
+document.getElementById("optFull").addEventListener("change", e=>{ UNLOCKS.full = e.target.checked; saveSettings(); });
 document.getElementById("themeBtn").addEventListener("click", ()=>{
   THEME.current = (THEME.current + 1) % THEMES.length;
   applyTheme(); saveSettings(); SFX.play("click");
@@ -8854,8 +8923,8 @@ document.getElementById("optVolume").addEventListener("change", e=>{
   SOUND.VOLUME = Math.min(1, Math.max(0, (+e.target.value)/100));
   saveSettings(); SFX.play("coin");                      // a taste of the new level
 });
-document.getElementById("toSetup").addEventListener("click", ()=>showScreen("mode"));
-document.getElementById("backBtn").addEventListener("click", ()=>showScreen("mode"));
+document.getElementById("toSetup").addEventListener("click", openPlay);
+document.getElementById("backBtn").addEventListener("click", ()=>{ if (UNLOCKS.full) showScreen("mode"); else showScreen("title"); });
 document.getElementById("seatMinus").addEventListener("click", ()=>{ chosenSeats=Math.max(2,chosenSeats-1); buildSetup(); });
 document.getElementById("seatPlus").addEventListener("click", ()=>{ chosenSeats=Math.min(MAX_PLAYERS,chosenSeats+1); buildSetup(); });
 document.getElementById("startBtn").addEventListener("click", startFromSetup);

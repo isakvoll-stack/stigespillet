@@ -3,6 +3,32 @@
 Newest first. One entry per working session; note what shipped and what's next.
 
 ---
+## 2026-07-17 (later) — menus, coins, boss tiles: Isak's 4-point batch
+
+Isak's phone batch: (1) boss weakpoints in fixed symmetrical patterns + an
+intro card, (2) a "Full experience" unlock so first-timers see a plain
+classic game, (3) coins visible only in shops + an earning hint box,
+(4) inventory button says "Back".
+
+- **Weakpoints**: `BOSS_MODE.WEAKPOINT_PATTERNS` (compass 4 / star 5 /
+  lattice 8), one drawn per fight via `placeWeakpoints()`; landings no
+  longer consume/respawn (`bossArrive`), the Maw's wander now rotates the
+  whole pattern (`bossStep` drift) so symmetry holds.
+- **Intro card**: `intro` + `gimmick` text per `BOSSES` entry, shown with
+  the lose line (`bossLoseLine`, also reused for the log) via
+  `bossIntroCard` right after the giant die; auto-dismisses in bot games.
+- **Full experience**: `UNLOCKS.full` (Settings toggle, persisted). Off =
+  Play/New-game skip the mode picker straight into Classic and
+  `buildAdvanced` shows only the 🏁 Game group (rebuilt in `openSetup`).
+- **Coins**: scoreboard chip, inventory-title amount and "(N total)" log
+  tails removed; shop keeps the balance in its title and opens with a
+  `SHOP_EARN` hint box (yellow → 🪙1, blue → 🪙3, 🎲 6 → 🪙1, `.shophint`
+  CSS). Rolled-6 literal promoted to `COIN.SIX`.
+- **Boss gimmick planning**: proposals per boss in `Next/BOSS_DESIGN.md` —
+  awaiting Isak before any gimmick is implemented. Open defaults logged in
+  `Next/QUESTIONS.md`; RULES.md + README updated.
+
+---
 ## 2026-07-17 — Classic hazards on the boss ring
 
 Isak asked for classic special tiles in the boss fights to make the ring

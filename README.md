@@ -55,6 +55,16 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
+Recently shipped (2026-07-17, later): **menus/coins/boss-tiles batch** —
+boss weakpoints now sit in **pre-arranged symmetrical patterns**
+(`BOSS_MODE.WEAKPOINT_PATTERNS`) and never move when stepped on; every fight
+opens with a **boss introduction card** (who, gimmick, how you lose); a new
+**🔓 Full experience** Settings toggle (default OFF) hides the extra game
+modes and all Advanced-settings groups except 🏁 Game so first-timers see a
+plain classic game; **coins show only inside shops** (with an "Earning
+coins" hint box: yellow 🪙1 / blue 🪙3 / 🎲 six 🪙1); inventory closes with
+"Back". Per-boss **gimmick proposals await Isak in `Next/BOSS_DESIGN.md`**.
+
 Recently shipped (2026-07-17): **Classic hazards on the boss ring** — 2 each of
 the ⛔ penalty, ❄️ icy, 😵‍💫 dizzy and 🌀 teleporter tiles are scattered per
 fight (`BOSS_CLASSIC` DATA + `BOSS_CLASSIC_LAND` handlers, resolved through

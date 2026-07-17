@@ -3,6 +3,31 @@
 Standing file: autonomous sessions log clarifications here instead of stopping to ask.
 Answer whenever — each answer gets folded in and the question checked off.
 
+## 2026-07-17 — menus/coins/boss-tiles batch (defaults picked, say if wrong)
+
+- [ ] **Weakpoint patterns**: three symmetrical defaults in
+  `BOSS_MODE.WEAKPOINT_PATTERNS` — compass (4 points, wall middles), star
+  (5, evenly spaced), lattice (8, flanking every corner) — one drawn at
+  random per fight. Sizes differ, so difficulty swings a bit per draw.
+  Want fixed pattern per boss instead? Other shapes? Same count for all?
+- [ ] **Weakpoints never deplete now** (hit one → damage, it stays). With 8
+  points a fight could get fast. Cap hits per point, or per-turn cooldown?
+- [ ] **Void Maw's wander kept** — but instead of random respawns the WHOLE
+  pattern rotates a random amount each boss turn (symmetry intact). After a
+  drift a point can briefly overlap a coin/crate tile (weakpoint wins until
+  the next drift). OK, or drop the wander gimmick entirely?
+- [ ] **Seeker Charm** (🧿 crate item) still slides ONE weakpoint in front of
+  an ally — that breaks the symmetry until the fight ends (or the Maw drifts).
+  Keep, or retire the item now that points are static?
+- [ ] **Full experience toggle** gates: mode picker (Play jumps straight to
+  Classic setup) + all Advanced-settings groups except 🏁 Game. The Settings
+  screen itself still shows RGB player / Family mode / Manual moves — hide
+  any of those behind the unlock too?
+- [ ] **Coin visibility**: balance now shows ONLY in the shop/black-market
+  title. Removed from scoreboard, inventory title, and the "(N total)" tail
+  on coin-earning log lines. The Midas Purse burst still announces how many
+  coins scattered (it's the drama). OK?
+
 ## 2026-07-16/17 — the 9-point batch (defaults picked, say if wrong)
 
 - [ ] **Gray-square timing changed**: it used to fire when you STARTED a turn

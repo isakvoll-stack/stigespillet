@@ -37,9 +37,13 @@ live in the `GAME_MODES` DATA table):
   tiles** looped around a central arena where the boss sits. A **giant die
   opens the fight**: faces 1–6 are the six bosses — and sometimes it lands on
   its **edge** and **🃏 the Joker** takes the ring (`BOSS_INTRO.JOKER_CHANCE`).
+  After the die, an **introduction card** presents the boss: who it is, its
+  gimmick, and how the team can lose (text lives on each `BOSSES` entry).
   Everyone starts on the START tile and laps **clockwise forever** — no finish
   line; the team wins by bringing the boss's **HP to 0**. Landing on a purple
-  **◎ weakpoint** chips 1 HP (5 live at a time; a hit one respawns elsewhere).
+  **◎ weakpoint** chips 1 HP. The weakpoints sit in a **pre-arranged
+  symmetrical pattern** — one of the `BOSS_MODE.WEAKPOINT_PATTERNS` layouts is
+  drawn per fight — and **never move when stepped on**; a hit point stays put.
   The boss acts **at the start of every round**, drawing from its **move
   deck**: each boss only ever attacks in ITS shapes, so the patterns are
   recognisable at a glance — small moves open **right in front of the
@@ -63,7 +67,8 @@ live in the `GAME_MODES` DATA table):
     (1-turn charge), later a **zigzag storm front**; a hit **floors you for a
     turn**. *Lose: the storm peaks after **16 rounds**.*
   - **🕳️ Void Maw** — **mirrored void rifts** (a tile and its far twin); a hit
-    hurls you to a **random tile**, and its **weakpoints wander**. *Lose: the
+    hurls you to a **random tile**, and its **weakpoints wander** (the whole
+    pattern rotates around the ring each boss turn, symmetry intact). *Lose: the
     **✨ emberlight** fades 1 per round — land on the ✨ sparks to rekindle it
     (+2); at 0 the void wins.*
   - **🦍 Kong** — no charges at all: he **hurls barrels** (1–3 per turn by
@@ -152,6 +157,13 @@ random. They're built to bend what you take for granted:
   into the snakes.
 
 ## Game variants
+
+- **🔓 Full experience** *(Settings screen, under the title menu — OFF by
+  default)* — with it off, the game presents as a plain classic ladder game:
+  **Play skips the mode picker** and goes straight to a Classic setup, and
+  **⚙️ Advanced settings shows only the 🏁 Game group** (Items, Black market,
+  Broken Gate and Board stay hidden). Tick it to reveal the other game modes
+  and every advanced group. Remembered like any setting. *(Flag: `UNLOCKS.full`.)*
 
 - **👨‍👩‍👧 Family mode** *(Settings screen, under the title menu)* — the calmer,
   more skill-based race. Most rules stay in
@@ -623,6 +635,11 @@ Four **gold squares** are cabin shops (tiles **6, 28, 52, 75**). Land on one and
 full catalog each visit, and each item can be **bought only once per visit** (it shows
 as *sold out* after). You carry a small inventory: **up to 3 consumables plus 1
 passive** at a time. *(Shelf size = `SHOP.STOCK`.)*
+
+**Your coin balance shows only inside a shop** (shop and black-market title) —
+never on the scoreboard or in the inventory. The shop's shelf opens with an
+**"Earning coins"** hint box: a yellow-tile swatch → 🪙1, a blue-tile swatch →
+🪙3, and 🎲 roll a 6 → 🪙1 *(rows in `SHOP_EARN`, amounts in `COIN`)*.
 
 You don't even have to stop: **walking past** a shop square mid-move pauses your
 token at the shop door to browse (each pause is a fresh shelf), then the move
