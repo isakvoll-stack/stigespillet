@@ -3,6 +3,76 @@
 Newest first. One entry per working session; note what shipped and what's next.
 
 ---
+## 2026-07-16/17 — Isak's 9-point batch: bonus stage, boss patterns + losses + KONG, snake eyes, warp countdown, 20 new items
+
+Isak's 9-point list + two mid-session adds (danger signs / clearer telegraphs,
+and 10 general + 10 boss-support items). Autonomous batch; defaults in
+QUESTIONS.md ("2026-07-16/17" block).
+
+**Bonus stage** — `bonusCardReveal` full-screen card (`.bonuscard` CSS +
+`#bonuscard` DOM, `BONUS_CARD` timings): category → drumroll dots → winners;
+used by `awardKothBonuses` AND the tour's between-leg loop in `tourLegDone`.
+
+**Boss battle** — the big one:
+- `BOSS_PATTERNS` (breath/crossfire/inferno, tentacles/grab, wall/twinwalls,
+  front/zigzag, pairs, scatter) + per-phase `moves` decks in `BOSSES`;
+  `bossChargeAttack` draws a named move (`BOSS_MOVE_NAMES` in the log line).
+  Patterns read player positions — small moves open right in front of runners.
+- Telegraphs: fat outlines (10/8px), colour wash rects, ⚠️ sign on red
+  (`BOSS_MODE.TELEGRAPH`); barrels telegraph their next roll path in red.
+- `bossStrikeFx` (per-boss `fx.color`/`fx.sfx` + `bossIcoLunge`), phase-change
+  flash+announce.
+- Lose conditions per boss (`lose` in DATA): rounds (Dragon 20, Wyrm 16,
+  Joker 20) checked in `endBossTurn`; team hits (Kraken 12, Kong 10) counted
+  in `bossHitPlayer`; wipe (Titan, `bossWipeCheck`); ✨ emberlight (Maw:
+  starts 6, −1/round in `bossTurn`, ✨ tiles +2). `bossLost` mirrors
+  `bossDefeated` (tour legs still score by damage); doom line `paintBossLose`
+  under the HP bar.
+- Ring extras: `BOSS_RING` — 5 blue coin tiles (pay 3), 3 🎁 crates
+  (respawn), Maw's ✨ sparks; `bossArrive` centralises landings (walk,
+  grapple, gust). Lap = cross far corner then START → 🪙5 + crate
+  (`p.bossHalf` checkpoint per Isak's anti-abuse ruling).
+- `BOSS_ITEMS` 10-piece co-op kit + `useBossItem` handlers + guards in
+  `useItem` (road items dead in arena, kit dead outside, stripped from tour
+  carry); bots: `botMaybeUseBossItem` at the top of `bossRoll`.
+- 🦍 KONG (6th boss): `kongBossTurn` — barrels spawn at the far corner
+  (`KONG_BOSS`), roll 5 backwards per boss turn, strike type `barrel`
+  (2 back + lose a turn). Giant die now 1–6 = six bosses; Joker on an
+  edge-landing (`pickBoss`, `BOSS_INTRO.JOKER_CHANCE`); `jokerMimic` scraps
+  charges/barrels on reshuffle.
+
+**Classic-side batch**:
+- 🦍 wheel slice #9 (`WHEEL_*` arrays) → `kongRampage`: ape on the top row,
+  chest beats, 3 staggered 🛢 down the numbered path via `kongBarrelPath`
+  (rides `LADDER_BASE_OF` down), `downPlayer` on standing victims, burst at
+  tile 1; also a `WHEEL_CHAOS` entry + `RULE_INFO.kong`.
+- 🐍 Snake eyes (`FEATURES.snakeEyes`): double 1s in `rollDual` →
+  `snakeEyesMove` — glide to next snake head ahead (wrap to last), then
+  `settleLanding` (slide fires; doubles bonus roll kept); card `snakeeyes`.
+- 🌫️ Warp rework: `TILE_RULES.warp` gained onLand/offLand → `warpCountdown`
+  (big 5→1 `.warpnum` ticks, then flip; `WARP.owner`); `warpDue` now =
+  "owner's next turn" → `runWarp` only rights the board. LANDING_ORDER
+  updated; newGame resets owner.
+- 🏁 `finishline` card revealed when the tour finish window opens; fishing
+  card rewritten enthusiastic; airraid gain 0.17→0.07.
+- 10 shop items (7 consumables + 3 passives, DATA consts `BOOMERANG`/`MAGNET`/
+  `BELL`/`ROCKET`/`SLEEPDART`/`TREASURE`/`PIGGY_MULT`/`TOPHAT_SIX`): handlers
+  in `useItem`, piggy/tophat hooks at the coin-award sites, socks hook in
+  `tryFreeze`, SOCIAL_ITEMS + `BOT.ITEM_VALUE` + `botMaybeUseItem` branches.
+
+**Verified headless Edge, 50/50 across 3 passes, 0 JS errors**: units 42/42
+(statics; patterns ×2 mults for every boss; banner/hits/paint/elixir/rally/
+flare/decoy/bandage; kong barrels; titan wipe; arena item guard; warp
+countdown fire+expiry; snake eyes 10→14→slide→3; bonus card; classic kong
+rampage), games 6/6 (full 4-bot classic to a winner, dragon + kong boss
+fights conclude on their own, 8-round KOTH incl. the bonus cards), tour 2/2
+(full 5-leg bot Grand Tour to a champion).
+*Harness note:* one Edge run with a 4h virtual budget GRINDS overnight if any
+game timer keeps rescheduling — chunk the suite into passes, and after
+writing results clear every timer (`for i in 0..setTimeout(0) clearTimeout`)
+so the virtual clock can jump to the budget instantly.
+
+---
 ## 2026-07-14 (late evening) — THE BIG BUILD-OUT: Grand Tour, Mayhem, twists, bosses
 
 Isak: *"Build everything and fill in the gaps as best you can"* + answered the

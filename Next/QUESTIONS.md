@@ -3,6 +3,40 @@
 Standing file: autonomous sessions log clarifications here instead of stopping to ask.
 Answer whenever — each answer gets folded in and the question checked off.
 
+## 2026-07-16/17 — the 9-point batch (defaults picked, say if wrong)
+
+- [ ] **Gray-square timing changed**: it used to fire when you STARTED a turn
+  there and last only your own turn. Per your "countdown after the roll
+  finishes", it now fires when you STOP there (5s countdown → flip) and lasts
+  until **your next turn starts** — so everyone in between plays flipped, you
+  included on none of your own rolls. Want the flip shorter (e.g. just the
+  next player's turn) or aimed back at the lander somehow?
+- [ ] **Snake eyes with no snake ahead** (pos 88–89): you're pulled BACK to
+  the last snake (87). Alternative: nothing happens up there. Which?
+- [ ] **Giant-die story changed**: with Kong there are now SIX bosses on
+  faces 1–6, and the Joker appears when the die "lands on its edge"
+  (1-in-7, `BOSS_INTRO.JOKER_CHANCE`). OK, or should the Joker replace a face?
+- [ ] **Lose-condition numbers unplaytested**: Dragon 20 rounds, Wyrm 16
+  rounds, Kraken 12 team-hits, Kong 10 barrel-hits, Maw emberlight 6 (−1 per
+  round, ✨ pays +2, 2 sparks live), Joker 20 rounds. All in `BOSSES[].lose`.
+- [ ] **Boss crates ignore the bag cap** (like the pity box) and a lap pays
+  🪙5 + one crate. Landing ON a rolling barrel's tile between boss turns is
+  safe (barrels only hit while THEY move). OK?
+- [ ] **Boss items are crate-only and bot-usable**; targeted ones use the
+  simple pick-a-player list (not the on-board spotlight picker) — the ring
+  board has no spotlight plumbing yet. Fine for now?
+- [ ] **Wipe rule (Titan)** counts "iced" as players currently skipping turns
+  (frozen/floored by strikes) — knocked-back-but-standing players don't count.
+- [ ] **New-item numbers**: Boomerang knock 3 / Magnet pull 4 / Bell reach 2
+  grid-tiles + 3 back / Rocket 7–12 fwd, 25% misfire 5 back / Sleep Dart
+  range 8 / Treasure 3–8 coins / Piggy ×2 blue / Top Hat 3 per six. Socks
+  block only tile/adjacency frost (snowballs still work). Tune freely.
+- [ ] **Bonus-card pacing**: ~2.4s drumroll + ~1.8s winner hold per category
+  (`BONUS_CARD`). Faster? Slower? Sound is the wheel-spin tick + win chime.
+- [ ] **Kong's wheel slice** makes the wheel 9 slices (nuke odds diluted to
+  1-in-9). Barrels knock ANY standing player they roll over, shields block.
+  3 barrels per rampage (`KONG.BARRELS`). Feel right?
+
 ## 2026-07-14 (late evening) — the big build-out (defaults picked, tune freely)
 
 Everything below was BUILT with sensible defaults per Isak's "build everything

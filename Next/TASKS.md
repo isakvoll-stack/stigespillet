@@ -65,14 +65,24 @@ See `LOG.md` for the running session history.
             yellow = SUPER until its final turn)
       - [x] SUPER attacks: every phase change winds one up (2× tiles, +1
             charge turn, 2× power)
-      Still open:
-      - [ ] Boss move deck (varied actions beyond tile strikes)
-      - [ ] Lap rewards + far-side-crossing lap checkpoint
-      - [ ] Obstacles + objectives on the ring
-      - [ ] Lose condition (per Isak's answer in QUESTIONS.md)
-      - [ ] Co-op support items + which normal items carry over
-      - [ ] Bot brain for ring play (dodge red tiles, chase weakpoints)
-      - [ ] Strike/hit FX, boss idle animation, phase-change moment
+      **2026-07-16/17 build-out (Isak's 9-point batch — see the Done entry):**
+      - [x] Boss move deck — per-boss `moves` per phase, drawn each boss turn
+            (`BOSS_PATTERNS` shapes; every boss visibly fights its own way)
+      - [x] Lap rewards + far-side-crossing lap checkpoint (🪙5 + a crate)
+      - [x] Objectives on the ring: blue coin tiles + 🎁 support crates
+            (+ the Maw's ✨ emberlight sparks); true obstacles still open
+      - [x] Lose conditions — UNIQUE PER BOSS per Isak 2026-07-16: Dragon/
+            Wyrm/Joker = round limits, Kraken/Kong = team-hit limits, Titan =
+            full-team wipe, Maw = the fading ✨ emberlight (collect to survive)
+      - [x] Co-op support items — 10-piece `BOSS_ITEMS` kit from ring crates;
+            road items sleep in the arena, the kit never leaves it
+      - [x] Strike/hit FX (per-boss flash+sound+lunge), phase-change moment
+      - [x] 🦍 KONG — 6th boss, rolls barrels BACKWARDS around the ring
+      - [x] ⚠️ danger signs + clearer red/yellow telegraph outlines + wash
+      - [~] Bot brain for ring play — nothing to build yet: boss turns have
+            no decisions (single die, no choices); bots DO use the support
+            kit sensibly (`botMaybeUseBossItem`). Revisit if dual-dice or
+            choice tiles come to the ring.
 - [x] **«The Grand Tour» — campaign mode** — **BUILT 2026-07-14 evening**
       (Isak: "build everything and fill in the gaps"). Playable from the mode
       picker; `TOUR` DATA block + tour controller; full bot tour verified
@@ -194,6 +204,43 @@ See `LOG.md` for the running session history.
 ---
 
 ## Done
+### 2026-07-16/17 — Isak's 9-point batch + mid-session extras (autonomous)
+- [x] **1. 🎁 Bonus points on a stage**: full-screen suspense card for every
+      bonus category — category shown first, drumroll dots, THEN the winners
+      (`BONUS_CARD` + `bonusCardReveal`); wired into BOTH the KOTH end bonus
+      round and the tour's between-leg bonuses.
+- [x] **2. Boss patterns + FX**: `BOSS_PATTERNS` move-deck engine (see the
+      spec entry above) — recognisable per-boss shapes, player-aware small
+      attacks, per-boss strike flash/sound/lunge, phase-change flash.
+- [x] **3. Boss build-out**: ring coin tiles + 🎁 crates ("normal squares"),
+      lap rewards + far-side checkpoint, per-boss lose conditions incl.
+      collect-to-survive (Maw's ✨), doom line under the HP bar.
+- [x] **4. 🦍 KONG**: 6th boss (barrels roll backwards, telegraphed path,
+      hits cap = lose) + new 9th wheel slice — Kong on top of the classic
+      board bowling 3 barrels down the path, riding ladders down; also in
+      the `WHEEL_CHAOS` pool. Giant die now 1–6 = six bosses, Joker on an
+      edge-landing (`BOSS_INTRO.JOKER_CHANCE`).
+- [x] **5. 🐍 Snake eyes** (dual dice): double 1s carry you to the next snake
+      head ahead (wraps to the last snake if none ahead); doubles bonus roll
+      kept; `FEATURES.snakeEyes` + vague rule card.
+- [x] **6. 🌫️ Gray square countdown**: fires on STOPPING there now — big 5s
+      countdown (5→1 with ticks), then the flip; lasts until the lander's
+      next turn starts (a full round). One twist at a time.
+- [x] **7. Nuke alarm quieter** (`SFX.airraid` gain 0.17 → 0.07).
+- [x] **8. Fishing card rewritten enthusiastic** ("GRAB A ROD! …").
+- [x] **9. 🏁 Finish-window explainer**: tour finish window now also pops a
+      clear rule card — no bounce-back, any roll that reaches 90 gets you in.
+- [x] **+10 general shop items** (mid-session request): 🪃 Boomerang 🧲 Magnet
+      🔔 Alarm Bell 🚀 Pocket Rocket 💤 Sleep Dart 🧯 Extinguisher 🗺️ Treasure
+      Map + passives 🐷 Piggy Bank (blue ×2) 🧦 Wool Socks (tile-freeze
+      immunity) 🎩 Top Hat (6s pay 3) — bot values + use timing for all.
+- [x] **+10 boss support items** (mid-session request): `BOSS_ITEMS` co-op kit
+      (bandage/banner/rally/grapple/seeker/flare/warpaint/decoy/gust/elixir)
+      from ring crates; bots use them; kit stripped from tour carry-over.
+- [x] **+⚠️ danger signs & clearer telegraphs** (mid-session request): fat
+      red/yellow outlines (10px/8px), colour wash, ⚠️ on red tiles.
+- [x] RULES.md synced (boss mode rewrite, new items, snake eyes, warp rework,
+      9-slice wheel, bonus cards); defaults logged in QUESTIONS.md.
 ### 2026-07-11 — skins rework to Isak's visions + sniper interactions (follow-up)
 - [x] **Sniper shots count as player interactions** (`fireSniper` hook).
 - [x] **Fancy skins rebuilt as per-theme animated SVG gradients** (was uniform

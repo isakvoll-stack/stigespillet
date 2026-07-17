@@ -55,7 +55,32 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
-Recently shipped (2026-07-14, late evening): **THE BIG BUILD-OUT** — Isak's
+Recently shipped (2026-07-16/17): **Isak's 9-point batch + mid-session extras** —
+- **🎁 Bonus points get a stage**: KOTH's end bonus round AND the tour's
+  between-leg bonuses each reveal on a full-screen suspense card — category
+  first, drumroll, THEN the winners (`BONUS_CARD`, `bonusCardReveal`).
+- **👹 Boss Battle built out**: per-boss recognisable attack PATTERNS via a
+  move deck (`BOSS_PATTERNS` — flame cones, tentacle spokes, frozen edges,
+  in-your-face jolts, mirrored rifts), player-aware targeting (small moves
+  open in front of the runners), strike flash/sound/lunge per boss, a phase-
+  change moment, **⚠️ danger signs + fat outlines + colour wash** on red/
+  yellow telegraphs, **per-boss lose conditions** (rounds / team hits / full
+  wipe / fading ✨ emberlight) with a doom line under the HP bar, ring
+  **coin tiles + 🎁 crates**, **lap rewards** with the far-side checkpoint,
+  and a **10-item co-op support kit** (crates only; bots use it too).
+- **🦍 KONG**: a 6th boss who bowls barrels backwards around the ring — and a
+  new **9th wheel slice** where Kong climbs the top of the classic board and
+  rolls 3 barrels down the numbered path, riding ladders down (`KONG`).
+- **🐍 Snake eyes** (two dice): double 1s drag you to the next snake ahead.
+- **🌫️ Gray square rework**: stopping there starts a big 5-second countdown,
+  THEN the flip — and it lasts a full round (rights at the lander's next turn).
+- **🏁 Finish-window explainer card** (tour), **enthusiastic fishing card**,
+  **quieter nuke siren** (airraid gain 0.17 → 0.07).
+- **10 new shop items**: 🪃 Boomerang, 🧲 Magnet, 🔔 Alarm Bell, 🚀 Pocket
+  Rocket, 💤 Sleep Dart, 🧯 Extinguisher, 🗺️ Treasure Map + passives 🐷 Piggy
+  Bank, 🧦 Wool Socks, 🎩 Top Hat — bots shop and use them all.
+
+Before that (2026-07-14, late evening): **THE BIG BUILD-OUT** — Isak's
 "build everything" go-ahead, all headless-verified (35/35 units + a full
 5-leg bot tour):
 - **🗺️ The Grand Tour is playable**: 5 legs (classic → 2× twist legs →

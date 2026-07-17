@@ -353,6 +353,20 @@
     text-shadow:0 2px 0 #40060a,0 0 18px rgba(255,60,40,.65);
     transition:transform .18s cubic-bezier(.2,1.6,.4,1),opacity .3s}
   .killcall.show{transform:translate(-50%,-50%) scale(1);opacity:1}
+  .warpnum{top:40%;font-size:96px;color:#d7dbe0;letter-spacing:0;
+    text-shadow:0 2px 0 #23262b,0 0 22px rgba(215,219,224,.55)}
+
+  /* bonus-round card: the category first, drumroll, THEN who takes the points */
+  .bonuscard{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:55;
+    background:rgba(10,7,4,.55);opacity:0;pointer-events:none;transition:opacity .25s}
+  .bonuscard.show{opacity:1}
+  .bonuscard .bcbox{background:linear-gradient(180deg,#2c2114,#1c140b);border:3px solid var(--brass);
+    border-radius:18px;padding:26px 42px;text-align:center;color:var(--cream);min-width:320px;max-width:86vw;
+    box-shadow:0 18px 60px rgba(0,0,0,.6);transform:scale(.7);transition:transform .25s cubic-bezier(.2,1.5,.4,1)}
+  .bonuscard.show .bcbox{transform:scale(1)}
+  .bonuscard .bctitle{font-size:14px;letter-spacing:4px;opacity:.75;text-transform:uppercase}
+  .bonuscard .bccat{font:800 34px/1.2 Georgia,serif;margin:10px 0 14px}
+  .bonuscard .bcwho{font-size:22px;font-weight:700;min-height:30px}
 
   /* bot decision popup: what the bot is weighing, then its verdict */
   .botthink{position:fixed;left:50%;top:15%;transform:translate(-50%,-50%) scale(.8);opacity:0;z-index:7;
@@ -605,6 +619,14 @@
     </div>
   </div>
 
+  <div class="bonuscard" id="bonuscard">
+    <div class="bcbox">
+      <div class="bctitle" id="bcTitle">🎁 Bonus</div>
+      <div class="bccat" id="bcCat"></div>
+      <div class="bcwho" id="bcWho"></div>
+    </div>
+  </div>
+
   <div class="modal" id="reveal">
     <div class="box">
       <div class="ico" id="revealIco">✨</div>
@@ -734,7 +756,8 @@ const FEATURES = {
   freeze:        true,   // icy squares freeze you solid; LANDING next to a frozen player freezes you too
   radioactive:   true,   // a nuke leaves radioactive fallout tiles: a stacking roll sickness, then a permanent +1
   trapdoor:      true,   // tile 89 (disguised as plain): the FIRST player to land there drops back to start, then it's normal
-  warp:          true,   // the gray square: start your turn on it and the board flips + inverts for that turn
+  warp:          true,   // the gray square: land on it, a countdown ticks, then the board flips + inverts for a full round
+  snakeEyes:     true,   // dual dice: a double 1 drags you to the next snake
   fishPowers:    true,   // carrying fish grants escalating powers (extra movement, ice escape) + quirks (slippery ladders, teleporter overload)
   secretSquare:  true,   // a hidden square before tile 1, only revealed when a backtrack lands someone on it
   blackMarket:   true,   // the secret square hosts a shady dealer: dynamic prices, shadier stock later
@@ -787,6 +810,8 @@ const LADDERS = { 5:17, 11:26, 19:39, 24:42, 37:55, 45:58, 53:71, 61:79, 68:84 }
 const SLIDES  = { 14:3, 27:9, 33:18, 40:13, 48:30, 57:41, 65:50, 73:60, 80:64, 87:71 };
 const LADDER_TOPS = new Set(Object.values(LADDERS));
 const SNAKE_TAILS = new Set(Object.values(SLIDES));
+const LADDER_BASE_OF = {};                            // ladder top -> its base (Kong's barrels ride ladders DOWN)
+for (const b in LADDERS) LADDER_BASE_OF[LADDERS[b]] = +b;
 
 /* ---- DATA: theme + players ----------------------------------------- */
 const PLAYER_COLORS = ["#e6402f","#2e86c1","#27ae60","#f1c40f","#8e44ad","#e67e22",
@@ -963,7 +988,8 @@ FANCY_COLORS.forEach(f => {
 /* ---- DATA: end-of-game stats + podium looks -------------------------- */
 const STATS = {
   SKIP_MIN: 2,                       // a non-walked jump of this many tiles counts as a climb/descent
-  SOCIAL_ITEMS: ["snowball","banana","warhorn","bomb","fireegg","singularity"], // using one = a player interaction
+  SOCIAL_ITEMS: ["snowball","banana","warhorn","bomb","fireegg","singularity",
+                 "boomerang","magnet","bell","sleepdart"], // using one = a player interaction
 };
 const PODIUM = {
   METALS: { 1:"#ffd257", 2:"#c9ced6", 3:"#cd7f32" },   // gold / silver / bronze pillar bases
@@ -1040,6 +1066,26 @@ const SHOP_CATALOG = [
     desc:"When used: lob it at a tile within 8 — the blast flattens everyone on and beside it." },
   { id:"fireegg", ico:"🔥", name:"Fire Egg",        kind:"consumable", cost:5,  enabled:true,
     desc:"When used: hurl it at a rival within 8 — singed, their next roll burns 2 steps shorter." },
+  { id:"boomerang", ico:"🪃", name:"Boomerang",     kind:"consumable", cost:6,  enabled:true,
+    desc:"When used: whirls at the nearest rival ahead of you — knocked 3 tiles back." },
+  { id:"magnet", ico:"🧲", name:"Magnet",           kind:"consumable", cost:5,  enabled:true,
+    desc:"When used: drags the nearest rival 4 tiles toward you, wherever they stand." },
+  { id:"bell", ico:"🔔", name:"Alarm Bell",         kind:"consumable", cost:7,  enabled:true,
+    desc:"When used: a deafening CLANG — every rival near you stumbles 3 tiles back." },
+  { id:"rocket", ico:"🚀", name:"Pocket Rocket",    kind:"consumable", cost:8,  enabled:true,
+    desc:"When used: strap in — it flies you far ahead… when it doesn't misfire." },
+  { id:"sleepdart", ico:"💤", name:"Sleep Dart",    kind:"consumable", cost:7,  enabled:true,
+    desc:"When used: a rival within 8 tiles takes a sudden nap, face down." },
+  { id:"extinguisher", ico:"🧯", name:"Extinguisher", kind:"consumable", cost:4, enabled:true,
+    desc:"When used: hoses YOU down — radiation, burns and dizziness all wash away." },
+  { id:"map", ico:"🗺️", name:"Treasure Map",        kind:"consumable", cost:5,  enabled:true,
+    desc:"When used: X marks this very spot — dig up a small fortune." },
+  { id:"piggy", ico:"🐷", name:"Piggy Bank",        kind:"passive",    cost:8,  enabled:true,
+    desc:"Passive: blue tiles pay you double." },
+  { id:"socks", ico:"🧦", name:"Wool Socks",        kind:"passive",    cost:7,  enabled:true,
+    desc:"Passive: warm to the toes — icy squares and frozen neighbours can't freeze you." },
+  { id:"tophat", ico:"🎩", name:"Top Hat",          kind:"passive",    cost:8,  enabled:true,
+    desc:"Passive: style pays — every 6 you roll earns 3 coins instead of 1." },
   { id:"singcasing", ico:"🌑", name:"Singularity Casing", kind:"consumable", cost:0, enabled:true, craftOnly:true,
     desc:"Two pieces fused into something that shouldn't exist. It can't be used — it hums, waiting for a final piece." },
   { id:"singularity", ico:"🕳️", name:"Singularity Bomb",  kind:"consumable", cost:0, enabled:true, craftOnly:true,
@@ -1093,6 +1139,14 @@ const CURSE = {
                 DICE_MAX:5,      // Everburning Heart: highest face the dice will land
                 BLOOD_SLOW:2 };  // Blood Dice: stride drunk per throw when the purse is empty
 /* ---- DATA: new-item tunables ---------------------------------------- */
+const BOOMERANG = { KNOCK:3 };                   // nearest rival ahead is knocked this far back
+const MAGNET    = { PULL:4 };                    // nearest rival dragged this many tiles toward the user
+const BELL      = { NEAR:2, BACK:3 };            // clang reach in grid-tiles; how far the flinch sends victims
+const ROCKET    = { MIN:7, MAX:12, MISFIRE:0.25, BACK:5 };   // flight range; misfire odds + backfire distance
+const SLEEPDART = { RANGE:8 };                   // dart reach in tiles (either direction)
+const TREASURE  = { MIN:3, MAX:8 };              // coins under the X
+const PIGGY_MULT = 2;                            // Piggy Bank: blue-tile multiplier
+const TOPHAT_SIX = 3;                            // Top Hat: coins per rolled 6
 const SNOWBALL = { RANGE:8 };                    // hits a rival within this many tiles (either direction)
 const BANANA   = { RANGE:6, SLIP:5 };            // peel goes on a plain tile up to RANGE ahead; victims slip SLIP back
 const MYSTERY  = { FALLBACK_COINS:3 };           // if no item can pop out, the box pays coins instead
@@ -1333,43 +1387,112 @@ const BOSS_MODE = {
   WEAKPOINTS: 5,                         // live weakpoints on the ring at any time
   WEAKPOINT_DAMAGE: 1,                   // HP chipped per weakpoint landing (Isak: 1, for ease of reference)
   WEAKPOINT_COLOR: "#9b59b6", WEAKPOINT_MARK: "◎",
-  TELEGRAPH: { NEXT:"#e6402f", LATER:"#f1c40f", WIDTH:6 },  // red = strikes next boss turn, yellow = the turn after
+  TELEGRAPH: { NEXT:"#e6402f", LATER:"#f1c40f", WIDTH:10, LATER_WIDTH:8,   // fat outlines so red/yellow read at a glance
+               TINT_NEXT:0.30, TINT_LATER:0.20, SIGN:"⚠️", SIGN_SIZE:26 }, // fill tint + the danger sign on red tiles
   CHARGE_TURNS: 2,                       // boss turns an attack charges before it strikes
   KNOCKBACK: 4,                          // placeholder strike effect until real boss attacks are authored
   TILE_COLOR: "#f6d55c", RING_STROKE:"#1f6fb0",
   ARENA_COLOR: "rgba(20,30,15,.45)",
   HPBAR: { W: 420, H: 26 },
 };
-/* One DATA entry per boss. The giant die picks the fight: faces 1-5 are the
-   five bosses, 6 is the Joker, who mimics a random boss's STYLE (pattern,
-   strike, charge speed) and reshuffles at every phase change.
-   phases: hpAbove = the fraction the phase holds down to; attackTiles = tiles
-   per charged attack. pattern: "arc" = one contiguous sweep of the ring,
-   "scatter" = random single tiles. strike = what a hit does (BOSS_STRIKES).
-   chargeTurns = boss turns an attack cooks before striking. wander = the
-   weakpoints move every boss turn. A SUPER charges at each phase change:
-   yellow telegraph, more tiles, doubled power (BOSS_SUPER). */
+/* One DATA entry per boss. The giant die picks the fight: faces 1-6 are the
+   six bosses — and sometimes it lands on its EDGE and the Joker takes the
+   ring, mimicking a random boss's STYLE (moves, strike, charge speed) and
+   reshuffling at every phase change.
+   phases: hpAbove = the fraction the phase holds down to; attackTiles = the
+   pattern's size budget; moves = the phase's move deck — each boss turn draws
+   one (BOSS_PATTERNS shapes the tiles, so every boss's attacks stay
+   recognisable: the Dragon breathes contiguous flame cones opening in front
+   of a runner, the Kraken slams evenly-spaced tentacles, the Titan freezes
+   whole edges of the ring, the Wyrm zaps the tiles right in front of you,
+   the Maw tears mirrored rifts, Kong just keeps throwing barrels).
+   strike = what a hit does (BOSS_STRIKES). chargeTurns = boss turns an attack
+   cooks before striking. wander = the weakpoints move every boss turn.
+   fx = the strike flash colour + sound. lose = how the TEAM can lose this
+   fight (rounds = a time limit, hits = total strikes taken, wipe = everyone
+   iced at once, light = a fading meter refilled on the ✨ tiles).
+   A SUPER charges at each phase change: yellow telegraph, more tiles,
+   doubled power (BOSS_SUPER). */
 const BOSSES = [
-  { id:"dragon", ico:"🐉", name:"Ember Dragon",  hp:14, chargeTurns:2, pattern:"arc",
+  { id:"dragon", ico:"🐉", name:"Ember Dragon",  hp:14, chargeTurns:2,
+    fx:{ color:"#ff6b35", sfx:"boom" },
+    lose:{ type:"rounds", n:20 },
     strike:{ type:"burn", knock:3, singe:1 },
-    phases:[ { hpAbove: 2/3, attackTiles: 4 }, { hpAbove: 1/3, attackTiles: 6 }, { hpAbove: 0, attackTiles: 8 } ] },
-  { id:"kraken", ico:"🐙", name:"Deep Kraken",   hp:14, chargeTurns:2, pattern:"scatter",
+    phases:[ { hpAbove: 2/3, attackTiles: 4, moves:["breath"] },
+             { hpAbove: 1/3, attackTiles: 5, moves:["breath","crossfire"] },
+             { hpAbove: 0,   attackTiles: 7, moves:["crossfire","inferno"] } ] },
+  { id:"kraken", ico:"🐙", name:"Deep Kraken",   hp:14, chargeTurns:2,
+    fx:{ color:"#17b5a3", sfx:"leviathan" },
+    lose:{ type:"hits", n:12 },
     strike:{ type:"pull", amount:6 },
-    phases:[ { hpAbove: 2/3, attackTiles: 3 }, { hpAbove: 1/3, attackTiles: 4 }, { hpAbove: 0, attackTiles: 6 } ] },
-  { id:"titan",  ico:"🧊", name:"Frost Titan",   hp:12, chargeTurns:3, pattern:"arc",
+    phases:[ { hpAbove: 2/3, attackTiles: 4, moves:["tentacles"] },
+             { hpAbove: 1/3, attackTiles: 5, moves:["tentacles","grab"] },
+             { hpAbove: 0,   attackTiles: 6, moves:["tentacles","grab"] } ] },
+  { id:"titan",  ico:"🧊", name:"Frost Titan",   hp:12, chargeTurns:3,
+    fx:{ color:"#7ec8e3", sfx:"crack" },
+    lose:{ type:"wipe" },
     strike:{ type:"freeze", skip:1 },
-    phases:[ { hpAbove: 2/3, attackTiles: 5 }, { hpAbove: 1/3, attackTiles: 7 }, { hpAbove: 0, attackTiles: 9 } ] },
-  { id:"wyrm",   ico:"⚡", name:"Storm Wyrm",    hp:16, chargeTurns:1, pattern:"scatter",
+    phases:[ { hpAbove: 2/3, attackTiles: 11, moves:["wall"] },
+             { hpAbove: 1/3, attackTiles: 11, moves:["wall","twinwalls"] },
+             { hpAbove: 0,   attackTiles: 11, moves:["twinwalls"] } ] },
+  { id:"wyrm",   ico:"⚡", name:"Storm Wyrm",    hp:16, chargeTurns:1,
+    fx:{ color:"#f7dc6f", sfx:"thunder" },
+    lose:{ type:"rounds", n:16 },
     strike:{ type:"shock", skip:1 },
-    phases:[ { hpAbove: 2/3, attackTiles: 2 }, { hpAbove: 1/3, attackTiles: 3 }, { hpAbove: 0, attackTiles: 4 } ] },
-  { id:"maw",    ico:"🕳️", name:"Void Maw",      hp:14, chargeTurns:2, pattern:"scatter", wander:true,
+    phases:[ { hpAbove: 2/3, attackTiles: 1, moves:["front"] },
+             { hpAbove: 1/3, attackTiles: 2, moves:["front","zigzag"] },
+             { hpAbove: 0,   attackTiles: 2, moves:["zigzag","front"] } ] },
+  { id:"maw",    ico:"🕳️", name:"Void Maw",      hp:14, chargeTurns:2, wander:true,
+    fx:{ color:"#b39ddb", sfx:"teleport" },
+    lose:{ type:"light", start:6, gain:2, tiles:2 },
     strike:{ type:"scatter" },
-    phases:[ { hpAbove: 2/3, attackTiles: 3 }, { hpAbove: 1/3, attackTiles: 4 }, { hpAbove: 0, attackTiles: 5 } ] },
+    phases:[ { hpAbove: 2/3, attackTiles: 4, moves:["pairs"] },
+             { hpAbove: 1/3, attackTiles: 6, moves:["pairs"] },
+             { hpAbove: 0,   attackTiles: 8, moves:["pairs"] } ] },
+  { id:"kong",   ico:"🦍", name:"Kong",          hp:14, barrels:true,
+    fx:{ color:"#a5673f", sfx:"boom" },
+    lose:{ type:"hits", n:10 },
+    strike:{ type:"barrel", knock:2, skip:1 },
+    phases:[ { hpAbove: 2/3, attackTiles: 1, moves:[] },       // attackTiles = barrels hurled per boss turn
+             { hpAbove: 1/3, attackTiles: 2, moves:[] },
+             { hpAbove: 0,   attackTiles: 3, moves:[] } ] },
   { id:"joker",  ico:"🃏", name:"The Joker",     hp:15, mimic:true,
+    fx:{ color:"#e84393", sfx:"spin" },
+    lose:{ type:"rounds", n:20 },
     phases:[ { hpAbove: 2/3, attackTiles: 3 }, { hpAbove: 1/3, attackTiles: 4 }, { hpAbove: 0, attackTiles: 5 } ] },
 ];
 const BOSS_SUPER = { TILES_MULT: 2, CHARGE_EXTRA: 1, POWER_MULT: 2 };   // phase-change super attacks
-const BOSS_INTRO = { CYCLES: 10, TICK_MS: 130, HOLD_MS: 900 };          // the giant-die boss select
+const BOSS_INTRO = { CYCLES: 10, TICK_MS: 130, HOLD_MS: 900, JOKER_CHANCE: 1/7 };  // the giant-die boss select (edge-landing = the Joker)
+const KONG_BOSS  = { THROW_OFFSET: 20, SPEED: 5, ROLL_MS: 90 };   // barrels enter at the far corner, roll SPEED tiles backwards per boss turn
+const BOSS_RING  = { COIN_TILES: 5, BOX_TILES: 3, COIN_PAY: 3,    // the ring's normal squares: blue pays coins, 🎁 crates hold support kit
+  COIN_COLOR:"#6fa8dc", BOX_COLOR:"#d4a656", LIGHT_COLOR:"#f8e473",
+  LAP_COINS: 5 };                                                 // full-lap reward: coins + a crate (far side must be crossed first)
+/* ---- DATA: the boss-arena support kit --------------------------------
+   Found only in the 🎁 crates on the ring (and lap rewards) — never sold.
+   Every one of them helps the TEAM: patch an ally up, shield the line,
+   bend the boss's plan. They only answer inside a boss arena. */
+const BOSS_ITEMS = [
+  { id:"bandage",  ico:"🩹", name:"Field Bandage",  kind:"consumable", boss:true, cost:0, enabled:true,
+    desc:"When used: patch a teammate up — frozen, floored or reeling, they're back on their feet." },
+  { id:"banner",   ico:"🚩", name:"Guard Banner",   kind:"consumable", boss:true, cost:0, enabled:true,
+    desc:"When used: plant the banner — the next strike to hit ANY teammate is absorbed." },
+  { id:"rally",    ico:"📣", name:"Rally Cry",      kind:"consumable", boss:true, cost:0, enabled:true,
+    desc:"When used: the whole team surges — +1 on everyone's next roll." },
+  { id:"grapple",  ico:"🪝", name:"Grapple Hook",   kind:"consumable", boss:true, cost:0, enabled:true,
+    desc:"When used: yank a teammate 3 tiles onward — out of the fire, or onto a weakpoint." },
+  { id:"wpmagnet", ico:"🧿", name:"Seeker Charm",   kind:"consumable", boss:true, cost:0, enabled:true,
+    desc:"When used: a weakpoint slides onto the tile right in front of a chosen teammate." },
+  { id:"flare",    ico:"🔦", name:"Blinding Flare", kind:"consumable", boss:true, cost:0, enabled:true,
+    desc:"When used: the boss flinches — every charging attack takes one extra turn to land." },
+  { id:"warpaint", ico:"🎯", name:"War Paint",      kind:"consumable", boss:true, cost:0, enabled:true,
+    desc:"When used: mark the beast — the next weakpoint hit deals double damage." },
+  { id:"decoy",    ico:"🕊️", name:"Decoy Dove",     kind:"consumable", boss:true, cost:0, enabled:true,
+    desc:"When used: the boss chases the dove — its oldest charged attack is forgotten." },
+  { id:"gust",     ico:"💨", name:"Gust Feather",   kind:"consumable", boss:true, cost:0, enabled:true,
+    desc:"When used: a tailwind carries every teammate 2 tiles onward." },
+  { id:"elixir",   ico:"🧪", name:"Team Elixir",    kind:"consumable", boss:true, cost:0, enabled:true,
+    desc:"When used: the team breathes easier — whatever is running out, you buy a little more of it." },
+];
 
 const BLUE_COLORS   = new Set(["#6fa8dc", FISH_COLOR]);   // light + dark blue squares (safe from the Nuke)
 function isBlueTile(cell){ return BLUE_COLORS.has(cellColor(cell)); }
@@ -1430,7 +1553,7 @@ const RULE_INFO = {
   fishing: {
     ico: "🎣",
     name: "Fishing",
-    text: "The dark-blue water demands you fish. Reel one in and carry on — fail, and something far bigger is waiting.",
+    text: "GRAB A ROD! The dark water is BITING today — cast, reel, glory! (Just… mind what else is circling down there.)",
   },
   teleport: {
     ico: "🌀",
@@ -1510,7 +1633,22 @@ const RULE_INFO = {
   warp: {
     ico: "🌫️",
     name: "The gray square",
-    text: "Some squares are best not lingered on. Wake up on the gray one and the world may not be quite the way you left it.",
+    text: "Some squares are best not lingered on. Stop on the gray one and the counting begins — and when it ends, the world may not be quite the way you left it.",
+  },
+  snakeeyes: {
+    ico: "🐍",
+    name: "Snake eyes",
+    text: "Two ones. The table goes quiet — every serpent on the board turns to look, and the nearest one ahead expects a visit.",
+  },
+  finishline: {
+    ico: "🏁",
+    name: "The gates are open",
+    text: "Someone is home! For everyone else the summit stops biting: rolling past 90 no longer bounces you back — any roll that reaches it carries you in. A few rounds remain. Just GET THERE.",
+  },
+  kong: {
+    ico: "🦍",
+    name: "KONG",
+    text: "Something enormous has climbed onto the roof of the board. It brought barrels. It does not care whose turn it is.",
   },
   dizzy: {
     ico: "😵‍💫",
@@ -1614,7 +1752,8 @@ const FREEZE = { GETUP_MIN: 4, ADJ: 1,     // need 4+ to break free; LANDING wit
    board rights itself when the next player's turn begins. */
 const WARP_TILES = [44];
 const WARP_COLOR = "#9aa0a6";              // plain gray
-const WARP = { ANGLES:[90, 180, 270], SPIN_MS:800, active:0 };
+const WARP = { ANGLES:[90, 180, 270], SPIN_MS:800, active:0,
+               COUNT:5, TICK_MS:1000, owner:-1 };   // landing starts a COUNT-second countdown, then the flip; rights itself when the lander's next turn starts
 /* ---- DATA: radioactive fallout (created by a nuke) ------------------ */
 const RAD_TILES = [];                      // fallout tiles — empty until a nuke converts plain tiles
 const RAD_COLOR = "#58c81b";               // radioactive green
@@ -1642,6 +1781,8 @@ const FATE      = { CHANCE:0.005 };             // ~0.5% per turn: leader and la
 /* ---- DATA: fixed move/knock amounts (tiles) ------------------------ */
 const MOVE = { SUPPORT:5, WHEEL_NEXT:1, WHEEL_BIG:15, PILEUP_BACK:5 };  // support +5; wheel "next"/+15; chute pile-up knock-back
 const GOLD_RAIN = { COINS:30, DROP_ROWS:2, POP_WAIT_MS:700, FALL_MS:600 };   // wheel 💰: payout, rows hammered straight down, coin-shower pause, fall animation
+const KONG = { BARRELS:3, STEP_MS:70, LADDER_MS:260, SPAWN_MS:600,   // wheel 🦍: barrels thrown, rolling pace, ladder-ride pace, launch stagger
+  PERCH:86, BEATS:3, BEAT_MS:280 };                                  // where Kong appears above the top row + his chest-beat intro
 const CHAOS = { COINS_GAIN:8, COINS_LOSE:8 };   // wheel 🎲 chaos pool: coin windfall / pickpocket amounts
 const GRAZE = { BACK_MIN:1, BACK_MAX:3, DOWN_CHANCE:0.10, RADIUS:40 }; // clipped by a passing slider: 1-3 back, rarely floored; RADIUS = px from the drawn snake curve
 const SLIDE_CURVE = { SEG_PX:26 };         // px per segment when sampling the wavy snake (drawing + graze checks share it)
@@ -1685,7 +1826,9 @@ const BOT = {
   ITEM_VALUE:{ shoes:5, shield:4, clover:3, coffee:3, warhorn:3, gloves:2,
                mysterybox:2, snowball:3, banana:2, mirror:3, helmet:3, crown:3,
                loadeddice:4, soulcandle:4, monkeypaw:0,
-               bomb:3, fireegg:2, singcasing:0, singularity:6 },  // base shopping appeal per item id (paw 0: a random wish is a pure gamble)
+               bomb:3, fireegg:2, singcasing:0, singularity:6,
+               boomerang:2, magnet:2, bell:2, rocket:3, sleepdart:3,
+               extinguisher:1, map:2, piggy:2, socks:2, tophat:2 },  // base shopping appeal per item id (paw 0: a random wish is a pure gamble)
   SING_SAFE_DIST:7,                             // bots only detonate the singularity this far from the epicenter
   THINK_MS:700, DECIDE_MS:650,                  // decision popup: thinking pause + verdict linger (FEATURES.botThoughts)
   SCORE:{ WIN:60, FREEZE:-8, RADIOACTIVE:-6, FISHING:-1, ORANGE:2, SHOP:2,
@@ -2173,14 +2316,15 @@ const TILE_RULES = {
     matches(){ return true; },      // the frost check lives in tryFreeze (icy tile OR next to a frozen player)
     onLand: tryFreeze, offLand: tryFreeze },
 
-  warp: { feature:"warp", tiles:WARP_TILES, color:WARP_COLOR },   // paints gray; the flip fires at turn START (RARE_EVENTS)
+  warp: { feature:"warp", tiles:WARP_TILES, color:WARP_COLOR,     // stop here and the countdown begins…
+    onLand: warpCountdown, offLand: warpCountdown },
 };
 
 /* Who gets the landing first, per path. On your own roll the freeze check
    runs last (only if no tile fired); off-turn the frost beats the teleporter. */
 const LANDING_ORDER = {
-  turn:    ["fishing", "teleport", "orange", "shop", "setback", "trap89", "radioactive", "dizzy", "freeze"],
-  offTurn: ["setback", "trap89", "radioactive", "freeze", "dizzy", "teleport"],
+  turn:    ["fishing", "teleport", "orange", "shop", "setback", "trap89", "radioactive", "dizzy", "warp", "freeze"],
+  offTurn: ["setback", "trap89", "radioactive", "freeze", "dizzy", "warp", "teleport"],
 };
 
 function specialTileColor(cell){
@@ -2446,9 +2590,9 @@ const SFX = (() => {
     rumble:()=> { const c=ac(); if(!c) return; const t=c.currentTime, o=c.createOscillator(), g=c.createGain(); o.type="sawtooth"; o.frequency.setValueAtTime(46,t); o.frequency.linearRampToValueAtTime(60,t+1.4); g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.22,t+0.3); g.gain.exponentialRampToValueAtTime(0.0001,t+1.5); o.connect(g); g.connect(master); o.start(t); o.stop(t+1.6); },
     crack: ()=> { tone(2000,0.04,"square",0.26); tone(150,0.5,"sawtooth",0.32,0.02); for (let i=0;i<8;i++) tone(220+Math.random()*1100,0.05,"square",0.13,0.04+i*0.025); },
     siren: ()=> { const c=ac(); if(!c) return; const t=c.currentTime, o=c.createOscillator(), g=c.createGain(); o.type="sawtooth"; for (let i=0;i<5;i++){ o.frequency.setValueAtTime(440,t+i); o.frequency.linearRampToValueAtTime(900,t+i+0.5); o.frequency.linearRampToValueAtTime(440,t+i+1); } g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.16,t+0.15); g.gain.setValueAtTime(0.16,t+4.5); g.gain.exponentialRampToValueAtTime(0.0001,t+5); o.connect(g); g.connect(master); o.start(t); o.stop(t+5.1); },
-    airraid: ()=> { const c=ac(); if(!c) return; const t=c.currentTime, g=c.createGain();   // the classic slow rise-and-fall nuclear alarm wail
-      g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.17,t+0.4);
-      g.gain.setValueAtTime(0.17,t+4.2); g.gain.exponentialRampToValueAtTime(0.0001,t+4.9);
+    airraid: ()=> { const c=ac(); if(!c) return; const t=c.currentTime, g=c.createGain();   // the classic slow rise-and-fall nuclear alarm wail (kept soft — Isak, 2026-07-16)
+      g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.07,t+0.4);
+      g.gain.setValueAtTime(0.07,t+4.2); g.gain.exponentialRampToValueAtTime(0.0001,t+4.9);
       [0,3].forEach(det=>{ const o=c.createOscillator(); o.type="sawtooth";
         o.frequency.setValueAtTime(240+det,t);
         o.frequency.linearRampToValueAtTime(660+det,t+1.9);
@@ -2517,7 +2661,7 @@ function newGame(roster){
   hideSecret();
   TRAP89_TILES.splice(0, Infinity, TRAP89.TILE);   // re-arm the tile-89 trapdoor for the new game
   RAD_TILES.splice(0, Infinity);                   // clear last game's fallout
-  WARP.active = 0; applyWarp();                    // right the board if a warp was live
+  WARP.active = 0; WARP.owner = -1; applyWarp();   // right the board if a warp was live
   setSpecialTiles(boardOpt("scrambledStart") ? scrambledLayout() : DEFAULT_SPECIALS);
   rulesSeen = {};
   buildBoard();
@@ -2786,6 +2930,11 @@ async function rollDual(cur){
   setDie(a); setDie2(b);
   const again = FEATURES.sixRollsAgain && a === b && !hasCurse(cur, "emberheart");
   await sleep(160);
+  if (FEATURES.snakeEyes && a === 1 && b === 1){  // snake eyes: the serpents call — no ordinary move happens
+    if (again) sixEffect();
+    await snakeEyesMove(cur, again);
+    return;
+  }
   if (game.manual && !cur.bot){                   // manual mode: placing the piece IS the die pick
     if (again) sixEffect();
     await manualMove(cur, a === b ? [a] : [a, b], again, true);
@@ -2802,6 +2951,30 @@ async function rollDual(cur){
   if (a !== b) (value === a ? die2 : die).classList.add("dim");
   if (again) sixEffect();
   await moveCurrent(value, again);
+}
+
+// Snake eyes (double 1s under dual dice): the player is drawn to the nearest
+// snake head ahead (the last snake on the board if none remain ahead) and the
+// landing settles as usual — the serpent swallows, doubles still re-roll.
+async function snakeEyesMove(p, again){
+  await revealRuleOnce("snakeeyes");
+  const heads = Object.keys(SLIDES).map(Number).sort((x,y)=>x-y);
+  const head = heads.find(h => h > p.pos) || heads[heads.length-1];
+  const from = p.pos === 0 ? 1 : p.pos;
+  log(`🐍🎲 SNAKE EYES! The serpents call ${p.name} to the snake at ${head}…`);
+  SFX.play("leviathan");
+  if (p.onSecret){ p.onSecret = false; hideSecret(); }
+  p.marketDue = false;
+  const i = idxOf(p);
+  noteSkip(p, p.pos, head);
+  const wasOnBoard = p.pos >= 1, A = wasOnBoard ? cellCenter(p.pos) : null;
+  p.pos = head;
+  if (wasOnBoard){
+    const B = cellCenter(head);
+    await tweenToken(i, 700, t => ({ x:A.x+(B.x-A.x)*t, y:A.y+(B.y-A.y)*t - Math.sin(t*Math.PI)*60 }));
+  } else { moveTokenTo(i, head); await sleep(400); }
+  layoutTokens(); renderScoreboard();
+  await settleLanding(p, i, from, head, again, true);
 }
 
 /* ---- manual moves + the CHEATER! call-out (the manual variant) -------
@@ -3144,8 +3317,9 @@ async function settleLanding(p, i, from, landed, rollsAgain, dual){
 
   // coin for landing on a plain tile (no special effect this stop)
   if (!slipped && FEATURES.coins && isPlainTile(p.pos)){
-    const blue = isBlueTile(p.pos);                        // the scattered blue tiles pay better
-    awardCoin(p, blue ? "Blue tile" : "Plain tile", blue ? COIN.BLUE : COIN.PLAIN, blue ? "blue" : "plain");
+    const blue = isBlueTile(p.pos);                        // the scattered blue tiles pay better (double for a Piggy Bank)
+    const pay = blue ? COIN.BLUE * (hasPassive(p, "piggy") ? PIGGY_MULT : 1) : COIN.PLAIN;
+    awardCoin(p, blue ? "Blue tile" : "Plain tile", pay, blue ? "blue" : "plain");
   }
 
   // the active leg twist gets a word once the square is settled
@@ -3157,7 +3331,8 @@ async function settleLanding(p, i, from, landed, rollsAgain, dual){
 
   // a 6 (or doubles) earns another roll for the same player; otherwise end the turn
   if (rollsAgain){
-    if (FEATURES.coins) awardCoin(p, dual ? "Rolled doubles" : "Rolled a 6", 1, "six");
+    if (FEATURES.coins) awardCoin(p, dual ? "Rolled doubles" : "Rolled a 6",
+      hasPassive(p, "tophat") ? TOPHAT_SIX : 1, hasPassive(p, "tophat") ? "blue" : "six");
     log(dual ? TXT.rollAgainDual : TXT.rollAgain);
     game.busy = false; refreshHUD(); maybeAuto();
   } else {
@@ -3244,7 +3419,8 @@ async function finishPlayer(p){
   if (game.tour && game.placesTaken === 1 && !game.windowCloseRound){   // the tour's finish window opens
     game.windowCloseRound = game.round + TOUR.FINISH_WINDOW;
     game.noBounce = true;
-    log(`⏱️ ${p.name} is home — ${TOUR.FINISH_WINDOW} rounds left to climb, and overshoot no longer bounces!`);
+    log(`⏱️ ${p.name} is home — ${TOUR.FINISH_WINDOW} rounds left to climb, and overshoot no longer bounces: any roll that reaches 90 gets you in!`);
+    await revealRuleOnce("finishline");
   }
   const unfinished = game.players.filter(q => !q.finished);
   if (game.placesTaken < game.finishNeed && unfinished.length > 1){
@@ -3311,7 +3487,8 @@ function awardTrophy(p, reason, n){
 // is still honoured before the turn passes.
 async function afterKothLap(p, rollsAgain){
   if (rollsAgain){
-    if (FEATURES.coins) awardCoin(p, game.dualDice ? "Rolled doubles" : "Rolled a 6", 1, "six");
+    if (FEATURES.coins) awardCoin(p, game.dualDice ? "Rolled doubles" : "Rolled a 6",
+      hasPassive(p, "tophat") ? TOPHAT_SIX : 1, hasPassive(p, "tophat") ? "blue" : "six");
     log(game.dualDice ? TXT.rollAgainDual : TXT.rollAgain);
     game.busy = false; refreshHUD(); maybeAuto();
   } else {
@@ -3322,6 +3499,33 @@ async function afterKothLap(p, rollsAgain){
 // Mario-Party-style bonus round: when time is up, a few side achievements pay
 // out extra trophies before the winner is crowned. Categories with no activity
 // never pay; ties pay every leader.
+const BONUS_CARD = { SUSPENSE_MS:2400, HOLD_MS:1800, DOT_MS:400 };   // the reveal card: drumroll length, winner linger, dot tick
+// The full-screen reveal: category up first, a drumroll of dots builds the
+// suspense, THEN the winners flash in with the prize.
+async function bonusCardReveal(title, c, winners, best, prize){
+  const card = document.getElementById("bonuscard");
+  document.getElementById("bcTitle").textContent = title;
+  document.getElementById("bcCat").textContent = `${c.ico} ${c.name}`;
+  const who = document.getElementById("bcWho");
+  who.innerHTML = `<span style="opacity:.55">…</span>`;
+  card.classList.add("show");
+  SFX.play("spin");
+  let dots = 1;
+  const ticks = Math.max(1, Math.round(BONUS_CARD.SUSPENSE_MS / BONUS_CARD.DOT_MS));
+  for (let k = 0; k < ticks; k++){
+    who.innerHTML = `<span style="opacity:.55">${"• ".repeat(dots).trim()}</span>`;
+    dots = dots % 5 + 1;
+    SFX.play("click");
+    await sleep(BONUS_CARD.DOT_MS);
+  }
+  who.innerHTML = winners.map(w => `<b style="color:${w.color}">${w.name}</b>`).join(" & ")
+    + ` <span style="opacity:.85">(${best}) — ${prize}!</span>`;
+  SFX.play("win");
+  confettiBurst(18);
+  await sleep(BONUS_CARD.HOLD_MS);
+  card.classList.remove("show");
+  await sleep(300);
+}
 const KOTH_BONUS_CATS = [
   { id:"rich",    ico:"🪙", name:"Fattest purse",  stat:p => p.coins||0 },
   { id:"angler",  ico:"🐟", name:"Master angler",  stat:p => p.fishCaught||0 },
@@ -3339,9 +3543,10 @@ async function awardKothBonuses(){
   await sleep(B.REVEAL_MS);
   for (const c of picks){
     const best = Math.max(...game.players.map(c.stat));
-    game.players.filter(p => c.stat(p) === best)
-      .forEach(w => awardTrophy(w, `${c.ico} ${c.name} (${best})`, B.TROPHIES));
-    await sleep(B.REVEAL_MS);
+    const winners = game.players.filter(p => c.stat(p) === best);
+    await bonusCardReveal("🎁 Bonus trophies", c, winners, best, `+${B.TROPHIES} 🏆`);
+    winners.forEach(w => awardTrophy(w, `${c.ico} ${c.name} (${best})`, B.TROPHIES));
+    await sleep(500);
   }
 }
 
@@ -4057,9 +4262,58 @@ function bossPhaseFor(hp){
   const i = b.def.phases.findIndex(ph => frac > ph.hpAbove);
   return i < 0 ? b.def.phases.length - 1 : i;
 }
+function bossArc(start, len){ const t = []; for (let k = 0; k < len; k++) t.push(bossStep(start, k)); return t; }
+function bossEdgeTiles(edge){       // 0 top, 1 right, 2 bottom, 3 left — one whole side of the ring
+  const t = [], W = BOSS_MODE.RING_COLS, H = BOSS_MODE.RING_ROWS;
+  for (let k = 1; k <= BOSS_MODE.RING_COUNT; k++){
+    const rc = bossRC(k);
+    if ((edge === 0 && rc.row === 0) || (edge === 1 && rc.col === W-1) ||
+        (edge === 2 && rc.row === H-1) || (edge === 3 && rc.col === 0)) t.push(k);
+  }
+  return t;
+}
+function bossRandomPlayer(){ const ps = game.players; return ps[(Math.random()*ps.length)|0]; }
+/* The attack-pattern vocabulary. Each generator returns ring tiles for one
+   charged attack; `n` is the phase's size budget, `m` the super multiplier.
+   Small moves open right in front of the runners; big ones sweep the board —
+   and each boss only ever draws ITS shapes, so an attack is recognisable at
+   a glance. (START is filtered out downstream — it stays safe.) */
+const BOSS_PATTERNS = {
+  breath:    (n,m)=> bossArc(bossStep(bossRandomPlayer().pos, 1), Math.round(n*m)),          // 🐉 one flame cone, opening in front of a runner
+  crossfire: (n,m)=> { const s = bossStep(bossRandomPlayer().pos, 1), k = Math.ceil(n*m/2);  // 🐉 two cones on opposite sides of the ring
+                       return bossArc(s, k).concat(bossArc(bossStep(s, BOSS_MODE.RING_COUNT/2), k)); },
+  inferno:   (n,m)=> bossArc(bossStep(bossRandomPlayer().pos, 2), Math.round(n*1.5*m)),      // 🐉 one huge sweep
+  tentacles: (n,m)=> { const N = BOSS_MODE.RING_COUNT, k = Math.max(2, Math.round(n*m)),     // 🐙 evenly-spaced slams all around the ring
+                       gap = Math.floor(N/k), off = 1 + ((Math.random()*N)|0), t = [];
+                       for (let i = 0; i < k; i++) t.push(bossStep(off, i*gap)); return t; },
+  grab:      (n,m)=> game.players.flatMap(p => bossArc(bossStep(p.pos, 1), m > 1 ? 2 : 1)),  // 🐙 a reaching grab right in front of every runner
+  wall:      (n,m)=> { const e = (Math.random()*4)|0;                                        // 🧊 a whole edge of the ring freezes over
+                       return m > 1 ? bossEdgeTiles(e).concat(bossEdgeTiles((e+2)%4)) : bossEdgeTiles(e); },
+  twinwalls: (n,m)=> { const e = (Math.random()*4)|0,                                        // 🧊 two opposite edges at once
+                       t = bossEdgeTiles(e).concat(bossEdgeTiles((e+2)%4));
+                       return m > 1 ? t.concat(bossEdgeTiles((e+1)%4)) : t; },
+  front:     (n,m)=> game.players.flatMap(p => bossArc(bossStep(p.pos, 1), Math.round(n*m))),// ⚡ fast jolts on the tiles right ahead of everyone
+  zigzag:    (n,m)=> { const s = 1 + ((Math.random()*BOSS_MODE.RING_COUNT)|0), t = [];       // ⚡ every other tile across a long stretch
+                       for (let k = 0; k < Math.round(n*m)*4; k += 2) t.push(bossStep(s, k)); return t; },
+  pairs:     (n,m)=> { const t = [], half = BOSS_MODE.RING_COUNT/2;                          // 🕳️ mirrored rifts: a tile and its far twin
+                       for (let k = 0; k < Math.max(1, Math.round(n*m/2)); k++){
+                         const s = 1 + ((Math.random()*BOSS_MODE.RING_COUNT)|0);
+                         t.push(s, bossStep(s, half));
+                       } return t; },
+  scatter:   (n,m)=> { const open = [];                                                      // 🃏 fallback: wild flailing
+                       for (let t = 1; t <= BOSS_MODE.RING_COUNT; t++)
+                         if (!game.boss.charges.some(c => c.tiles.includes(t))) open.push(t);
+                       const out = [];
+                       for (let k = 0; k < Math.round(n*m) && open.length; k++)
+                         out.push(open.splice((Math.random()*open.length)|0, 1)[0]);
+                       return out; },
+};
+const BOSS_MOVE_NAMES = { breath:"FIRE BREATH", crossfire:"CROSSFIRE", inferno:"INFERNO SWEEP",
+  tentacles:"TENTACLE SLAM", grab:"REACHING GRAB", wall:"ICE WALL", twinwalls:"TWIN GLACIERS",
+  front:"CHAIN LIGHTNING", zigzag:"STORM FRONT", pairs:"VOID RIFT", scatter:"WILD FLAILING" };
 
 /* ---- boss RENDER: the arena board, HP bar, telegraph paint ---------- */
-let bossHpFill = null, bossHpText = null, bossMarksG = null;
+let bossHpFill = null, bossHpText = null, bossMarksG = null, bossIcoEl = null, bossLoseEl = null;
 function buildBossBoard(){
   svg.innerHTML = "";
   const C = BOSS_MODE.CELL, W = BOSS_MODE.RING_COLS, H = BOSS_MODE.RING_ROWS;
@@ -4082,7 +4336,10 @@ function buildBossBoard(){
   svg.appendChild(sl);
   const ico = el("text",{x:470,y:top + H*C/2 + 45,"text-anchor":"middle","font-size":"130"});
   ico.textContent = b.def.ico;
+  ico.style.transformBox = "fill-box"; ico.style.transformOrigin = "center";
+  ico.style.transition = "transform .12s ease";
   svg.appendChild(ico);
+  bossIcoEl = ico;
   const name = el("text",{x:470,y:52,"text-anchor":"middle","font-size":"34","font-weight":"800",
                           fill:"#f6ecd9","font-family":"Georgia, serif"});
   name.textContent = `${b.def.ico} ${b.def.name}`;
@@ -4095,6 +4352,9 @@ function buildBossBoard(){
   bossHpText = el("text",{x:470,y:by + bar.H/2 + 6,"text-anchor":"middle","font-size":"17","font-weight":"800",
                           fill:"#fff","font-family":"Segoe UI, sans-serif"});
   svg.appendChild(bossHpText);
+  bossLoseEl = el("text",{x:470,y:by + bar.H + 24,"text-anchor":"middle","font-size":"16","font-weight":"700",
+                          fill:"#f6ecd9","font-family":"Segoe UI, sans-serif"});
+  svg.appendChild(bossLoseEl);
   bossMarksG = el("g", {});
   svg.appendChild(bossMarksG);
 }
@@ -4103,25 +4363,77 @@ function paintBossHp(){
   bossHpFill.setAttribute("width", BOSS_MODE.HPBAR.W * Math.max(0, b.hp) / b.maxHp);
   bossHpText.textContent = `${Math.max(0, b.hp)} / ${b.maxHp}`;
 }
+// The team's own doom, spelled out under the HP bar: how this fight is LOST.
+function paintBossLose(){
+  if (!bossLoseEl) return;
+  const b = game.boss, L = b.def.lose;
+  bossLoseEl.textContent =
+    L.type === "rounds" ? `⏳ Round ${game.round} of ${L.n + (b.bonusRounds||0)} — slay it before time runs out!`
+  : L.type === "hits"   ? `💢 Hits taken: ${b.teamHits} / ${L.n} — too many and the team falls!`
+  : L.type === "wipe"   ? `☠️ If the WHOLE team is ever iced at once, the arena wins.`
+  : L.type === "light"  ? `✨ Emberlight: ${b.light} — it fades every round; the ✨ tiles rekindle it.`
+  : "";
+}
 function paintBossTiles(){
   // Isak's telegraph ruling: normal attacks paint RED for their whole charge;
   // YELLOW is reserved for supers, which turn red on their final turn.
-  const b = game.boss, nextT = new Set(), laterT = new Set();
+  // Red tiles also wear a ⚠️ danger sign, and both warnings get a fat outline
+  // + a colour wash so they read at a glance (Isak, 2026-07-16).
+  const b = game.boss, TG = BOSS_MODE.TELEGRAPH, C = BOSS_MODE.CELL;
+  const nextT = new Set(), laterT = new Set();
   b.charges.forEach(ch => ch.tiles.forEach(t => (ch.super && ch.turnsLeft > 1 ? laterT : nextT).add(t)));
+  (b.barrels||[]).forEach(br => bossWalkPath(br.tile, -KONG_BOSS.SPEED).forEach(t => {
+    if (t !== BOSS_MODE.START_TILE) nextT.add(t);              // a barrel's next roll IS its telegraph
+  }));
+  bossMarksG.innerHTML = "";
   for (let t = 1; t <= BOSS_MODE.RING_COUNT; t++){
     const r = svg.querySelector(`[data-bcell="${t}"]`);
     if (!r) continue;
-    r.setAttribute("fill", b.weakpoints.includes(t) ? BOSS_MODE.WEAKPOINT_COLOR : BOSS_MODE.TILE_COLOR);
-    const warn = nextT.has(t) ? BOSS_MODE.TELEGRAPH.NEXT : (laterT.has(t) ? BOSS_MODE.TELEGRAPH.LATER : null);
-    r.setAttribute("stroke", warn || BOSS_MODE.RING_STROKE);
-    r.setAttribute("stroke-width", warn ? BOSS_MODE.TELEGRAPH.WIDTH : 1.5);
+    r.setAttribute("fill",
+      b.weakpoints.includes(t) ? BOSS_MODE.WEAKPOINT_COLOR
+      : (b.coinTiles||[]).includes(t) ? BOSS_RING.COIN_COLOR
+      : (b.boxTiles||[]).includes(t) ? BOSS_RING.BOX_COLOR
+      : (b.lightTiles||[]).includes(t) ? BOSS_RING.LIGHT_COLOR
+      : BOSS_MODE.TILE_COLOR);
+    const warn = nextT.has(t) ? "next" : (laterT.has(t) ? "later" : null);
+    r.setAttribute("stroke", warn ? (warn === "next" ? TG.NEXT : TG.LATER) : BOSS_MODE.RING_STROKE);
+    r.setAttribute("stroke-width", warn ? (warn === "next" ? TG.WIDTH : TG.LATER_WIDTH) : 1.5);
+    if (warn){                                                 // the colour wash over a marked tile
+      const c = bossCellCenter(t);
+      bossMarksG.appendChild(el("rect",{x:c.x-C/2+1,y:c.y-C/2+1,width:C-2,height:C-2,
+        fill: warn === "next" ? TG.NEXT : TG.LATER,
+        opacity: warn === "next" ? TG.TINT_NEXT : TG.TINT_LATER, "pointer-events":"none"}));
+    }
   }
-  bossMarksG.innerHTML = "";
   b.weakpoints.forEach(t => {
     const c = bossCellCenter(t);
     const m = el("text",{x:c.x,y:c.y+12,"text-anchor":"middle","font-size":"34","font-weight":"800",
                          fill:"#fff","font-family":"Segoe UI, sans-serif"});
     m.textContent = BOSS_MODE.WEAKPOINT_MARK;
+    bossMarksG.appendChild(m);
+  });
+  (b.boxTiles||[]).forEach(t => {
+    const c = bossCellCenter(t);
+    const m = el("text",{x:c.x,y:c.y+10,"text-anchor":"middle","font-size":"28"});
+    m.textContent = "🎁";
+    bossMarksG.appendChild(m);
+  });
+  (b.lightTiles||[]).forEach(t => {
+    const c = bossCellCenter(t);
+    const m = el("text",{x:c.x,y:c.y+10,"text-anchor":"middle","font-size":"28"});
+    m.textContent = "✨";
+    bossMarksG.appendChild(m);
+  });
+  nextT.forEach(t => {                                         // the danger sign rides the red tiles
+    const c = bossCellCenter(t);
+    const m = el("text",{x:c.x+C/2-16,y:c.y-C/2+22,"text-anchor":"middle","font-size":TG.SIGN_SIZE});
+    m.textContent = TG.SIGN;
+    bossMarksG.appendChild(m);
+  });
+  (b.barrels||[]).forEach((br, k) => {
+    const c = bossCellCenter(br.tile);
+    const m = el("text",{x:c.x + (k%2 ? 8 : -8),y:c.y+14,"text-anchor":"middle","font-size":"40"});
+    m.textContent = "🛢";
     bossMarksG.appendChild(m);
   });
 }
@@ -4150,15 +4462,23 @@ function bossHopToken(i, a, b){
 }
 
 /* ---- boss CONTROLLER: setup, the round loop, win ---------------------- */
-// The giant die decides the fight: faces 1-5 are the five bosses, 6 the Joker.
-function pickBoss(){ return BOSSES[Math.floor(Math.random()*BOSSES.length)]; }
-// The boss's STYLE (pattern / strike / charge speed): its own — or, for the
+// The giant die decides the fight: faces 1-6 are the six bosses — and now and
+// then it lands on its EDGE, and the Joker takes the ring.
+function pickBoss(){
+  if (Math.random() < BOSS_INTRO.JOKER_CHANCE) return BOSSES.find(x => x.mimic);
+  const pool = BOSSES.filter(x => !x.mimic);
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+// The boss's STYLE (moves / strike / charge speed): its own — or, for the
 // Joker, whichever boss it is currently mimicking.
 function bossStyle(){ const b = game.boss; return b.style || b.def; }
 function jokerMimic(){
+  const b = game.boss;
   const pool = BOSSES.filter(x => !x.mimic);
-  game.boss.style = pool[(Math.random()*pool.length)|0];
-  log(`🃏 The Joker shuffles the deck — now fighting like the ${game.boss.style.ico} ${game.boss.style.name}!`);
+  b.style = pool[(Math.random()*pool.length)|0];
+  b.charges = []; b.barrels = [];              // the reshuffle scraps whatever was cooking
+  log(`🃏 The Joker shuffles the deck — now fighting like the ${b.style.ico} ${b.style.name}!`);
+  paintBossTiles();
 }
 // The opening cutscene: a giant die tumbles through the six faces, then lands.
 async function bossIntro(){
@@ -4184,10 +4504,13 @@ function newBossGame(roster){
     mode:"boss", maxRounds:0,
     finishNeed:1, placesTaken:0, standings:null, marketVisits:0, traps:[],
     family:false, dualDice:false, manual:false,
-    boss:{ def, hp:def.hp, maxHp:def.hp, phase:0, charges:[], weakpoints:[], style:null },
+    boss:{ def, hp:def.hp, maxHp:def.hp, phase:0, charges:[], weakpoints:[], style:null,
+           teamHits:0, bonusRounds:0, banner:0, paint:0, barrels:[],
+           light: def.lose.type === "light" ? def.lose.start : 0,
+           coinTiles:[], boxTiles:[], lightTiles:[] },
     tour:false, legModId:null, floodRows:0, noBounce:false, windowCloseRound:0,
   };
-  game.players.forEach(p => { p.pos = BOSS_MODE.START_TILE; });
+  game.players.forEach(p => { p.pos = BOSS_MODE.START_TILE; p.bossHalf = false; p.bossRollPlus = 0; });
   FAMILY.OFF.forEach(k => { FEATURES[k] = FEATURE_BASE[k]; });
   die2.style.display = "none";
   die2.classList.remove("dim","faded"); die.classList.remove("dim");
@@ -4198,20 +4521,44 @@ function newBossGame(roster){
   buildTokens(roster.length);
   arrowEl = makeArrow();
   for (let k = 0; k < BOSS_MODE.WEAKPOINTS; k++) spawnWeakpoint();
+  scatterRingRoles();
   bossLayoutTokens();
   paintBossTiles();
   paintBossHp();
+  paintBossLose();
   logEl.innerHTML = "";
   hideBanner();
   refreshHUD();
 }
-function spawnWeakpoint(){
-  const b = game.boss, blocked = new Set(b.weakpoints);
-  blocked.add(BOSS_MODE.START_TILE);
-  game.players.forEach(p => blocked.add(p.pos));
+// Every tile already spoken for: START, weakpoints, the ring's coin/box/light
+// squares and everyone's feet.
+function bossOpenTiles(){
+  const b = game.boss;
+  const used = new Set([BOSS_MODE.START_TILE, ...b.weakpoints,
+                        ...(b.coinTiles||[]), ...(b.boxTiles||[]), ...(b.lightTiles||[])]);
+  game.players.forEach(p => used.add(p.pos));
   const open = [];
-  for (let t = 1; t <= BOSS_MODE.RING_COUNT; t++) if (!blocked.has(t)) open.push(t);
+  for (let t = 1; t <= BOSS_MODE.RING_COUNT; t++) if (!used.has(t)) open.push(t);
+  return open;
+}
+function spawnWeakpoint(){
+  const b = game.boss, open = bossOpenTiles();
   if (open.length) b.weakpoints.push(open[Math.floor(Math.random()*open.length)]);
+}
+// The ring's "normal squares": blue pays coins, 🎁 crates hold the support
+// kit — and the Void Maw scatters its ✨ emberlight sparks.
+function scatterRingRoles(){
+  const b = game.boss;
+  const take = (arr, k) => {
+    for (let i = 0; i < k; i++){
+      const open = bossOpenTiles();
+      if (!open.length) return;
+      arr.push(open[(Math.random()*open.length)|0]);
+    }
+  };
+  take(b.coinTiles, BOSS_RING.COIN_TILES);
+  take(b.boxTiles, BOSS_RING.BOX_TILES);
+  if (b.def.lose.type === "light") take(b.lightTiles, b.def.lose.tiles);
 }
 async function bossBegin(){
   const b = game.boss;
@@ -4219,39 +4566,35 @@ async function bossBegin(){
   await bossIntro();
   if (b.def.mimic) jokerMimic();
   log(`${b.def.ico} ${b.def.name} guards the arena — land on the ${BOSS_MODE.WEAKPOINT_MARK} weakpoints to bring it down!`);
+  const L = b.def.lose;
+  log(L.type === "rounds" ? `⏳ But hurry: after ${L.n} rounds the fight is LOST.`
+    : L.type === "hits"   ? `💢 And hold the line: ${L.n} strikes on the team and the fight is LOST.`
+    : L.type === "wipe"   ? `☠️ And never ALL go down at once — a full team wipe LOSES the fight.`
+    : L.type === "light"  ? `✨ And guard the emberlight: it fades every round — land on the ✨ sparks to rekindle it, or the void wins.`
+    : "");
   bossChargeAttack();
+  paintBossLose();
   game.busy = false; refreshHUD(); maybeAuto();
 }
-// One charged attack: the style picks the shape (arc = contiguous sweep,
-// scatter = random tiles) and the cook time; a SUPER doubles the tiles,
-// charges a turn longer, and doubles the strike's power.
-function bossAttackTiles(count, pattern){
-  if (pattern === "arc"){
-    const start = 1 + Math.floor(Math.random()*BOSS_MODE.RING_COUNT), tiles = [];
-    for (let k = 0; k < count; k++){
-      const t = bossStep(start, k);
-      if (t !== BOSS_MODE.START_TILE) tiles.push(t);
-    }
-    return tiles;
-  }
-  const open = [];
-  for (let t = 1; t <= BOSS_MODE.RING_COUNT; t++)
-    if (t !== BOSS_MODE.START_TILE && !game.boss.charges.some(c => c.tiles.includes(t))) open.push(t);
-  const tiles = [];
-  for (let k = 0; k < count && open.length; k++)
-    tiles.push(open.splice(Math.floor(Math.random()*open.length), 1)[0]);
-  return tiles;
-}
+// One charged attack, drawn from the phase's MOVE DECK: the style picks which
+// of its signature patterns fires (BOSS_PATTERNS shapes the tiles) and the
+// cook time; a SUPER doubles the tiles, charges a turn longer, and doubles
+// the strike's power. Kong doesn't charge — his barrels ARE the attack.
 function bossChargeAttack(superAttack){
-  const b = game.boss, st = bossStyle(), ph = b.def.phases[b.phase];
-  const count = Math.round(ph.attackTiles * (superAttack ? BOSS_SUPER.TILES_MULT : 1));
-  const tiles = bossAttackTiles(count, st.pattern || "scatter");
-  b.charges.push({ tiles, super: !!superAttack,
+  const b = game.boss, st = bossStyle();
+  if (st.barrels) return;
+  const sph = st.phases[Math.min(b.phase, st.phases.length - 1)];
+  const moves = (sph.moves && sph.moves.length) ? sph.moves : ["scatter"];
+  const move = moves[(Math.random()*moves.length)|0];
+  const mult = superAttack ? BOSS_SUPER.TILES_MULT : 1;
+  const tiles = [...new Set(BOSS_PATTERNS[move](sph.attackTiles, mult))]
+    .filter(t => t !== BOSS_MODE.START_TILE);
+  b.charges.push({ tiles, move, super: !!superAttack,
     turnsLeft: (st.chargeTurns || BOSS_MODE.CHARGE_TURNS) + (superAttack ? BOSS_SUPER.CHARGE_EXTRA : 0) });
   paintBossTiles();
   log(superAttack
-    ? `🟡 ${b.def.name} winds up a SUPER attack — ${tiles.length} tiles marked in yellow!`
-    : `⚡ ${b.def.name} is charging an attack — ${tiles.length} tiles marked!`);
+    ? `🟡 ${b.def.name} winds up a SUPER ${BOSS_MOVE_NAMES[move]} — ${tiles.length} tiles marked in yellow!`
+    : `⚡ ${b.def.name} readies ${BOSS_MOVE_NAMES[move]} — ${tiles.length} tiles marked!`);
 }
 /* What a landed strike does to a caught player, per boss style. `mult` is
    the super multiplier. Skips park the player for whole turns (bossRoll). */
@@ -4283,31 +4626,133 @@ const BOSS_STRIKES = {
     SFX.play("teleport");
     log(`🕳️ The void swallows ${p.name} — spat out at tile ${p.pos}!`);
   },
+  barrel: async (p, s, mult) => {
+    p.pos = bossStep(p.pos, -(s.knock * mult));
+    p.bossSkip = (p.bossSkip||0) + s.skip * mult;
+    p.downed = true; updateDowned(idxOf(p));
+    log(`🛢 ${p.name} is bowled over — rolled back to tile ${p.pos} and flattened!`);
+  },
 };
+// Every strike that actually lands funnels through here: the Guard Banner
+// gets first refusal, then the hit counts toward a hits-type lose condition.
+async function bossHitPlayer(p, strike, mult){
+  const b = game.boss;
+  if (b.banner > 0){
+    b.banner--;
+    SFX.play("catch");
+    log(`🚩 The Guard Banner absorbs the blow meant for ${p.name}! (${b.banner} left)`);
+    return;
+  }
+  p.downs++;
+  b.teamHits++;
+  SFX.play("fall");
+  await BOSS_STRIKES[(strike && strike.type) || "burn"](p, strike || { knock:BOSS_MODE.KNOCKBACK, singe:0, type:"burn" }, mult);
+  if (b.def.lose.type === "hits"){
+    paintBossLose();
+    if (b.teamHits >= b.def.lose.n)
+      await bossLost(`💢 The team has taken ${b.def.lose.n} hits — nobody left swinging…`);
+  }
+}
+// The strike moment: the tiles flash in the boss's own colour to its own
+// sound, and the beast lunges — each boss's attack looks and sounds like ITS.
+async function bossStrikeFx(tiles){
+  const st = bossStyle(), color = (st.fx && st.fx.color) || BOSS_MODE.TELEGRAPH.NEXT;
+  SFX.play((st.fx && st.fx.sfx) || "boom");
+  bossIcoLunge();
+  const C = BOSS_MODE.CELL, g = el("g", {"pointer-events":"none"});
+  tiles.forEach(t => {
+    const c = bossCellCenter(t);
+    g.appendChild(el("rect",{x:c.x-C/2+2,y:c.y-C/2+2,width:C-4,height:C-4,fill:color,opacity:".8"}));
+  });
+  svg.appendChild(g);
+  for (let k = 0; k < 3; k++){
+    g.style.opacity = "1"; await sleep(90);
+    g.style.opacity = ".25"; await sleep(70);
+  }
+  g.remove();
+}
+function bossIcoLunge(){
+  if (!bossIcoEl) return;
+  bossIcoEl.style.transform = "scale(1.25)";
+  setTimeout(()=>{ if (bossIcoEl) bossIcoEl.style.transform = ""; }, 260);
+}
+// A wipe-type boss wins the moment the WHOLE team is iced at once.
+async function bossWipeCheck(){
+  const b = game.boss;
+  if (game.over || b.def.lose.type !== "wipe") return false;
+  if (!game.players.every(p => (p.bossSkip||0) > 0)) return false;
+  await bossLost(`☠️ The whole team lies iced at once — the arena entombs you…`);
+  return true;
+}
+// Kong's round: every barrel rolls SPEED tiles backwards (bowling over whoever
+// it meets), spent barrels burst at START, and fresh ones thunder in from the
+// far corner — one per phase level.
+async function kongBossTurn(){
+  const b = game.boss, st = bossStyle();
+  const sph = st.phases[Math.min(b.phase, st.phases.length - 1)];
+  for (const br of [...b.barrels]){
+    const path = bossWalkPath(br.tile, -KONG_BOSS.SPEED);
+    for (const t of path){
+      br.tile = t;
+      paintBossTiles();
+      await sleep(KONG_BOSS.ROLL_MS);
+      for (const p of game.players){
+        if (p.pos !== t || br.hit.includes(p)) continue;
+        br.hit.push(p);
+        await bossHitPlayer(p, st.strike, 1);
+        if (game.over) return;
+      }
+      if (t === BOSS_MODE.START_TILE) break;
+    }
+    if (br.tile === BOSS_MODE.START_TILE){
+      b.barrels.splice(b.barrels.indexOf(br), 1);
+      SFX.play("bounce");
+    }
+    br.hit = [];
+  }
+  bossLayoutTokens();
+  const n = sph.attackTiles;
+  for (let k = 0; k < n; k++) b.barrels.push({ tile: bossStep(BOSS_MODE.START_TILE, KONG_BOSS.THROW_OFFSET), hit:[] });
+  SFX.play("boom"); bossIcoLunge();
+  log(`🦍 ${b.def.name} beats his chest and hurls ${n} barrel${n > 1 ? "s" : ""} onto the ring!`);
+  paintBossTiles();
+}
 async function bossTurn(){
   const b = game.boss, st = bossStyle();
+  if (st.barrels){
+    await kongBossTurn();
+    if (game.over) return;
+  }
   const striking = b.charges.filter(c => c.turnsLeft <= 1);
   b.charges = b.charges.filter(c => c.turnsLeft > 1);
   b.charges.forEach(c => c.turnsLeft--);
   for (const c of striking){
+    await bossStrikeFx(c.tiles);
     for (const p of game.players){
       if (!c.tiles.includes(p.pos)) continue;
-      p.downs++;
-      SFX.play("fall");
-      await BOSS_STRIKES[(st.strike && st.strike.type) || "burn"](p, st.strike || { knock:BOSS_MODE.KNOCKBACK, singe:0, type:"burn" },
-                                                                  c.super ? BOSS_SUPER.POWER_MULT : 1);
+      await bossHitPlayer(p, st.strike, c.super ? BOSS_SUPER.POWER_MULT : 1);
+      if (game.over) return;
     }
   }
   if (striking.length){
     bossLayoutTokens();
+    paintBossTiles();
     await sleep(ANIM.HANDOFF);
   }
+  if (await bossWipeCheck()) return;
   if (st.wander && b.weakpoints.length){   // the Void Maw's weakpoints never sit still
     b.weakpoints.splice(0, Infinity);
     for (let k = 0; k < BOSS_MODE.WEAKPOINTS; k++) spawnWeakpoint();
     log(`🕳️ The weakpoints drift — every ${BOSS_MODE.WEAKPOINT_MARK} finds a new home.`);
   }
+  if (b.def.lose.type === "light"){        // the emberlight burns a little lower
+    b.light--;
+    paintBossLose();
+    if (b.light <= 0) return bossLost(`✨ The last emberlight gutters out — the void takes the arena…`);
+    if (b.light <= 2) log(`✨ The emberlight is down to ${b.light} — find the sparks!`);
+  }
   bossChargeAttack();
+  paintBossLose();
 }
 async function bossRoll(){
   const cur = game.players[game.current];
@@ -4324,6 +4769,7 @@ async function bossRoll(){
     return;
   }
   game.busy = true; refreshHUD();
+  if (cur.bot) await botMaybeUseBossItem(cur);   // bots spend their support kit before rolling
   die.classList.remove("dim");
   die.classList.add("rolling");
   SFX.play("dice");
@@ -4332,6 +4778,7 @@ async function bossRoll(){
   die.classList.remove("rolling");
   let value = 1 + Math.floor(Math.random()*RULES.DICE_SIDES);
   setDie(value);
+  const rolled = value;                          // the face decides the bonus roll; buffs/burns bend the WALK
   if ((cur.bossSinge||0) > 0){                   // the Dragon's burns: this roll runs short
     cur.bossSinge--;
     const burnt = Math.max(1, value - 2);
@@ -4339,43 +4786,137 @@ async function bossRoll(){
     value = burnt;
     setDie(value);
   }
-  if (value === RULES.DICE_SIDES && FEATURES.sixRollsAgain) sixEffect();
+  if ((cur.bossRollPlus||0) > 0){                // a Rally Cry carries the whole team a little further
+    log(`📣 The rally carries ${cur.name} +${cur.bossRollPlus}!`);
+    value += cur.bossRollPlus;
+    cur.bossRollPlus = 0;
+  }
+  if (rolled === RULES.DICE_SIDES && FEATURES.sixRollsAgain) sixEffect();
   await sleep(160);
-  await bossMove(cur, value);
+  await bossMove(cur, value, rolled);
 }
-async function bossMove(p, rollValue){
+async function bossMove(p, rollValue, rolledFace){
   const i = idxOf(p), path = bossWalkPath(p.pos, rollValue);
+  const farTile = bossStep(BOSS_MODE.START_TILE, BOSS_MODE.RING_COUNT / 2);
   let at = p.pos;
-  for (const step of path){ await bossHopToken(i, at, step); at = step; p.pos = step; p.steps++; }
+  for (const step of path){
+    await bossHopToken(i, at, step); at = step; p.pos = step; p.steps++;
+    if (step === farTile) p.bossHalf = true;                 // the far side is the lap checkpoint
+    if (step === BOSS_MODE.START_TILE && p.bossHalf){        // a full honest lap pays out
+      p.bossHalf = false;
+      await bossLapReward(p);
+    }
+  }
   bossLayoutTokens();
-  const b = game.boss, wIdx = b.weakpoints.indexOf(p.pos);
-  if (wIdx >= 0){
-    b.weakpoints.splice(wIdx, 1);
-    spawnWeakpoint();
-    await bossDamage(BOSS_MODE.WEAKPOINT_DAMAGE, p);
-    if (game.over) return;
-    paintBossTiles();
-  } else log(`${p.name} moved to tile ${p.pos}`);
-  if (FEATURES.sixRollsAgain && rollValue === RULES.DICE_SIDES){
+  const landed = await bossArrive(p);
+  if (game.over) return;
+  if (!landed) log(`${p.name} moved to tile ${p.pos}`);
+  const face = rolledFace === undefined ? rollValue : rolledFace;
+  if (FEATURES.sixRollsAgain && face === RULES.DICE_SIDES){
     log(TXT.rollAgain);
     game.busy = false; refreshHUD(); maybeAuto();
   } else await endBossTurn();
 }
+// Everything a ring square can do when someone STOPS on it — weakpoints chip
+// the boss, blue squares pay, 🎁 crates hand out the support kit, ✨ sparks
+// rekindle the emberlight. Shared by walks, grapples and gusts.
+async function bossArrive(p){
+  const b = game.boss;
+  const wIdx = b.weakpoints.indexOf(p.pos);
+  if (wIdx >= 0){
+    b.weakpoints.splice(wIdx, 1);
+    spawnWeakpoint();
+    await bossDamage(BOSS_MODE.WEAKPOINT_DAMAGE, p);
+    if (!game.over) paintBossTiles();
+    return true;
+  }
+  if ((b.coinTiles||[]).includes(p.pos)){
+    awardCoin(p, "Blue tile", BOSS_RING.COIN_PAY, "blue");
+    return true;
+  }
+  const boxIdx = (b.boxTiles||[]).indexOf(p.pos);
+  if (boxIdx >= 0){
+    b.boxTiles.splice(boxIdx, 1);
+    giveBossCrate(p);
+    const open = bossOpenTiles();
+    if (open.length) b.boxTiles.push(open[(Math.random()*open.length)|0]);
+    paintBossTiles();
+    return true;
+  }
+  const liIdx = (b.lightTiles||[]).indexOf(p.pos);
+  if (liIdx >= 0){
+    b.lightTiles.splice(liIdx, 1);
+    b.light += b.def.lose.gain;
+    SFX.play("sparkle");
+    iconPopup(p, "✨", 1);
+    log(`✨ ${p.name} rekindles the emberlight — up to ${b.light}!`);
+    const open = bossOpenTiles();
+    if (open.length) b.lightTiles.push(open[(Math.random()*open.length)|0]);
+    paintBossTiles(); paintBossLose();
+    return true;
+  }
+  return false;
+}
+async function bossLapReward(p){
+  SFX.play("win");
+  confettiBurst(16);
+  awardCoin(p, "🏁 Full lap", BOSS_RING.LAP_COINS, "blue");
+  giveBossCrate(p);
+}
+// A crate from the ring: one random piece of the team's support kit. Crates
+// ignore the bag cap — the arena provides.
+function giveBossCrate(p){
+  const it = BOSS_ITEMS[(Math.random()*BOSS_ITEMS.length)|0];
+  p.items.push(it.id);
+  SFX.play("catch");
+  iconPopup(p, it.ico, 1);
+  log(`🎁 ${p.name} cracks a crate open — ${it.ico} ${it.name}!`);
+  renderScoreboard();
+}
 async function bossDamage(n, striker){
   const b = game.boss;
+  if (b.paint > 0){                                   // War Paint: the marked beast takes it double
+    b.paint--;
+    n *= 2;
+    log(`🎯 The War Paint burns — the blow lands DOUBLE!`);
+  }
   b.hp = Math.max(0, b.hp - n);
   striker.bossDamage = (striker.bossDamage||0) + n;   // the Grand Tour scores the boss leg by damage dealt
   log(`${BOSS_MODE.WEAKPOINT_MARK} ${striker.name} strikes a weakpoint — ${b.def.name} takes ${n} damage!`);
   paintBossHp();
+  bossIcoLunge();
   if (b.hp <= 0) return bossDefeated();
   const ph = bossPhaseFor(b.hp);
   if (ph !== b.phase){
     b.phase = ph;
+    flashScreen(); SFX.play("announce");              // the phase-change moment
     log(`😡 ${b.def.name} is enraged — phase ${ph+1}!`);
     if (b.def.mimic) jokerMimic();                    // the Joker changes faces with every phase
     bossChargeAttack(true);                           // and every phase change winds up a SUPER
   }
   refreshHUD();
+}
+// The team's defeat: the boss stands, the leg still scores by damage dealt.
+async function bossLost(why){
+  const b = game.boss;
+  if (game.over) return;
+  game.over = true;
+  game.winner = null;
+  log(why, "win");
+  log(`☠️ ${b.def.ico} ${b.def.name} stands victorious — the team is defeated.`);
+  paintBossHp();
+  refreshHUD();
+  await sleep(ANIM.HANDOFF);
+  if (game.tour){
+    game.standings = [...game.players].sort((x,y) => (y.bossDamage||0) - (x.bossDamage||0) || (y.coins||0) - (x.coins||0));
+    game.standings.forEach((q,idx) => { q.place = idx + 1; });
+    tourLegDone();
+    return;
+  }
+  document.getElementById("bannerNew").textContent = "Play again";
+  document.getElementById("bannerText").innerHTML =
+    `<div class="serieshead">☠️ ${b.def.ico} ${b.def.name} wins — the team falls after ${game.round} rounds, ${b.hp} HP from glory…</div>`;
+  document.getElementById("banner").classList.add("show");
 }
 async function bossDefeated(){
   const b = game.boss;
@@ -4406,8 +4947,12 @@ async function endBossTurn(){
   game.autonomous = !!game.players[game.current].bot;
   if (game.current <= prev){
     game.round++;
+    const b = game.boss, L = b.def.lose;
+    if (L.type === "rounds" && game.round > L.n + (b.bonusRounds||0))
+      return bossLost(`⏳ Round ${L.n + (b.bonusRounds||0)} is done and ${b.def.name} still stands…`);
     await bossTurn();
     if (game.over) return;
+    paintBossLose();
   }
   game.busy = false; refreshHUD(); maybeAuto();
 }
@@ -5347,7 +5892,7 @@ async function fateSwapYou(p){
 
 /* ---- the gray warp square: start a turn there and the board flips ---- */
 function warpDue(p){
-  return WARP.active > 0 || (p.pos > 0 && !p.onSecret && WARP_TILES.includes(p.pos));
+  return WARP.active > 0 && game.current === WARP.owner;   // rights itself when the lander's next turn starts
 }
 function applyWarp(){
   const a = WARP.active;
@@ -5356,17 +5901,37 @@ function applyWarp(){
   svg.style.transform = a ? `rotate(${a}deg)${fit}` : "";
   svg.style.filter = a ? "invert(1)" : "";
 }
-async function runWarp(){
-  const cur = game.players[game.current];
-  if (cur.pos > 0 && !cur.onSecret && WARP_TILES.includes(cur.pos)){
-    await revealRuleOnce("warp");
-    WARP.active = WARP.ANGLES[(Math.random()*WARP.ANGLES.length)|0];
-    SFX.play("teleport");
-    log(`🌫️ The gray square stirs — the board twists ${WARP.active}° and every colour turns inside out! ${cur.name} plays on regardless.`);
-  } else if (WARP.active){
-    WARP.active = 0;
-    log(`🌫️ The board rights itself.`);
+// Big centred countdown digit (one per tick of the gray square's fuse).
+function warpTick(n){
+  const d = document.createElement("div"); d.className = "killcall warpnum"; d.textContent = n;
+  document.body.appendChild(d);
+  requestAnimationFrame(()=> d.classList.add("show"));
+  setTimeout(()=> d.classList.remove("show"), ffms(WARP.TICK_MS) * 0.7);
+  setTimeout(()=> d.remove(), ffms(WARP.TICK_MS));
+}
+// Stopping on the gray square: five ticking seconds of dread, then the board
+// flips + inverts — and stays that way until the lander's NEXT turn begins.
+async function warpCountdown(p){
+  if (WARP.active) return false;                 // one twist at a time
+  await revealRuleOnce("warp");
+  log(`🌫️ ${p.name} stops on the gray square — something is counting down…`);
+  for (let k = WARP.COUNT; k >= 1; k--){
+    warpTick(k);
+    SFX.play("click");
+    await sleep(WARP.TICK_MS);
   }
+  WARP.active = WARP.ANGLES[(Math.random()*WARP.ANGLES.length)|0];
+  WARP.owner = idxOf(p);
+  SFX.play("teleport");
+  log(`🌫️ The board twists ${WARP.active}° and every colour turns inside out — it rights itself when ${p.name}'s next turn comes!`);
+  applyWarp();
+  await sleep(WARP.SPIN_MS);
+  return true;
+}
+async function runWarp(){                        // the RARE_EVENTS half: the flip expires on the owner's next turn
+  if (!WARP.active) return;
+  WARP.active = 0; WARP.owner = -1;
+  log(`🌫️ The board rights itself.`);
   applyWarp();
   await sleep(WARP.SPIN_MS);
 }
@@ -5459,6 +6024,10 @@ async function tryFreeze(p){
   const nearFrozen = game.players.some(q => q !== p && q.frozen && !q.finished
     && q.pos > 0 && gridNear(q.pos, p.pos, FREEZE.ADJ));
   if (!onIce && !nearFrozen) return false;
+  if (hasPassive(p, "socks")){                   // wool socks: the tile frost never gets a grip
+    log(`🧦 ${p.name}'s wool socks keep the frost out!`);
+    return false;
+  }
   await revealRuleOnce("freeze");
   freezePlayer(p);
   if (!p.frozen) return false;                 // a Shield absorbed it
@@ -5922,9 +6491,9 @@ async function revolverRoulette(p){
   await sleep(320); gun.remove(); dim.remove();
 }
 
-const WHEEL_LABELS = ["☢️","🔙","➡️","🚀","🎲","🎲","🌀","💰"];   // nuke / start / next / +15 / random / random-target / tile-shuffle / gold-rain
-const WHEEL_COLORS = ["#d64541","#8e44ad","#2e86c1","#27ae60","#e67e22","#e84393","#17b5a3","#f1c40f"];
-const WHEEL_PICKS  = ["nuke","start","next","move15","random","random_target","tile_shuffle","gold_rain"];
+const WHEEL_LABELS = ["☢️","🔙","➡️","🚀","🎲","🎲","🌀","💰","🦍"];   // nuke / start / next / +15 / random / random-target / tile-shuffle / gold-rain / KONG
+const WHEEL_COLORS = ["#d64541","#8e44ad","#2e86c1","#27ae60","#e67e22","#e84393","#17b5a3","#f1c40f","#8b5a2b"];
+const WHEEL_PICKS  = ["nuke","start","next","move15","random","random_target","tile_shuffle","gold_rain","kong"];
 function wpol(cx,cy,r,deg){ const a = (deg-90)*Math.PI/180; return [cx+r*Math.cos(a), cy+r*Math.sin(a)]; }
 function buildWheel(){
   const g = document.getElementById("wheelSpin"); if (!g) return;
@@ -6088,6 +6657,70 @@ async function goldRain(p){
    tile power, coins won and lost — each entry aimed at one target player.
    Both 🎲 slices draw from this same pool: the orange slice fires it at a
    RANDOM player, the magenta slice ALWAYS at the spinner. */
+// Wheel 🦍: KONG scales the top of the board, beats his chest and bowls
+// barrels DOWN the numbered path — and a barrel that reaches a ladder's top
+// rides the ladder down. Anyone standing in the way is flattened
+// (shield/mirror get their say). The barrels burst at tile 1.
+function kongBarrelPath(start){
+  const path = [start];
+  let t = start;
+  while (t > 1){
+    t = LADDER_BASE_OF[t] !== undefined ? LADDER_BASE_OF[t] : t - 1;
+    path.push(t);
+  }
+  return path;
+}
+async function kongRampage(){
+  await revealRuleOnce("kong");
+  log(`🦍 KONG climbs onto the top of the board!`);
+  SFX.play("announce");
+  const perch = cellCenter(KONG.PERCH);
+  const ape = el("text",{x:perch.x, y:perch.y - 60, "text-anchor":"middle", "font-size":"72"});
+  ape.textContent = "🦍";
+  ape.style.transformBox = "fill-box"; ape.style.transformOrigin = "center";
+  ape.style.transition = "transform .12s ease";
+  svg.appendChild(ape);
+  for (let k = 0; k < KONG.BEATS; k++){
+    ape.style.transform = "scale(1.2)"; SFX.play("boom");
+    await sleep(KONG.BEAT_MS / 2);
+    ape.style.transform = "";
+    await sleep(KONG.BEAT_MS / 2);
+  }
+  const rollOne = async () => {
+    const start = 90 - ((Math.random()*9)|0);                      // somewhere on the top row
+    const path = kongBarrelPath(start);
+    const barrel = el("text",{"text-anchor":"middle", "font-size":"38"});
+    barrel.textContent = "🛢";
+    svg.appendChild(barrel);
+    const hit = new Set();
+    for (let k = 0; k < path.length; k++){
+      const t = path[k], c = cellCenter(t);
+      const ladder = k > 0 && LADDER_BASE_OF[path[k-1]] === t;
+      barrel.setAttribute("x", c.x); barrel.setAttribute("y", c.y + 12);
+      if (ladder) SFX.play("chute");
+      await sleep(ladder ? KONG.LADDER_MS : KONG.STEP_MS);
+      game.players.forEach(q => {
+        if (q.finished || q.pos !== t || q.downed || q.frozen || hit.has(q)) return;
+        hit.add(q);
+        downPlayer(q);
+        log(`🛢 ${q.name} is bowled over by a barrel!`);
+      });
+    }
+    explode(1);
+    barrel.remove();
+  };
+  const runs = [];
+  for (let k = 0; k < KONG.BARRELS; k++)
+    runs.push((async ()=>{ await sleep(k * KONG.SPAWN_MS); await rollOne(); })());
+  await Promise.all(runs);
+  ape.style.transition = "transform .5s ease, opacity .5s ease";
+  ape.style.transform = "translate(0,-80px)"; ape.style.opacity = "0";
+  await sleep(550);
+  ape.remove();
+  layoutTokens(); renderScoreboard();
+  log(`🦍 Satisfied, KONG lumbers off.`);
+}
+
 async function castRandomItem(t){
   const pool = [...SHOP_CATALOG, ...EXOTICS].filter(i =>
     i.enabled && i.id !== "singcasing" && (!i.exotic || FEATURES.blackMarket));
@@ -6124,6 +6757,7 @@ const WHEEL_CHAOS = [
   { run:(t)=> randomTeleport(t) },
   { run:(t)=> downYou(t) },
   { run:(t)=> goldRain(t) },
+  { run:()=> kongRampage() },
   { run:()=> shuffleTiles() },
   { feature:"shop", run:async(t)=>{ awardCoin(t, "🎲 Windfall", CHAOS.COINS_GAIN, "plain"); await sleep(500); } },
   { feature:"shop", run:async(t)=>{ const n = Math.min(t.coins, CHAOS.COINS_LOSE); t.coins -= n; renderScoreboard();
@@ -6282,6 +6916,7 @@ async function spinWheelOnce(p){
   else if (pick === "random_target"){ log(`🎲 The wheel targets ${p.name}!`); await randomWheelEffect(p); }
   else if (pick === "tile_shuffle"){ log(`🌀 The wheel scrambled the board!`); await shuffleTiles(); }
   else if (pick === "gold_rain"){ await goldRain(p); }
+  else if (pick === "kong"){ await kongRampage(); }
 }
 
 async function runSupport(p, allowBack){
@@ -6300,7 +6935,7 @@ async function runSupport(p, allowBack){
 /* ---- items: bag (3 consumables) + 1 passive ------------------------- */
 function itemDef(id){
   return SHOP_CATALOG.find(i => i.id === id) || EXOTICS.find(i => i.id === id)
-      || CURSED.find(i => i.id === id)
+      || CURSED.find(i => i.id === id) || BOSS_ITEMS.find(i => i.id === id)
       || {ico:"", name:id, desc:"", kind:"consumable", cost:0};
 }
 // Passive slots: normally one; Mayhem fits two. The helpers below are the ONLY
@@ -6799,8 +7434,22 @@ async function flyOutFx(q, epi, dest, k){
 
 async function useItem(p, idx){
   const id = p.items[idx];
+  const def = itemDef(id);
+  if (isBoss() && !(def && def.boss)){           // road items sleep in the arena; the kit sleeps on the road
+    log(`🎒 ${def ? def.name : id} has no power inside the arena — save it for the road.`);
+    return;
+  }
+  if (!isBoss() && def && def.boss){
+    log(`${def.ico} ${def.name} only answers inside a boss arena.`);
+    return;
+  }
   p.itemsUsed = (p.itemsUsed||0) + 1;
   if (STATS.SOCIAL_ITEMS.includes(id)) p.interactions = (p.interactions||0) + 1;
+  if (def && def.boss){
+    await useBossItem(p, idx, id);
+    refreshBadges(); renderScoreboard();
+    return;
+  }
   if (["coffee","clover","shield","warhorn"].includes(id)) await itemFlourish(p, itemDef(id).ico);
   if (id === "coffee"){
     p.rollBonus = (p.rollBonus || 0) + ITEM.COFFEE_BONUS;
@@ -6843,12 +7492,213 @@ async function useItem(p, idx){
     await throwBomb(p, idx);
   } else if (id === "fireegg"){
     await throwFireEgg(p, idx);
+  } else if (id === "boomerang"){
+    const ahead = game.players.filter(q => q !== p && !q.finished && q.pos > p.pos)
+                              .sort((x,y) => x.pos - y.pos)[0];
+    if (!ahead){ log(`🪃 Nobody ahead to clip.`); return; }
+    p.items.splice(idx, 1);
+    await itemFlourish(p, "🪃");
+    SFX.play("chute");
+    log(`🪃 ${p.name}'s boomerang clips ${ahead.name} — ${BOOMERANG.KNOCK} tiles back!`);
+    setBackPos(ahead, ahead.pos - BOOMERANG.KNOCK);
+    layoutTokens(); renderScoreboard();
+    await resolveLanding(ahead, 0);
+  } else if (id === "magnet"){
+    const near = game.players.filter(q => q !== p && !q.finished && q.pos > 0)
+      .sort((x,y) => Math.abs(x.pos - p.pos) - Math.abs(y.pos - p.pos))[0];
+    if (!near){ log(`🧲 Nothing on the board to pull.`); return; }
+    p.items.splice(idx, 1);
+    await itemFlourish(p, "🧲");
+    const dir = near.pos > p.pos ? -1 : 1;
+    const target = near.pos + dir * Math.min(MAGNET.PULL, Math.abs(near.pos - p.pos));
+    SFX.play("teleport");
+    if (dir === -1) setBackPos(near, target);
+    else { noteSkip(near, near.pos, target); near.pos = target; }
+    log(`🧲 ${p.name} drags ${near.name} ${dir === -1 ? "back" : "forward"} to tile ${near.pos}!`);
+    layoutTokens(); renderScoreboard();
+    await resolveLanding(near, 0);
+  } else if (id === "bell"){
+    if (p.pos < 1){ log(`🔔 The bell clangs in the start lane — nobody flinches.`); return; }
+    p.items.splice(idx, 1);
+    await itemFlourish(p, "🔔");
+    SFX.play("horn");
+    const victims = game.players.filter(q => q !== p && !q.finished && q.pos > 0
+      && gridNear(p.pos, q.pos, BELL.NEAR));
+    if (!victims.length) log(`🔔 The bell rings out — nobody close enough to flinch.`);
+    for (const v of victims){
+      setBackPos(v, v.pos - BELL.BACK);
+      log(`🔔 ${v.name} stumbles ${BELL.BACK} back from the CLANG!`);
+    }
+    layoutTokens(); renderScoreboard();
+    for (const v of victims){ await resolveLanding(v, 0); if (game.over) return; }
+  } else if (id === "rocket"){
+    p.items.splice(idx, 1);
+    await itemFlourish(p, "🚀");
+    if (Math.random() < ROCKET.MISFIRE){
+      SFX.play("boom");
+      if (p.pos >= 1) explode(p.pos);
+      log(`🚀💥 The rocket misfires — ${p.name} is blown ${ROCKET.BACK} tiles backwards!`);
+      setBackPos(p, p.pos - ROCKET.BACK);
+      layoutTokens(); renderScoreboard();
+      await resolveLanding(p, 0);
+    } else {
+      const n = ROCKET.MIN + ((Math.random()*(ROCKET.MAX - ROCKET.MIN + 1))|0);
+      SFX.play("sparkle");
+      log(`🚀 ${p.name} straps in — ${n} tiles!`);
+      await advancePlayer(p, n);
+    }
+  } else if (id === "sleepdart"){
+    const targets = game.players.filter(q => q !== p && !q.finished && !q.downed && q.pos > 0
+      && Math.abs(q.pos - p.pos) <= SLEEPDART.RANGE);
+    if (!targets.length){ log(`💤 No one in range to tuck in.`); return; }
+    const t = p.bot ? targets.sort((x,y) => y.pos - x.pos)[0]
+                    : await pickPlayerOnBoard(`${p.name}: click who takes a nap`, targets, null, true);
+    if (!t || t === "back") return;
+    p.items.splice(idx, 1);
+    await itemFlourish(p, "💤");
+    log(`💤 ${p.name}'s dart finds ${t.name} — lights out.`);
+    downPlayer(t);
+    layoutTokens(); renderScoreboard();
+  } else if (id === "extinguisher"){
+    p.items.splice(idx, 1);
+    await itemFlourish(p, "🧯");
+    p.radSick = false; p.radLevel = 0; p.radTurns = 0;
+    p.singeRolls = 0; p.dizzy = false;
+    SFX.play("catch");
+    log(`🧯 ${p.name} hoses off — radiation, burns and dizziness all wash away.`);
+  } else if (id === "map"){
+    p.items.splice(idx, 1);
+    await itemFlourish(p, "🗺️");
+    const n = TREASURE.MIN + ((Math.random()*(TREASURE.MAX - TREASURE.MIN + 1))|0);
+    awardCoin(p, "🗺️ Buried treasure", n, "blue");
   } else if (id === "singcasing"){
     log(`🌑 The casing only hums in ${p.name}'s hand — a piece is still missing.`);
   } else if (id === "singularity"){
     await useSingularity(p, idx);
   }
   refreshBadges(); renderScoreboard();
+}
+/* The boss-arena support kit: every piece helps the TEAM. Targeted pieces ask
+   who to help (bots pick sensibly); a cancelled pick keeps the item. */
+async function useBossItem(p, idx, id){
+  const b = game.boss;
+  const pickAlly = async (title, candidates) => {
+    if (!candidates.length) return null;
+    return p.bot ? candidates[0] : await pickPlayer(title, candidates, "Cancel");
+  };
+  if (id === "bandage"){
+    const hurt = game.players.filter(q => q !== p && ((q.bossSkip||0) > 0 || q.downed || q.frozen));
+    if (!hurt.length){ log(`🩹 No teammate needs patching up.`); return; }
+    const t = await pickAlly("Patch up who?", hurt);
+    if (!t) return;
+    p.items.splice(idx, 1);
+    t.bossSkip = 0; t.downed = false; t.frozen = false;
+    updateDowned(idxOf(t)); updateFrozen(idxOf(t));
+    SFX.play("sparkle"); iconPopup(t, "🩹", 1);
+    log(`🩹 ${p.name} patches ${t.name} up — back in the fight!`);
+  } else if (id === "banner"){
+    p.items.splice(idx, 1);
+    b.banner++;
+    SFX.play("rule"); iconPopup(p, "🚩", 1);
+    log(`🚩 ${p.name} plants the Guard Banner — the next strike on ANY teammate is absorbed!`);
+  } else if (id === "rally"){
+    p.items.splice(idx, 1);
+    game.players.forEach(q => { q.bossRollPlus = (q.bossRollPlus||0) + 1; });
+    SFX.play("horn");
+    log(`📣 ${p.name} sounds the Rally Cry — the whole team gets +1 on their next roll!`);
+  } else if (id === "grapple"){
+    const cands = game.players.filter(q => q !== p).sort((x,y) =>
+      (b.weakpoints.includes(bossStep(y.pos, 3)) ? 1 : 0) - (b.weakpoints.includes(bossStep(x.pos, 3)) ? 1 : 0));
+    const t = await pickAlly("Yank who 3 tiles onward?", cands);
+    if (!t) return;
+    p.items.splice(idx, 1);
+    SFX.play("teleport");
+    log(`🪝 ${p.name} grapples ${t.name} 3 tiles onward!`);
+    const i = idxOf(t);
+    let at = t.pos;
+    for (const step of bossWalkPath(t.pos, 3)){ await bossHopToken(i, at, step); at = step; t.pos = step; }
+    bossLayoutTokens();
+    await bossArrive(t);
+  } else if (id === "wpmagnet"){
+    if (!b.weakpoints.length){ log(`🧿 No weakpoint answers the charm.`); return; }
+    const t = await pickAlly("Pull a weakpoint in front of who?", game.players.filter(q => q !== p));
+    if (!t) return;
+    p.items.splice(idx, 1);
+    const dest = bossStep(t.pos, 1);
+    let ni = 0;
+    b.weakpoints.forEach((w, k) => {
+      const d = Math.abs(w - dest);
+      const best = Math.abs(b.weakpoints[ni] - dest);
+      if (Math.min(d, BOSS_MODE.RING_COUNT - d) < Math.min(best, BOSS_MODE.RING_COUNT - best)) ni = k;
+    });
+    b.weakpoints[ni] = dest;
+    SFX.play("sparkle");
+    log(`🧿 The Seeker Charm hums — a weakpoint slides right in front of ${t.name}!`);
+    paintBossTiles();
+  } else if (id === "flare"){
+    p.items.splice(idx, 1);
+    b.charges.forEach(c => c.turnsLeft++);
+    SFX.play("sparkle"); flashScreen();
+    log(`🔦 ${p.name}'s flare blinds ${b.def.name} — every charging attack is a turn slower!`);
+    paintBossTiles();
+  } else if (id === "warpaint"){
+    p.items.splice(idx, 1);
+    b.paint++;
+    SFX.play("rule"); iconPopup(p, "🎯", 1);
+    log(`🎯 ${p.name} marks the beast — the next weakpoint hit lands DOUBLE!`);
+  } else if (id === "decoy"){
+    if (!b.charges.length){ log(`🕊️ Nothing is charging — the dove circles, unbothered.`); return; }
+    p.items.splice(idx, 1);
+    b.charges.shift();
+    SFX.play("sparkle");
+    log(`🕊️ The Decoy Dove flutters past — ${b.def.name} forgets its oldest attack!`);
+    paintBossTiles();
+  } else if (id === "gust"){
+    p.items.splice(idx, 1);
+    SFX.play("horn");
+    log(`💨 ${p.name}'s Gust Feather — a tailwind carries the whole team 2 tiles onward!`);
+    for (const q of game.players){
+      const i = idxOf(q);
+      let at = q.pos;
+      for (const step of bossWalkPath(q.pos, 2)){ await bossHopToken(i, at, step); at = step; q.pos = step; }
+      await bossArrive(q);
+      if (game.over) return;
+    }
+    bossLayoutTokens();
+  } else if (id === "elixir"){
+    p.items.splice(idx, 1);
+    const L = b.def.lose;
+    if (L.type === "rounds"){ b.bonusRounds = (b.bonusRounds||0) + 2; log(`🧪 The Team Elixir buys 2 more rounds!`); }
+    else if (L.type === "hits"){ b.teamHits = Math.max(0, b.teamHits - 2); log(`🧪 The Team Elixir shakes off 2 of the team's hits!`); }
+    else if (L.type === "light"){ b.light += 2; log(`🧪 The Team Elixir feeds the emberlight — +2!`); }
+    else { b.banner++; log(`🧪 The Team Elixir steels the line — the next strike on the team is absorbed!`); }
+    SFX.play("sparkle");
+    paintBossLose();
+  }
+}
+// Bots spend their crate finds when the moment is right — patch the hurt,
+// flare a strike that's about to land, keep the doom meter breathing.
+async function botMaybeUseBossItem(p){
+  const b = game.boss;
+  for (let k = p.items.length - 1; k >= 0; k--){
+    const id = p.items[k], def = itemDef(id);
+    if (!def || !def.boss) continue;
+    const L = b.def.lose;
+    const striking = b.charges.some(c => c.turnsLeft <= 1);
+    const doom = (L.type === "hits" && b.teamHits >= L.n - 2)
+              || (L.type === "light" && b.light <= 2)
+              || (L.type === "rounds" && game.round >= L.n + (b.bonusRounds||0) - 3);
+    if (id === "bandage" && game.players.some(q => q !== p && ((q.bossSkip||0) > 0 || q.downed || q.frozen))) await useItem(p, k);
+    else if (id === "banner" && !b.banner && striking) await useItem(p, k);
+    else if (id === "rally") await useItem(p, k);
+    else if (id === "grapple" && game.players.some(q => q !== p && b.weakpoints.includes(bossStep(q.pos, 3)))) await useItem(p, k);
+    else if (id === "wpmagnet" && b.weakpoints.length) await useItem(p, k);
+    else if (id === "flare" && striking) await useItem(p, k);
+    else if (id === "warpaint" && !b.paint) await useItem(p, k);
+    else if (id === "decoy" && b.charges.some(c => c.tiles.length >= 6)) await useItem(p, k);
+    else if (id === "gust" && game.players.filter(q => b.weakpoints.includes(bossStep(q.pos, 2))).length >= 1) await useItem(p, k);
+    else if (id === "elixir" && doom) await useItem(p, k);
+  }
 }
 // Bots time their consumables instead of burning them blindly: coffee is held
 // near the finish (overshoot!), the clover waits for a landing worth forcing,
@@ -6891,6 +7741,25 @@ async function botMaybeUseItem(p){
       const rivals = game.players.filter(q => q !== p && !q.finished && q.pos > 0);
       const top = rivals.reduce((a,q)=> !a || q.pos > a.pos ? q : a, null);
       if (top && (bagFull || Math.abs(p.pos - top.pos) >= BOT.SING_SAFE_DIST)) await useItem(p, k);
+    } else if (id === "boomerang"){
+      if (bagFull || game.players.some(q => q !== p && !q.finished && q.pos > p.pos)) await useItem(p, k);
+    } else if (id === "magnet"){
+      const lead = game.players.filter(q => q !== p && !q.finished && q.pos > p.pos);
+      if (bagFull || lead.length) await useItem(p, k);
+    } else if (id === "bell"){
+      const near = p.pos >= 1 && game.players.some(q => q !== p && !q.finished && q.pos > 0
+        && gridNear(p.pos, q.pos, BELL.NEAR));
+      if (near || (bagFull && p.pos >= 1)) await useItem(p, k);
+    } else if (id === "rocket"){
+      const top = Math.max(...game.players.filter(q => q !== p && !q.finished).map(q => q.pos), 0);
+      if ((bagFull || top - p.pos >= 10) && p.pos < BOT.COFFEE_MAX_POS) await useItem(p, k);
+    } else if (id === "sleepdart"){
+      if (bagFull || game.players.some(q => q !== p && !q.finished && !q.downed && q.pos > p.pos
+        && Math.abs(q.pos - p.pos) <= SLEEPDART.RANGE)) await useItem(p, k);
+    } else if (id === "extinguisher"){
+      if (p.radSick || (p.singeRolls||0) > 0 || p.dizzy || bagFull) await useItem(p, k);
+    } else if (id === "map"){
+      await useItem(p, k);                                 // free coins — dig at once
     }
   }
 }
@@ -7274,11 +8143,13 @@ async function tourLegDone(){
   for (let i = pool.length - 1; i > 0; i--){ const j = (Math.random()*(i+1))|0; [pool[i], pool[j]] = [pool[j], pool[i]]; }
   for (const c of pool.slice(0, TOUR.BONUS.COUNT)){
     const best = Math.max(...game.players.map(c.stat));
-    game.players.filter(p => c.stat(p) === best).forEach(w => {
+    const winners = game.players.filter(p => c.stat(p) === best);
+    await bonusCardReveal("🎁 Bonus points", c, winners, best, `+${TOUR.BONUS.POINTS} ⭐`);
+    winners.forEach(w => {
       tour.points[game.players.indexOf(w)] += TOUR.BONUS.POINTS;
       log(`🎁 ${c.ico} ${c.name} (${best}) — ${w.name} banks +${TOUR.BONUS.POINTS} tour points!`);
     });
-    await sleep(TOUR.BONUS.REVEAL_MS);
+    await sleep(500);
   }
   const loser = s[s.length - 1];
   const consum = SHOP_CATALOG.filter(i => i.enabled && !i.craftOnly && i.kind === "consumable");
@@ -7292,7 +8163,9 @@ async function tourLegDone(){
     }
     log(`📦 Pity box! ${loser.name} finds ${got.join(" ")} inside.`);
   }
-  tour.carry = game.players.map(p => ({ items:[...p.items], passive:p.passive, passive2:p.passive2,
+  tour.carry = game.players.map(p => ({
+    items: p.items.filter(id => { const d = itemDef(id); return !(d && d.boss); }),   // the arena kit stays in the arena
+    passive:p.passive, passive2:p.passive2,
     coins:p.coins||0, curses:[...(p.curses||[])], diceCharges:p.diceCharges||0, fish:p.fish||0 }));
   game.players.forEach((p, i) => { p.tourPts = tour.points[i]; });
   renderScoreboard();

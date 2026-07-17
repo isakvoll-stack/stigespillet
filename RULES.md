@@ -26,37 +26,70 @@ live in the `GAME_MODES` DATA table):
     🐟 Master angler (most fish), 🏔️ Peak bagger (most laps), 🎒 Gadget lover
     (most items used), 💀 Hardest knocks (knocked down/frozen the most) — and
     every leader of a drawn category earns **+2 trophies** (ties pay everyone
-    tied; a category nobody scored in is never drawn).
+    tied; a category nobody scored in is never drawn). Each category gets its
+    own **full-screen reveal card**: the category shows first, a drumroll of
+    dots builds, THEN the winners flash in (`BONUS_CARD` timings).
   - Then **most trophies takes the hill**. A tie is broken
     by whoever is **furthest up the board**. The podium and leaderboard show
     everyone's 🏆 count, and the HUD shows *Round X of Y* all game.
   *(All payouts + the rounds formula are tunables in the `KOTH` DATA block.)*
 - **👹 Boss Battle** — co-op: the board is a **hollow 11×11 square of 40
   tiles** looped around a central arena where the boss sits. A **giant die
-  opens the fight**: faces 1–5 are the five bosses, a 6 summons **🃏 the
-  Joker**. Everyone starts on the START tile and laps **clockwise forever** —
-  no finish line; the team wins by bringing the boss's **HP to 0**. Landing on
-  a purple **◎ weakpoint** chips 1 HP (5 live at a time; a hit one respawns
-  elsewhere). The boss acts **at the start of every round**: **red-bordered
-  tiles** are where its charging attack will land — stand there when it
-  strikes and you eat the boss's signature blow. At **⅔ and ⅓ HP** the boss
-  escalates AND winds up a **SUPER** — marked **yellow** while it cooks, red
-  on its final turn, double size and power. The roster:
-  - **🐉 Ember Dragon** — sweeping arcs of flame; a hit blows you back 3 and
-    **singes** your next roll (−2).
-  - **🐙 Deep Kraken** — tentacles on scattered tiles; a hit **drags you 6
-    tiles back**.
-  - **🧊 Frost Titan** — huge, slow arcs (3-turn charge); a hit **freezes you
-    for a turn**.
-  - **⚡ Storm Wyrm** — small strikes that charge in **a single turn**; a hit
-    **floors you for a turn**. Keep moving.
-  - **🕳️ Void Maw** — a hit hurls you to a **random tile**, and its
-    **weakpoints wander every boss turn**.
-  - **🃏 The Joker** — mimics a random boss's style and **reshuffles at every
-    phase change**.
-  Rolling a 6 still rolls again. Items, shops and the classic special tiles
-  are **off** in this mode for now; lose conditions, lap rewards and co-op
-  items are still to come. *(Tunables: `BOSS_MODE`, `BOSSES`, `BOSS_SUPER`.)*
+  opens the fight**: faces 1–6 are the six bosses — and sometimes it lands on
+  its **edge** and **🃏 the Joker** takes the ring (`BOSS_INTRO.JOKER_CHANCE`).
+  Everyone starts on the START tile and laps **clockwise forever** — no finish
+  line; the team wins by bringing the boss's **HP to 0**. Landing on a purple
+  **◎ weakpoint** chips 1 HP (5 live at a time; a hit one respawns elsewhere).
+  The boss acts **at the start of every round**, drawing from its **move
+  deck**: each boss only ever attacks in ITS shapes, so the patterns are
+  recognisable at a glance — small moves open **right in front of the
+  runners**, big ones sweep **whole stretches of the board**. Charging tiles
+  wear a **fat red outline, a red wash and a ⚠️ danger sign**; **yellow** (fat
+  outline + wash, no sign) is reserved for the **SUPER** each phase change
+  winds up — double size and power, red on its final turn. Strikes land with
+  each boss's own **flash + sound**, and the beast lunges. At **⅔ and ⅓ HP**
+  the boss escalates (phases). The roster — each with its own way for the
+  TEAM to **lose**:
+  - **🐉 Ember Dragon** — contiguous **flame cones** (Fire Breath → Crossfire →
+    Inferno Sweep); a hit blows you back 3 and **singes** your next roll (−2).
+    *Lose: the arena burns down after **20 rounds**.*
+  - **🐙 Deep Kraken** — **evenly-spaced tentacle slams** all around the ring,
+    later also **grabs right in front of every runner**; a hit **drags you 6
+    tiles back**. *Lose: **12 strikes** on the team and the deck goes under.*
+  - **🧊 Frost Titan** — **whole edges of the ring** freeze over (slow, 3-turn
+    charge); a hit **freezes you for a turn**. *Lose: if the WHOLE team is
+    ever iced at once, the arena entombs you.*
+  - **⚡ Storm Wyrm** — fast jolts on the **tiles right in front of you**
+    (1-turn charge), later a **zigzag storm front**; a hit **floors you for a
+    turn**. *Lose: the storm peaks after **16 rounds**.*
+  - **🕳️ Void Maw** — **mirrored void rifts** (a tile and its far twin); a hit
+    hurls you to a **random tile**, and its **weakpoints wander**. *Lose: the
+    **✨ emberlight** fades 1 per round — land on the ✨ sparks to rekindle it
+    (+2); at 0 the void wins.*
+  - **🦍 Kong** — no charges at all: he **hurls barrels** (1–3 per turn by
+    phase) that **roll backwards around the ring**, 5 tiles per boss turn —
+    the tiles they'll roll over glow red. A barrel **bowls you over** (2 back,
+    lose a turn). *Lose: **10 barrel hits** on the team.*
+  - **🃏 The Joker** — mimics a random boss's full style and **reshuffles at
+    every phase change** (scrapping whatever was cooking). *Lose: the joke
+    wears thin after **20 rounds**.*
+  The doom meter (rounds / hits / emberlight) reads **under the HP bar**.
+  The ring also has **normal squares**: **blue tiles pay 🪙3** on landing, and
+  **🎁 crates** hold the **support kit** (below). A **full lap pays 🪙5 + a
+  crate** — but only once you've crossed the **far side** of the ring since
+  your last lap (getting knocked back over START and re-crossing pays
+  nothing). Road items (coffee, shields…) have no power in the arena; the
+  **support kit** (crates only, never sold) is all about the TEAM: **🩹 Field
+  Bandage** (stand a reeling ally up), **🚩 Guard Banner** (absorbs the next
+  strike on anyone), **📣 Rally Cry** (+1 to everyone's next roll), **🪝
+  Grapple Hook** (yank an ally 3 onward), **🧿 Seeker Charm** (slide a
+  weakpoint in front of an ally), **🔦 Blinding Flare** (all charges +1 turn),
+  **🎯 War Paint** (next weakpoint hit deals double), **🕊️ Decoy Dove**
+  (scraps the oldest charge), **💨 Gust Feather** (whole team +2 tiles), **🧪
+  Team Elixir** (buys more of whatever doom meter is running out). The kit
+  vanishes when the arena falls. Rolling a 6 still rolls again.
+  *(Tunables: `BOSS_MODE`, `BOSSES`, `BOSS_SUPER`, `BOSS_RING`, `KONG_BOSS`,
+  `BOSS_ITEMS`.)*
 - **🌪️ Mayhem** — Classic gone feral. **Every plain square hides a random
   special tile** (weights in `MAYHEM.REPLACE_WEIGHTS`), rare-event chances are
   **tripled**, once a round the **chaos pool surges** and strikes a random
@@ -66,7 +99,8 @@ live in the `GAME_MODES` DATA table):
   *(Tunables in the `MAYHEM` DATA block.)*
 - **🗺️ The Grand Tour** — the campaign: **five legs**, with placement points
   (**10/6/4/2/1**, `TOUR.POINTS`) plus **two bonus categories** (+2 each,
-  drawn from the KOTH list) banked between legs. **Bags, purses, passives and
+  drawn from the KOTH list, each revealed on the full-screen **suspense
+  card** — category first, drumroll, then the winner) banked between legs. **Bags, purses, passives and
   pacts carry across legs.** Most tour points after leg 5 wins.
   - **Leg 1** — plain classic; everyone starts with ☕ + an active 🛡️ and the
     🪙6 stipend.
@@ -75,7 +109,9 @@ live in the `GAME_MODES` DATA table):
   - **Leg 4** — Boss Battle, scored by **damage dealt**.
   - **Leg 5** — **Mayhem**, always.
   - **Finish window**: once someone reaches 90 on a race leg, everyone else
-    has **5 rounds** to climb — and **overshoot stops bouncing back**.
+    has **5 rounds** to climb — and **overshoot stops bouncing back**: any
+    roll that reaches 90 carries you in. A 🏁 card spells this out the moment
+    the first player gets home.
   - **Leader pressure**: the points leader wears a 👑 and draws only **half
     the stipend**. **Catch-up**: dead last starts with a shield if ≥10 points
     behind AND under half of first place. **Pity box**: each leg's loser gets
@@ -131,6 +167,12 @@ random. They're built to bend what you take for granted:
   cursed 1s — bypass the choice and keep the classic 6 rule. Either die (or
   the ↓ arrow key, or Enter) starts a roll. The Everburning
   Heart still allows no bonus rolls at all.
+  - **🐍 Snake eyes** — roll a **double 1** and the serpents call: instead of
+    walking, you're carried to the **nearest snake head ahead of you** (the
+    last snake on the board if none remain ahead) and the landing plays out
+    as usual — normally straight down the snake. Doubles still grant the
+    bonus roll afterwards. *(Toggle: `FEATURES.snakeEyes`; a Serpent Pact
+    holder just stands on the head, unswallowed.)*
   - **🔦 Show both landings** (sub-setting, on by default) — while you pick, the
     two squares you would **actually** walk to light up (a ring + the face
     number, and a dashed line if a ladder/chute waits there). The preview
@@ -359,14 +401,17 @@ trapdoor is patched: tile 89 is a completely normal tile for the rest of the gam
 *Toggle: `FEATURES.trapdoor`. Tile/arc tunables in `TRAP89`.*
 
 ### The gray warp square (hidden rule)
-One **gray square** (tile 44) doesn't like being stood on. Landing on it does nothing —
-but **start your turn** still standing there and the whole board **flips 90, 180 or
-270 degrees** (picked at random) with **every colour inverted**, and you have to play
-your turn like that. Aiming, clicking and cutscenes all still work on the flipped
-board — only your head struggles. The board rights itself when the next player's turn
-begins (unless they, too, woke up on the gray square).
+One **gray square** (tile 44) doesn't like being stood on. **Stop there** (your own
+roll or a knock-back) and a **giant 5-second countdown** ticks over the board —
+5… 4… 3… 2… 1… — then the whole board **flips 90, 180 or 270 degrees** (picked at
+random) with **every colour inverted**. It stays that way for a **full round**,
+righting itself only when the **lander's next turn begins** — so everyone in
+between plays flipped. Aiming, clicking and cutscenes all still work on the
+flipped board — only your head struggles. One twist at a time: while the board is
+flipped, the gray square holds its fire.
 
-*Toggle: `FEATURES.warp`. Tile in `WARP_TILES` (44), angles/spin timing in `WARP`.*
+*Toggle: `FEATURES.warp`. Tile in `WARP_TILES` (44); countdown, angles and spin
+timing in `WARP`.*
 
 ### The tan dizzy square (hidden rule)
 One **tan square** (tile 56) spins like a fairground ride. **End your movement there**
@@ -423,22 +468,28 @@ so a 2-player duel and a 6-player party see the same number of strikes per
 
 ### Orange choice — Wheel / Support / Gun (hidden rule)
 Land on an **orange square** and pick one of three:
-- **🎡 Wheel** — spin the wheel of fortune; each slice is **1-in-8**: **Nuke**
+- **🎡 Wheel** — spin the wheel of fortune; each slice is **1-in-9**: **Nuke**
   (knocks down everyone *not* standing on a blue tile), **back to start**,
   **forward one square**, **forward 15 squares**, two **🎲 Random** slices, **🌀 Tile shuffle**
   (every special tile — teleporters, orange, freeze, shops, fishing **and the dark-red
   setback square and the gray warp square** — moves to a fresh random spot, avoiding snake and ladder squares.
-  A setback square reshuffled high up the board is devastating), or **💰 Gold rain**
+  A setback square reshuffled high up the board is devastating), **💰 Gold rain**
   (a shower of **30 coins** — but the sheer weight of the falling gold hammers you
   **two rows straight down** the board: same column, *not* back along the path.
   If the floor is closer you fall as far as it goes; ladders, chutes and tile effects
   fire where you land. On the **bottom row** there's nowhere to fall — you're simply
-  **knocked flat** where you stand. Amounts in `GOLD_RAIN`).
+  **knocked flat** where you stand. Amounts in `GOLD_RAIN`), or **🦍 KONG**
+  (an enormous ape climbs onto the **top of the board**, beats his chest and
+  bowls **3 barrels down the numbered path** — and a barrel reaching a
+  **ladder's top rides the ladder down**, exactly like the arcade. Anyone a
+  barrel rolls over is **knocked flat** — Shields block, Mirrors deflect; the
+  barrels burst at tile 1. Tunables in `KONG`).
 
   The two **🎲 Random** slices share one **chaos pool of EVERYTHING the game can
   do** (the `WHEEL_CHAOS` registry): every classic strike (lightning, lucky star,
   fate swap, nuke, freeze, teleport, roulette, support, picked off, gold rain,
-  tile shuffle, back to start, forward 1/15, gain a fish, nothing at all), a
+  Kong's barrels, tile shuffle, back to start, forward 1/15, gain a fish,
+  nothing at all), a
   **coin windfall** and a **coin pickpocketing** (`CHAOS` amounts), **any shop or
   black-market item conjured straight into a player's hands and used on the spot**
   (aim and choices made at random via the bot logic — passives equip themselves,
@@ -626,6 +677,24 @@ next game.
 - **🔥 Fire Egg** — **5 coins.** Hurl it at a **rival within 8**: they're **singed**
   — their **next roll burns 2 steps shorter** (`FIRE_EGG.SINGE`; a low roll can shrink
   to nothing, or even drag them backwards like radiation).
+- **🪃 Boomerang** — **6 coins.** Whirls at the **nearest rival ahead of you**
+  (any distance) and knocks them **3 tiles back** (`BOOMERANG.KNOCK`). No one
+  ahead = the boomerang stays in the bag.
+- **🧲 Magnet** — **5 coins.** Drags the **nearest rival 4 tiles toward you**
+  (`MAGNET.PULL`) — back if they're ahead, forward if they're behind (careful).
+- **🔔 Alarm Bell** — **7 coins.** A deafening CLANG: every rival within **2
+  grid-tiles** of you stumbles **3 back** (`BELL`). Rings hollow from the
+  start lane.
+- **🚀 Pocket Rocket** — **8 coins.** Strap in: flies you **7–12 tiles
+  forward** — but **1 in 4** misfires and blasts you **5 back** (`ROCKET`).
+- **💤 Sleep Dart** — **7 coins.** A rival within **8 tiles** takes a sudden
+  nap — knocked flat, normal get-up rules (Shields block, Mirrors deflect;
+  `SLEEPDART.RANGE`).
+- **🧯 Extinguisher** — **4 coins.** Hoses YOU down: radiation sickness,
+  Fire-Egg singes and dizziness all wash away (it doesn't grant the mutant's
+  hardening — you just stop being sick).
+- **🗺️ Treasure Map** — **5 coins.** X marks this very spot: dig up **3–8
+  coins** (`TREASURE`).
 
 **Passive** (1 slot, always on while equipped — **Mayhem fits 2 at once**;
 a new passive fills a free slot first, then replaces a non-Candle one):
@@ -640,6 +709,13 @@ a new passive fills a free slot first, then replaces a non-Candle one):
   none of it keeps you on the floor for more than a turn.
 - **👑 Crown** — **12 coins.** **+5 coins every time you end your turn in sole
   1st place** on the board (`CROWN_COINS`). Wealth flows to the front-runner.
+- **🐷 Piggy Bank** — **8 coins.** Blue tiles pay you **double** (`PIGGY_MULT` —
+  normally 🪙6 instead of 🪙3).
+- **🧦 Wool Socks** — **7 coins.** The **icy squares and frozen neighbours
+  can't freeze you** (a thrown ❄️ Snowball or a boss's flash-freeze still can —
+  socks don't stop projectiles).
+- **🎩 Top Hat** — **8 coins.** Style pays: every **6 you roll earns 🪙3**
+  instead of 1 (`TOPHAT_SIX`).
 
 ### Crafting — the Singularity Bomb (hidden rule)
 Some items don't want to stay apart. Carry **any two** of **🛡️ Shield, 💣 Bomb and
