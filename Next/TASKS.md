@@ -11,6 +11,16 @@ See `LOG.md` for the running session history.
 
 ## Active
 
+### The Twist Direction (Isak, 2026-07-17)
+- [ ] **Make the game the "unexpected twist" on S&L it's meant to be** — Isak:
+      the game does NOT achieve that yet. Full deep-dive + canonical build plan
+      in **`Next/TWIST_DIRECTION.md`** (read it first; don't re-derive). Short
+      version: keep all content, stage it — Director acts (innocent opening →
+      cracks → the board is alive), cosmetic anomalies + act-aware voice, and
+      ONE guaranteed finale at tile 90 ("something under the board", leviathan
+      lore). Phases 1–5 in the doc; Phase 2 and 4 each end in an Isak playtest
+      gate. Open defaults logged in QUESTIONS.md (2026-07-17 twist section).
+
 ### Queued from Isak's 8-point batch (2026-07-10)
 - [x] **Design game mode — «Boss battle»** (Isak, 2026-07-10) — design locked in
       the 2026-07-14 brainstorm (canonical spec below); foundation skeleton

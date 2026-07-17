@@ -3,6 +3,24 @@
 Standing file: autonomous sessions log clarifications here instead of stopping to ask.
 Answer whenever — each answer gets folded in and the question checked off.
 
+## 2026-07-17 — the Twist Direction (design defaults; see Next/TWIST_DIRECTION.md)
+
+- [ ] **Default flip**: plan makes Director-staged play the DEFAULT Classic once
+  playtested, with today's everything-on game kept as a "🎪 Party" toggle. OK,
+  or keep Director as its own mode / behind Full experience instead?
+- [ ] **Finale set-pieces**: pool seeded with 3 concepts (leviathan Breach /
+  hidden Tenth Row / board-flip Turn) — these are MY seeds. Do you want to
+  dictate your own finale visions (they'd be captured verbatim and built
+  instead/first)? Which concept should be built first? (Default: the Breach.)
+- [ ] **Race guarantee in a finale**: the player who reaches 90 first keeps a
+  guaranteed podium spot (default: worst case 2nd) so the race still matters.
+  Right guarantee? Or should waking the beast risk everything?
+- [ ] **Act 0 length**: innocent opening defaults to ~3–5 rounds (shorter for
+  remembered veterans). Feels right, or should the plain game breathe longer?
+- [ ] **Anomalies in Family mode**: kept ON (purely cosmetic spookiness — a
+  blinking snake eye, a die flashing 7). Fine for the family table, or strip
+  them there too?
+
 ## 2026-07-17 — menus/coins/boss-tiles batch (defaults picked, say if wrong)
 
 - [ ] **Weakpoint patterns**: three symmetrical defaults in
