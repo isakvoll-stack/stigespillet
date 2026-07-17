@@ -3,23 +3,30 @@
 Standing file: autonomous sessions log clarifications here instead of stopping to ask.
 Answer whenever — each answer gets folded in and the question checked off.
 
-## 2026-07-17 — the Twist Direction (design defaults; see Next/TWIST_DIRECTION.md)
+## 2026-07-18 — Twist Direction v2 (party/replayability rework; see Next/TWIST_DIRECTION.md)
 
-- [ ] **Default flip**: plan makes Director-staged play the DEFAULT Classic once
-  playtested, with today's everything-on game kept as a "🎪 Party" toggle. OK,
-  or keep Director as its own mode / behind Full experience instead?
-- [ ] **Finale set-pieces**: pool seeded with 3 concepts (leviathan Breach /
-  hidden Tenth Row / board-flip Turn) — these are MY seeds. Do you want to
-  dictate your own finale visions (they'd be captured verbatim and built
-  instead/first)? Which concept should be built first? (Default: the Breach.)
-- [ ] **Race guarantee in a finale**: the player who reaches 90 first keeps a
-  guaranteed podium spot (default: worst case 2nd) so the race still matters.
-  Right guarantee? Or should waking the beast risk everything?
-- [ ] **Act 0 length**: innocent opening defaults to ~3–5 rounds (shorter for
-  remembered veterans). Feels right, or should the plain game breathe longer?
-- [ ] **Anomalies in Family mode**: kept ON (purely cosmetic spookiness — a
-  blinking snake eye, a die flashing 7). Fine for the family table, or strip
-  them there too?
+*(The 2026-07-17 Director/story questions were withdrawn — that whole direction
+was rejected by Isak 2026-07-18 and is recorded as such in the doc.)*
+
+- [ ] **Always-on core set**: which rules should NEVER sit out a draw? Default
+  picked: exact finish, six-again, encounter. Everything else (sniper, freeze,
+  fishing, orange, shops/coins, teleporters, trapdoor, warp, dizzy, secret
+  square…) goes in the draw pool. Anything you'd promote to always-on (shops?)
+  or demote?
+- [ ] **Draw density**: ~60–75% of the optional pool live per game, item catalog
+  ~12 of the full list. Chaotic enough? (The "🎪 Everything" preset keeps
+  today's all-on game either way.)
+- [ ] **Scrambled board default**: in drawn games the special-tile layout starts
+  scrambled every game (so tile spots can't be memorised). OK as default, or
+  keep classic spots and let 🌀 stay opt-in?
+- [ ] **Twist of the Night odds**: 1 in 3 games carries one secret leg twist,
+  announced at a random early-mid round. Right frequency? Any of the 10 twists
+  you'd EXCLUDE from Classic (they were built for Tour legs)?
+- [ ] **End-screen "Tonight's board" reveal**: full draw shown after the podium
+  (what was live, what never existed). Keep, or should some things stay secret
+  even then?
+- [ ] **Pop-up count**: 2–4 per game guaranteed (tiles growing in, chests, rules
+  waking mid-game). Feel right for a ~30–45 min game?
 
 ## 2026-07-17 — menus/coins/boss-tiles batch (defaults picked, say if wrong)
 

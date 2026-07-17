@@ -1,207 +1,165 @@
-# The Twist Direction — instructions to future Claude sessions
+# The Twist Direction v2 — instructions to future Claude sessions
 
-> **Origin (Isak, 2026-07-17):** *"I need the game to be this unexpected twist on the
-> SS, but it does NOT achieve that yet. Deep dive, figure out how, write the
-> instructions to yourself."* This doc is that deep dive + the build plan. Read it in
-> full before building anything from it. It is a DIRECTION doc like `BOSS_DESIGN.md`
-> — the canonical why/what; task checkboxes live in `TASKS.md`.
-
----
-
-## 1. Diagnosis — why the game isn't a "twist" yet
-
-The game has enormous content (20+ hidden rules, 25+ items, exotics, pacts, 5 modes)
-but content volume is not a twist. A twist is a **recontextualization**: the player
-holds a confident expectation, and the game breaks it in a way that snaps into a new
-understanding. Measured against that, four honest problems:
-
-1. **The surprise is spent in minutes, then plateaus.** Everything is live from turn
-   1, so within 2–3 minutes (first shop, first orange square, first Rule+ card) the
-   player's model updates once — *"ah, wacky chaos S&L"* — and never has to update
-   again. Rule #14 lands the same as rule #4. There is no normalcy established, so
-   there is nothing to subvert.
-2. **Chaos density is flat.** Rare-event chances are constant %/turn from the first
-   roll. The game has no arc — classic S&L's natural shape (calm middle, tense
-   finish) is never harnessed. Uniform noise reads as a *style*, not a *twist*.
-3. **The surprises are additive, not subversive.** Almost every rule operates inside
-   the S&L frame: move more/less, knock down, coins. They subvert *balance*, never
-   *premise*. The genuinely subversive seeds already in the game — the trapdoor
-   (the board lies), the secret square (the board has places that don't exist), the
-   gray warp (the board fights back), the leviathan (something lives under it), the
-   Broken Gate (something is wrong behind the board) — are scattered, mutually
-   unaware, and drowned in item noise. There's no coherent second identity being
-   revealed.
-4. **RNG owns the pacing.** Whether a first game is a mind-blower or a plain dice
-   race is dice luck. The most important beats (the first crack, the first big
-   reveal) are the ones least under control. The twist is above all a **first-play
-   phenomenon**, and nothing protects the first play.
-
-**Thesis: keep all the content — change WHEN and WHY it appears, and give the
-strangeness one identity.** Nothing gets thrown away; the existing chaos becomes the
-*middle* of an arc instead of the whole game.
+> **Origin (Isak, 2026-07-17):** the game must be an *unexpected twist* on snakes &
+> ladders, and isn't yet.
+>
+> **v1 REJECTED (Isak, 2026-07-18) — do not re-propose it.** v1 was a dramaturgy
+> engine: Director acts, an innocent scripted opening, a storyline ("something under
+> the board"), one-per-game narrative finales. Isak's ruling, near-verbatim:
+> *replayability is the game's biggest strength and a staged arc hurts it; a
+> storyline hurts the all-around-friendly, many-kinds-of-people quality. It's NOT a
+> dramatic game — it's a party game where you play and laugh together as more and
+> more things pop up to mess with the game. And it must never become a burden — no
+> memorising, no thinking in chess moves.* Any future idea that trades replay value
+> for a first-play wow, or that gives the game a plot/persona, is off-direction.
+>
+> **The reframed goal:** the "twist" is not one reveal — it's that **the game keeps
+> being able to surprise the table, game after game**. Design for game 20, not game 1.
 
 ---
 
-## 2. The design — three pillars
+## 1. Diagnosis (updated for the party-game lens)
 
-### Pillar A — The Innocent Opening
-The game must open convincingly as the game everyone remembers. Plain board, dice,
-ladders, snakes, polite boardgame-manual tone. No shops, no items, no orange, no
-coins visible, nothing. Slightly *too* tidy and nostalgic on purpose. Players must
-have time (a few rounds) to settle into "I know this game" — that confidence is the
-raw material the twist spends. The existing `UNLOCKS.full`-off presentation (plain
-classic, no mode picker) is the seed of this and shows it already works.
+- **The surprise pool is static.** Every Classic game runs the same rules on the
+  same board with the same items. RNG shuffles *order*, never *contents* — so after
+  enough games the table has seen everything, knows every tile, and surprise decays
+  toward zero. Replayability today survives on chaos variance alone.
+- **"Things pop up" is only half-true.** Rules *reveal* as you trip them, but they
+  were all silently there from turn 1. Nothing new actually *enters* the game while
+  you play — a veteran is never surprised, only reminded.
+- **Cognitive load is quietly creeping.** ~20 rules + ~25 items + exotics + 9 pacts
+  are all potentially in play at once, every game. Nobody must study, but the pile
+  grows with every content batch and one day it WILL feel like homework. Volume of
+  simultaneous content is now a cost, not a feature.
 
-### Pillar B — The Director (a dramaturgy engine)
-A new DATA-driven layer that stages the game in **acts**, keyed to real progress
-(leader's tile + round count), not raw RNG. The director decides when rules wake up,
-schedules the first crack instead of praying for it, and ramps chaos density on a
-curve. Acts:
-
-- **Act 0 — "The game you remember."** Pure classic. Plus *anomalies*: tiny,
-  non-mechanical wrongnesses drawn from a pool — a snake's eye blinks once; the die
-  flashes a 7 for a single frame before settling on a real face; one tile flickers
-  the wrong colour for 100 ms; a log line that's slightly off ("Anna rolls 4. The
-  board approves."). Deniable. Players argue about whether they saw it. This is
-  foreshadowing, and it's what makes the later reveals a *twist* rather than a
-  feature list.
-- **Act 1 — "Cracks."** The quiet rules wake, and they wake **visibly**: the first
-  shop tile *grows onto the board* mid-game (tile morph animation) rather than
-  having been printed there all along — the board changing during play IS the
-  message. First Rule+ card fires here, director-scheduled (guaranteed within a
-  round window, e.g. rounds 3–5, triggered by whoever lands it first — rig the
-  opportunity, not the dice).
-- **Act 2 — "The board is alive."** The loud pool wakes: orange squares surface,
-  warp square arms, sniper cadence starts, rare events begin rolling and their
-  chances now scale with a `chaosCurve()` multiplier that rises with leader
-  progress. The tone of Rule+ cards and log lines starts slipping (see Pillar D).
-- **Act 3 — "It knows."** Leader enters the top rows: chaos at full curve, and the
-  game's one guaranteed set-piece — the finale — arms (Pillar C).
-
-Design rules for the director:
-- **It stages, it doesn't add.** Every rule it wakes is an existing FEATURES rule.
-  The director is a gate schedule + chaos multiplier + anomaly scheduler, nothing
-  more. All existing rule logic stays untouched behind its FEATURES flag.
-- **Guaranteed beats, flexible actors.** The director guarantees THAT a beat
-  happens in a window, never WHO triggers it or the dice that do it.
-- **Acts advance on leader-tile thresholds OR round-count fallbacks** (whichever
-  comes first) so a slow game still escalates and a lucky sprint doesn't skip the
-  arc entirely.
-
-### Pillar C — The Undertow (one coherent secret + a real finale)
-Give all the strangeness a single hidden identity: **there is something under the
-board.** The game already believes this — the leviathan lives under the fishing
-squares, the secret square is *off* the board's edge, the Broken Gate is *behind*
-the dealer, tile 89 drops *through* the floor. The twist that recontextualizes:
-the anomalies, the cracks, the dealer, the warp — they were all the same thing
-stirring underneath, and **reaching tile 90 wakes it.**
-
-Concretely: in a director game, the first player to reach 90 does NOT simply win.
-The board shudders, tiles ripple — and one **finale** fires, drawn secretly at game
-start from a `FINALES` pool (so replays differ; no-repeat until the pool is
-exhausted, remembered in localStorage like settings). Finale concepts to seed the
-pool (build 1–2 first, not all):
-
-1. **🌊 The Breach** — the leviathan erupts through the middle of the board
-   (reuses Boss-mode arena/telegraph tech): a short final phase where remaining
-   players scramble for surfacing weakpoint tiles to drive it down; the "winner"
-   who woke it is in the arena too. Winner = classic finisher unless the beast
-   swallows them; team performance decides the rest of the podium.
-2. **🪜 The Tenth Row** — tile 90 sinks; a new row of 10 never-seen tiles rises
-   above row A (the board was never 90 tiles — you just couldn't see the rest).
-   Everyone in the top third races the true finish while the board sheds tiles
-   below them, floor-is-lava style.
-3. **🔃 The Turn** — the board flips (gray-warp tech) and stays flipped: the
-   finish is now tile 1, the ladders now carry DOWN toward it, snakes carry up
-   and away, and the near-winners are suddenly furthest from home.
-- Every finale must be **short** (2–4 rounds), end in a normal podium, and be
-  skippable in spirit — the finisher who "won" the race keeps a guaranteed podium
-  spot in any finale, so the race still mattered (exact guarantee per finale;
-  default: worst case 2nd).
-- ⚠ **Set-piece visions are Isak's lane.** These three are concept seeds for him
-  to react to — treat them like the leviathan/nuke cutscenes: if Isak dictates a
-  finale vision, capture it VERBATIM in `TASKS.md` as a KEEP-FOREVER block and
-  build his, not mine.
-
-### Pillar D — The Voice (cheap, huge payoff)
-The twist needs a narrator to betray. All player-facing prose — Rule+ cards, log
-lines, the win banner — gets an act-aware tone: Act 0 is boardgame-manual polite;
-Act 1 slips occasionally; Act 2 is watching ("You climb quickly. It notices.");
-Act 3 drops the mask. Implementation is one `voice(act, key)` lookup over a `VOICE`
-DATA table with per-act variants — no new systems. Existing embedded-audio tech
-(kill announcer, CHEATER) proves a single low rumble/whisper sting is affordable
-for the finale moment.
+**Thesis: same content, different slice every night.** Make each game a different
+random *subset* + a few things that visibly pop up mid-game. Smaller per-game
+surface (less to track), bigger across-games variety (more to discover) — surprise
+and anti-burden come from the same mechanism.
 
 ---
 
-## 3. Scope decisions (defaults picked — Isak can override, see QUESTIONS.md)
+## 2. The design — four pillars
 
-- **Where it lives:** Director mode becomes the DEFAULT Classic experience once it
-  ships and survives playtesting. The current everything-on-from-turn-1 game stays
-  fully intact as **🎪 Party** (a Board/Game toggle: "director off"). Mayhem is
-  explicitly the anti-director (chaos from turn 1 is its identity) — never gate it.
-  KOTH/Tour: director off in v1; revisit after Classic proves it.
-- **Family mode** composes: director on, finale pool filtered to gentle ones,
-  anomaly pool unchanged (anomalies are free spookiness with zero mechanics).
-- **Repeat players:** localStorage remembers games played; veterans get a tighter
-  Act 0 (fewer innocent rounds) and fresh anomaly/finale draws. A "first game at
-  the table" feel matters more than veteran pacing — when in doubt, protect the
-  newcomer experience (hotseat means new guests join veterans' tables).
-- **Bots** need no new brain: acts only gate which rules exist at a given moment,
-  and bots already handle every rule. Finales that reuse boss tech reuse the boss
-  bot logic.
+### Pillar 1 — The Nightly Draw (each game is a secret hand)
+Every new Classic game secretly draws its configuration:
+
+- **Rules:** a small always-on core (exact finish, six-again, encounter — final
+  membership is Isak's call, see QUESTIONS.md) + a random selection from the
+  optional hidden-rule pool (e.g. 60–75% of them live per game). Is the sniper out
+  tonight? Is tile 89 trapped? Nobody knows until it bites — including veterans.
+- **Board:** scrambled special-tile layout by default in drawn games (machinery
+  exists — `scrambledLayout`), so tile knowledge can't be memorised either. Ladders
+  and snakes NEVER move (standing rule, 2026-06-22).
+- **Items:** the catalog itself is a per-game subset (e.g. ~12 of the pool). The
+  shop feels different every night ("this game has snowballs?!") and the item list
+  stays digestible.
+- **The end-screen reveal:** after the podium, a "🃏 Tonight's board" card lists
+  the full draw — what was live, what never existed. This is the party payoff
+  ("THAT'S why nobody froze!"), it teaches the pool without study, and it makes
+  the *next* draw an event.
+
+Draw = a `DRAW` DATA block (pool entries with weights + `requires` dependencies —
+e.g. black market requires shop/coins; fish powers require fishing). Advanced
+settings toggles become tri-state in spirit: forced-on / forced-off / in-the-draw.
+The current everything-on game is preserved as an "🎪 Everything" preset. Bots need
+nothing new — they already read FEATURES-style gates.
+
+### Pillar 2 — Pop-ups (things enter the game mid-play)
+Isak's own words are the spec: *"more and more things pop up to mess with the
+game."* Make that literally true. Each game guarantees a handful of **pop-up
+moments** (e.g. 2–4, count in DATA) at random rounds, drawn from a pop-up pool:
+
+- a **new special tile grows onto the board** on a random plain square (orange,
+  freeze, shop, fishing, warp, setback… — grow-in morph animation; salvage this
+  tech idea from v1, it's the one piece worth keeping),
+- an **item chest drops** on a tile — first player to land there gets it (works
+  even in games where shops didn't make the draw),
+- a **dormant rule wakes up** mid-game with its Rule+ card,
+- a **one-off strike** from the existing chaos pool hits a random player.
+
+Pop-ups are announced with a short fun card/jingle when they happen — never before.
+Random timing + random content + random placement = replayable by construction; no
+acts, no script, no story. This also means a game that drew a quiet hand still gets
+its "wait, WHAT?" moments.
+
+### Pillar 3 — Twist of the Night (recycle the leg twists)
+The 10 `LEG_MODS` (Mirror World, Opposite Day, Musical Squares, Troll Toll…) are
+already built, already party-toned, and currently locked inside Grand Tour legs
+2–3 — most tables will never see them. Give Classic an optional draw slot: some
+games (say 1 in 3, tunable) secretly carry ONE twist of the night, which announces
+itself with a card at a random early-mid round and lasts the game. No repeats
+until the pool cycles. This is the cheapest big win in the whole plan: ten
+game-changers, zero new mechanics to build or learn.
+
+### Pillar 4 — Party guardrails (the anti-burden law)
+Codify these as standing design rules — check every new feature against them:
+
+1. **Everything explains itself at the moment it happens** — never before, never
+   requiring the manual. (Rule+ cards stay vague & atmospheric — standing rule.)
+2. **No hidden state you must track to play well.** Anything persistent shows a
+   visible marker on the board/scoreboard (shame badge, ice, bubbles — keep it so).
+3. **Choices stay small and flavour-first:** 2–3 obvious options, pickable on gut
+   feeling in 3 seconds. If a choice rewards calculating, redesign it.
+4. **Naive play must stay competitive.** Chaos is the equaliser; optimal play
+   should only ever be a nudge better than laughing and rolling.
+5. **Per-game surface must shrink or hold, never grow.** New content lands in the
+   pools, not in the always-on set. The Draw is the budget that keeps game night
+   light no matter how big the game gets.
+
+### Freshness memory (thread through all pillars)
+Draws, pop-ups and twists are weighted toward what the table has seen *least
+recently* (localStorage, like settings). A rule that sat out three games is due.
+Never lets the same twist-of-the-night repeat back-to-back. This is what keeps
+game 20 surprising — the game quietly rations its own novelty.
 
 ---
 
-## 4. Build plan (phased; each phase ships alone, registry recipe as always)
+## 3. Scope decisions (defaults picked — Isak overrides in QUESTIONS.md)
 
-**Phase 1 — DIRECTOR core.** `DIRECTOR` DATA block: `ACTS` table (per act:
-`featureSet` = FEATURES overrides, `chaosMult`, `anomalyRate`, advance thresholds
-`leaderTile`/`roundCap`), `directorAdvance()` checked at round start, and a
-`chaosCurve()` consulted by `RARE_EVENTS` chance() (multiplier, seat-scaling
-untouched). Feature gating: director holds a per-game overlay over FEATURES —
-never mutate the FEATURES const (Party mode = overlay absent). Acts logged.
-No visuals yet. Headless-verifiable: acts advance, gated rules never fire early,
-full director game terminates.
-⚠ Headless harness: pre-seed the director to the final act (or Party mode) in
-existing test suites so old checks still exercise every rule from turn 1.
+- **Rollout:** build behind a single setup toggle ("🃏 Nightly Draw", default OFF
+  until playtested), then flip to default Classic with Isak's sign-off.
+  "🎪 Everything" preset keeps today's behaviour forever.
+- **Family mode composes:** the draw pool is simply pre-filtered by `FAMILY.OFF`.
+- **Mayhem / Boss Battle / KOTH / Tour untouched.** (Tour already owns the leg
+  twists; twist-of-the-night just shares the same registry.)
+- **No narrative, no persona, no acts, no finales.** The finish line stays the
+  finish line — a won race is never taken away.
+- **No new rules/items as part of this direction.** It's a variety-and-pacing
+  layer over existing content. New content ideas go to IDEAS.md as usual (and
+  future content instantly enriches the pools — the direction scales for free).
 
-**Phase 2 — Staged awakening.** Wire existing tiles/rules into acts. Tile
-*grow-in*: special tiles absent from the painted board until their act (needs
-`setSpecialTiles`-era machinery + a morph animation on `cellColor` change). First
-Rule+ card scheduling. Coins/scoreboard elements appear only when shops wake.
-**Playtest gate: give Isak an act-length feel pass here before building further.**
+---
 
-**Phase 3 — Anomalies + Voice.** `ANOMALIES` pool (each = `run()` + rarity + act
-range; all purely cosmetic, ~1 per 1–2 rounds in Act 0) and the `VOICE` table
-threaded through Rule+ cards/log/banner. Anomalies must never block input or slow
-a turn — they ride existing animations.
+## 4. Build plan (phased; each ships alone; registry recipe as always)
 
-**Phase 4 — First finale.** Build ONE (recommend 🌊 The Breach — biggest tech
-reuse, ties directly to the leviathan lore). `FINALES` registry (`id`, `arm()`,
-`run()`, `podiumRule`, `familySafe`), secret draw at `newGame`, no-repeat memory.
-The finisher-keeps-podium guarantee. Then stop and playtest with Isak before
-finale #2.
+**Phase 1 — Twist of the Night.** Smallest, biggest payoff, everything exists.
+`TWIST_NIGHT` DATA (chance, announce-round window, no-repeat memory) reusing the
+`LEG_MODS` registry + the suspense-card presentation. Headless: full games with
+each twist forced terminate cleanly outside Tour. **Isak playtest gate.**
 
-**Phase 5 — Polish + default flip.** Veteran pacing, Family filtering, Party
-toggle UI, RULES.md (spoiler-light! see below), then flip Director to default
-Classic with Isak's sign-off.
+**Phase 2 — The Nightly Draw.** `DRAW` block (rule pool w/ weights + `requires`,
+item-subset size, scrambled-board default), applied as a per-game overlay — never
+mutate base FEATURES/`SHOP_CATALOG`. End-screen "Tonight's board" card. Headless:
+100 random draws → no dependency violations, all games terminate.
 
-**RULES.md handling:** the twist must not be spoiled by the manual. Document
-Director mode vaguely ("the game reveals itself as you climb") and put full
-mechanical detail in a clearly marked spoiler section at the bottom. Rule+ cards
-stay vague as always (standing rule, 2026-07-03).
+**Phase 3 — Pop-ups.** `POPUPS` DATA (pool, per-game count, round windows) +
+tile grow-in animation + chest item. Guaranteed-count scheduler (windows, not
+scripted rounds). **Isak playtest gate before default-on.**
+
+**Phase 4 — Freshness + flip.** localStorage recency weighting across all three
+systems; defaults flipped per Isak's answers; RULES.md updated (keep the draw
+pools spoiler-light — list that pools exist, not their exact contents).
 
 ---
 
 ## 5. What NOT to do
 
-- Don't add new rules/items as part of this direction — the game is content-rich
-  and pacing-poor; this direction is pacing work. New content ideas go to
-  `IDEAS.md`/`SUGGESTIONS.md` as usual.
-- Don't let the director touch Mayhem, Boss Battle, or a mid-series Match game.
-- Don't reveal the undertow fiction in Act 0/1 text — the words "leviathan",
-  "under", "awake" never appear before Act 2.
-- Don't build more than one finale before Isak has played one.
-- Don't gate bug-fix or verify sessions on this doc — it changes the default game
-  only at Phase 5.
+- No acts, no story, no voice/persona, no scripted first-play experience (v1 is
+  rejected — see header).
+- Don't move ladders/snakes, ever.
+- Don't put anything strategic behind the draw (no draft screens, no picking your
+  rules — the DRAW is secret and automatic; choosing rules is what Advanced
+  settings is for).
+- Don't let pop-ups interrupt or slow a turn — they ride between turns.
+- Don't grow the always-on set. Ever. (Guardrail 5.)

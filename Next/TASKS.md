@@ -11,15 +11,19 @@ See `LOG.md` for the running session history.
 
 ## Active
 
-### The Twist Direction (Isak, 2026-07-17)
-- [ ] **Make the game the "unexpected twist" on S&L it's meant to be** — Isak:
-      the game does NOT achieve that yet. Full deep-dive + canonical build plan
-      in **`Next/TWIST_DIRECTION.md`** (read it first; don't re-derive). Short
-      version: keep all content, stage it — Director acts (innocent opening →
-      cracks → the board is alive), cosmetic anomalies + act-aware voice, and
-      ONE guaranteed finale at tile 90 ("something under the board", leviathan
-      lore). Phases 1–5 in the doc; Phase 2 and 4 each end in an Isak playtest
-      gate. Open defaults logged in QUESTIONS.md (2026-07-17 twist section).
+### The Twist Direction v2 (Isak, 2026-07-17; reworked per his 2026-07-18 ruling)
+- [ ] **Make the game the "unexpected twist" on S&L it's meant to be** — full
+      plan in **`Next/TWIST_DIRECTION.md`** (READ IT FIRST — it also records the
+      REJECTED v1 story/Director direction; never re-propose that). v2 in short:
+      it's a party game — surprise must return EVERY game, with zero
+      memorisation burden. Four pillars: **Nightly Draw** (each game secretly
+      runs a random subset of rules/tiles/items + end-screen "Tonight's board"
+      reveal) · **Pop-ups** (2–4 things visibly enter the game mid-play: tiles
+      grow in, chests drop, rules wake) · **Twist of the Night** (reuse the 10
+      Grand Tour `LEG_MODS` in Classic, one secret twist some games) · **Party
+      guardrails** (anti-burden law, in the doc). Build order: Phase 1 = Twist
+      of the Night (cheapest big win, playtest gate) → Draw → Pop-ups → freshness
+      weighting + default flip. Questions in QUESTIONS.md (2026-07-18 section).
 
 ### Queued from Isak's 8-point batch (2026-07-10)
 - [x] **Design game mode — «Boss battle»** (Isak, 2026-07-10) — design locked in
