@@ -55,6 +55,11 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
+Recently shipped (2026-07-18, night): **Freshness memory** (Twist Direction v2,
+Phase 4 — the direction is now fully BUILT): nightly draws, pop-ups and twists
+lean toward what the table has seen least recently (`FRESH` localStorage store,
+weighted sampling). Default flips for 🎴/🎈 await Isak's playtest sign-off.
+
 Recently shipped (2026-07-18, later still): **Pop-ups** (Twist Direction v2,
 Phase 3) — 🎈 board option (OFF by default until Isak playtests): 2–4 moments
 per Classic game where something new visibly enters mid-play — a special tile

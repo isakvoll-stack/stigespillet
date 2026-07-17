@@ -50,8 +50,18 @@ See `LOG.md` for the running session history.
             (reuses `randomBoardEvent`). Quick announce card at fire time,
             never before; moments listed on 🎴 Tonight's board (which now also
             shows for popup-only games). Headless-verified 25/25 incl. a full
-            game where all 4 fired organically, 0 errors. Next: Phase 4
-            freshness weighting + default flips after Isak's playtests.
+            game where all 4 fired organically, 0 errors.
+      - [x] **Phase 4 — Freshness memory** shipped 2026-07-18 (same session):
+            `FRESH` store (`stigespillet.freshness.v1`) + `weightedSample` —
+            nightly-draw rules & items, pop-up kinds & grow roles, and the
+            twist-of-the-night pick all weight toward what the table has seen
+            least recently (age-capped linear weights; live→0 / out→+1 per
+            draw). Headless-verified 17/17 incl. bias stats (aged rule back
+            98% vs 53% field; aged twist ~4× uniform), 0 errors.
+            **⚠ The default FLIPS are NOT done** — TWIST_DIRECTION.md gates
+            them on Isak's playtest sign-off: 🎴 Nightly draw and 🎈 Pop-ups
+            are still OFF by default. When Isak signs off, flip `enabled` in
+            `BOARD_OPTIONS` (and consider the "🎪 Everything" preset naming).
 
 ### Queued from Isak's 8-point batch (2026-07-10)
 - [x] **Design game mode — «Boss battle»** (Isak, 2026-07-10) — design locked in

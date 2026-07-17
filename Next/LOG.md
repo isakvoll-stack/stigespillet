@@ -3,6 +3,26 @@
 Newest first. One entry per working session; note what shipped and what's next.
 
 ---
+## 2026-07-18 (night) — Freshness memory (Twist Direction v2, Phase 4)
+
+Isak: "Continue with Phase 4, then everything else."
+
+- **`FRESH` store** (`stigespillet.freshness.v1`, localStorage) + generic
+  `weightedSample`/`freshWeight`/`freshBump`: per-id age = draws since last
+  seen (capped 8), pick-weight 1 + 0.5×age.
+- **Wired into all three systems**: nightly-draw rule pool + item/exotic
+  shelves (bumped per draw), pop-up kind pick + grow-role pick (bumped per
+  fire), twist-of-the-night pick (bumped in `rememberNightTwist`; the
+  hard no-repeat seen-list stays as the guard).
+- **Verified headless Edge 17/17, 0 JS errors**: weight curve, store
+  roundtrip/cap, sample stats (0.855 for a 5:1 weight), aged rule dealt
+  back in 98% vs 53% field, aged twist 0.37 vs 0.10 uniform, deps hold
+  under weighting, bump paths, full all-systems game (round 23, 3 pop-ups).
+- **⚠ Default flips deliberately NOT done** — gated on Isak's playtest
+  sign-off per TWIST_DIRECTION.md. All four phases of the Twist Direction
+  are now BUILT; 🎴/🎈 stay opt-in until Isak flips them.
+
+---
 ## 2026-07-18 (later still) — Pop-ups (Twist Direction v2, Phase 3)
 
 Isak: "Continue with Phase 3, the pop-ups." Built behind its own default-OFF

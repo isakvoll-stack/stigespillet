@@ -1408,7 +1408,8 @@ function drawNightTwist(){
   const seen = nightTwistSeen();
   let pool = all.filter(m => !seen.includes(m.id));
   if (!pool.length) pool = all.length > 1 ? all.filter(m => m.id !== seen[seen.length-1]) : all;
-  return pool[(Math.random()*pool.length)|0];
+  const ages = freshLoad().twists;                              // longest-unseen twists come up first
+  return weightedSample(pool, 1, m => freshWeight(ages[m.id]))[0] || null;
 }
 function rememberNightTwist(id){
   const all = LEG_MODS.filter(m => !TWIST_NIGHT.EXCLUDE.includes(m.id));
@@ -1416,6 +1417,7 @@ function rememberNightTwist(id){
   seen.push(id);
   if (seen.length >= all.length) seen = [id];
   try { localStorage.setItem(TWIST_SEEN_KEY, JSON.stringify(seen)); } catch(e){}
+  freshBump("twists", [id], all.map(m => m.id));
 }
 async function twistNightReveal(mod){
   const card = document.getElementById("bonuscard");
@@ -1494,21 +1496,23 @@ const DRAW = {
 };
 function drawNightHand(){
   const pool = DRAW.POOL.filter(e => FEATURES[e.key]);   // authored-off / Family-off rules never enter the draw
-  const deck = [...pool];
-  for (let i = deck.length - 1; i > 0; i--){ const j = (Math.random()*(i+1))|0; [deck[i],deck[j]] = [deck[j],deck[i]]; }
-  const keep = Math.round(deck.length * (DRAW.KEEP_MIN + Math.random()*(DRAW.KEEP_MAX - DRAW.KEEP_MIN)));
-  const live = new Set(deck.slice(0, keep).map(e => e.key));
+  const ages = freshLoad();                              // rules/items that sat out lately are due
+  const keep = Math.round(pool.length * (DRAW.KEEP_MIN + Math.random()*(DRAW.KEEP_MAX - DRAW.KEEP_MIN)));
+  const live = new Set(weightedSample(pool, keep, e => freshWeight(ages.rules[e.key])).map(e => e.key));
   for (let swept = true; swept; ){                       // a rule whose requirement is out goes out with it
     swept = false;
     pool.forEach(e => { if (live.has(e.key) && (e.req||[]).some(r => !live.has(r))){ live.delete(e.key); swept = true; } });
   }
   const slice = (list, n) => {
     const d = list.filter(i => i.enabled);
-    for (let i = d.length - 1; i > 0; i--){ const j = (Math.random()*(i+1))|0; [d[i],d[j]] = [d[j],d[i]]; }
-    return { live: d.slice(0, n).map(i => i.id), out: d.slice(n).map(i => i.id) };
+    const liveList = weightedSample(d, n, i => freshWeight(ages.items[i.id]));
+    return { live: liveList.map(i => i.id), out: d.filter(i => !liveList.includes(i)).map(i => i.id) };
   };
   const items = slice(SHOP_CATALOG.filter(i => !i.craftOnly), DRAW.ITEMS);
   const exotics = slice(EXOTICS, DRAW.EXOTICS);
+  freshBump("rules", [...live], pool.map(e => e.key));
+  freshBump("items", [...items.live, ...exotics.live],
+    [...items.live, ...items.out, ...exotics.live, ...exotics.out]);
   return {
     rulesOut: pool.filter(e => !live.has(e.key)).map(e => e.key),
     items: items.live, itemsOut: items.out,
@@ -1517,6 +1521,36 @@ function drawNightHand(){
   };
 }
 const itemInPlay = it => !(game && game.draw) || game.draw.shelf.has(it.id);
+/* ---- DATA: freshness memory (Twist Direction v2, phase 4) -----------
+   The game quietly rations its own novelty: nightly draws, pop-ups and
+   twists lean toward what THIS table has seen least recently (localStorage,
+   like settings). age = draws since last seen (capped); pick-weight rises
+   linearly with age. Clearing browser data resets the memory. */
+const FRESH = { KEY:"stigespillet.freshness.v1", AGE_WEIGHT:.5, MAX_AGE:8 };
+function freshLoad(){
+  let f = null;
+  try { f = JSON.parse(localStorage.getItem(FRESH.KEY) || "null"); } catch(e){}
+  f = f || {};
+  for (const s of ["twists","rules","items","grows","kinds"]) f[s] = f[s] || {};
+  return f;
+}
+function freshSave(f){ try { localStorage.setItem(FRESH.KEY, JSON.stringify(f)); } catch(e){} }
+const freshWeight = age => 1 + FRESH.AGE_WEIGHT * Math.min(FRESH.MAX_AGE, age || 0);
+function freshBump(section, liveIds, allIds){
+  const f = freshLoad();
+  allIds.forEach(id => { f[section][id] = liveIds.includes(id) ? 0 : Math.min(FRESH.MAX_AGE, (f[section][id] || 0) + 1); });
+  freshSave(f);
+}
+function weightedSample(list, n, weightOf){
+  const pool = [...list], picked = [];
+  while (pool.length && picked.length < n){
+    let r = Math.random() * pool.reduce((s,x) => s + weightOf(x), 0);
+    let idx = pool.length - 1;
+    for (let i = 0; i < pool.length; i++){ r -= weightOf(pool[i]); if (r <= 0){ idx = i; break; } }
+    picked.push(pool.splice(idx, 1)[0]);
+  }
+  return picked;
+}
 /* ---- DATA: Pop-ups (Twist Direction v2, phase 3) --------------------
    With the 🎈 Pop-ups board option on, a few moments per Classic game
    something NEW visibly enters mid-play, announced only as it happens:
@@ -1640,7 +1674,9 @@ const POPUP_RUN = {
   async grow(){
     const opts = growablePopupRoles(), spots = popupPlainSpots();
     if (!opts.length || !spots.length) return;
-    const g = opts[(Math.random()*opts.length)|0];
+    const ages = freshLoad().grows;                      // grow what hasn't grown in a while
+    const g = weightedSample(opts, 1, x => freshWeight(ages[x.id]))[0];
+    freshBump("grows", [g.id], opts.map(x => x.id));
     const cell = spots[(Math.random()*spots.length)|0];
     await popupCard(g.ico, `${g.name} grows in!`, "keep an eye on the board…");
     TILE_RULES[g.id].tiles.push(cell);
@@ -1683,8 +1719,9 @@ async function firePopup(){
     k.id === "chest" ? popupPlainSpots().length :
     k.id === "wake"  ? wakeablePopupRules().length : true);
   if (!kinds.length) return;
-  let roll = Math.random() * kinds.reduce((s,k) => s + k.w, 0), kind = kinds[kinds.length-1];
-  for (const k of kinds){ roll -= k.w; if (roll <= 0){ kind = k; break; } }
+  const ages = freshLoad().kinds;                        // lean toward the kind seen longest ago
+  const kind = weightedSample(kinds, 1, k => k.w * freshWeight(ages[k.id]))[0];
+  freshBump("kinds", [kind.id], kinds.map(k => k.id));
   await POPUP_RUN[kind.id]();
 }
 /* ---- DATA: Boss Battle (foundation skeleton) ------------------------

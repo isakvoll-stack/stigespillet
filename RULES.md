@@ -696,6 +696,13 @@ are listed on the end screen's **🎴 Tonight's board**. Composes freely with th
 Nightly draw (a woken rule is one the draw had left out) — and a quiet hand
 still gets its "wait, WHAT?" moments.
 
+**Freshness memory** — the Nightly draw, the Pop-ups and the Twist of the night
+all quietly lean toward whatever *this* table has seen **least recently**
+(remembered in the browser, like settings): a rule that sat out a few games is
+due, a twist you haven't met in a while comes up first, and the same pop-up
+kind won't hog every game. Nothing to track or study — the game rations its own
+novelty. Clearing browser data resets the memory.
+
 **Consumables** (held in your bag; *used* from the inventory **before** you roll):
 
 - **☕ Coffee** — **4 coins.** +4 to your next roll.
