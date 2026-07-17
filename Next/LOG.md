@@ -3,6 +3,19 @@
 Newest first. One entry per working session; note what shipped and what's next.
 
 ---
+## 2026-07-17 (evening) — intuition & clarity audit (no code changes)
+
+Isak asked for a thorough look at the whole game: make it intuitive,
+structurally sound and visually sensible so the one-rule-at-a-time
+discovery fun isn't drowned in confusion. Full written audit in
+**`Next/IMPROVEMENTS.md`** — 30 numbered items across 7 areas (discovery
+loop, board visual language, feedback/HUD, choices/overlays, menus, mode
+presentation, code structure), each guarded by "mystery before discovery,
+clarity after". Top picks: rule journal + growing legend (A1+B2),
+post-discovery tile marks (B1), mode intro cards (F1), named status
+badges (C2). Awaiting Isak's picks before building anything.
+
+---
 ## 2026-07-17 (later) — menus, coins, boss tiles: Isak's 4-point batch
 
 Isak's phone batch: (1) boss weakpoints in fixed symmetrical patterns + an
