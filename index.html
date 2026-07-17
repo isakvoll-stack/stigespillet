@@ -409,6 +409,11 @@
     padding-top:5px;border:2px solid rgba(0,0,0,.28);box-shadow:inset 0 -4px rgba(0,0,0,.18)}
   .lbtitle{font-weight:700;color:var(--brass);font-family:Georgia,serif;margin:2px 0 6px}
   .lb{display:flex;flex-direction:column;gap:2px;max-height:32vh;overflow:auto;text-align:left}
+  .drawcard{margin-top:10px;border-top:1px solid rgba(255,255,255,.14);padding-top:8px;max-height:24vh;overflow:auto;text-align:left}
+  .drawrow{margin:4px 0;font-size:.84em;line-height:2}
+  .drawrow .rowlab{opacity:.6;margin-right:4px}
+  .chip{display:inline-block;background:rgba(255,255,255,.09);border-radius:10px;padding:1px 7px;margin:0 3px 3px 0;white-space:nowrap}
+  .chip.out{opacity:.4;text-decoration:line-through}
   .lbrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:14px;color:var(--cream);
     padding:3px 6px;border-bottom:1px solid rgba(212,166,86,.12)}
   .lbrow .place{width:52px;color:#cdb892;flex:none}
@@ -1183,6 +1188,8 @@ const BOARD_OPTIONS = [
     desc:"Every special tile starts at a random spot each new game." },
   { key:"twistNight", ico:"🃏", name:"Twist of the night", enabled:true,
     desc:"Some games secretly carry one game-bending twist, revealed mid-game." },
+  { key:"nightlyDraw", ico:"🎴", name:"Nightly draw", enabled:false,
+    desc:"Each game secretly plays its own hand — a slice of the rules, a slice of the shop, tiles in fresh spots. The end screen turns the hand face-up." },
 ];
 const boardOpt = key => { const o = BOARD_OPTIONS.find(b => b.key === key); return !!(o && o.enabled); };
 /* ---- DATA: the finish line (Advanced settings → Game) -----------------
@@ -1443,6 +1450,70 @@ async function twistNightBegin(){
   if (mod.apply) mod.apply();
   renderScoreboard(); refreshHUD();
 }
+/* ---- DATA: the Nightly Draw (Twist Direction v2, phase 2) -----------
+   With the 🎴 Nightly draw board option on, every Classic game secretly
+   plays its own hand: a slice of the optional rule pool, a slice of the
+   item shelves, and a scrambled board. Nothing is announced up front —
+   the end screen turns the hand face-up ("Tonight's board"). CORE rules
+   never sit out; a rule whose `req` didn't make the draw sits out with
+   it. Toggle off = today's everything-on game, untouched. */
+const DRAW = {
+  KEEP_MIN:.6, KEEP_MAX:.75,       // share of the optional rule pool live per game
+  ITEMS:12, EXOTICS:4,             // shop-catalog / black-market shelf slices
+  SCRAMBLE:true,                   // drawn games always start on a scrambled board
+  CORE:["exactFinish","sixRollsAgain","encounter"],
+  POOL:[
+    { key:"sniper",        ico:"🎯", name:"Sniper" },
+    { key:"kickWhileDown", ico:"😳", name:"Shame for the shameless" },
+    { key:"fishing",       ico:"🎣", name:"Fishing" },
+    { key:"fishPowers",    ico:"🐟", name:"Fish powers", req:["fishing"] },
+    { key:"teleport",      ico:"🌀", name:"Teleporters" },
+    { key:"teleportMalfunction", ico:"⚡", name:"Faulty teleporter", req:["teleport","fishing"] },
+    { key:"lightning",     ico:"🌩️", name:"Lightning" },
+    { key:"luckyStar",     ico:"🌟", name:"Lucky star" },
+    { key:"fateSwap",      ico:"🔃", name:"Reversal of fortune" },
+    { key:"orange",        ico:"🟧", name:"Orange choice" },
+    { key:"snakeCollision",ico:"💥", name:"Pile-up" },
+    { key:"freeze",        ico:"🧊", name:"Deep freeze" },
+    { key:"radioactive",   ico:"☢️", name:"Radioactive fallout", req:["orange"] },
+    { key:"trapdoor",      ico:"🕳️", name:"The rotten plank" },
+    { key:"warp",          ico:"🌫️", name:"The gray square" },
+    { key:"coins",         ico:"🪙", name:"Coins" },
+    { key:"shop",          ico:"🏪", name:"The shop", req:["coins"] },
+    { key:"shopPassby",    ico:"🚶", name:"Shop pass-by", req:["shop"] },
+    { key:"secretSquare",  ico:"❓", name:"The secret square" },
+    { key:"blackMarket",   ico:"🕯️", name:"The black market", req:["secretSquare","coins"] },
+    { key:"brokenGate",    ico:"⛓️", name:"The Broken Gate", req:["blackMarket"] },
+    { key:"crafting",      ico:"🌑", name:"Strange fusions", req:["shop"] },
+    { key:"setback",       ico:"↩️", name:"The dark-red square" },
+    { key:"dizzy",         ico:"🍥", name:"The dizzy square" },
+  ],
+};
+function drawNightHand(){
+  const pool = DRAW.POOL.filter(e => FEATURES[e.key]);   // authored-off / Family-off rules never enter the draw
+  const deck = [...pool];
+  for (let i = deck.length - 1; i > 0; i--){ const j = (Math.random()*(i+1))|0; [deck[i],deck[j]] = [deck[j],deck[i]]; }
+  const keep = Math.round(deck.length * (DRAW.KEEP_MIN + Math.random()*(DRAW.KEEP_MAX - DRAW.KEEP_MIN)));
+  const live = new Set(deck.slice(0, keep).map(e => e.key));
+  for (let swept = true; swept; ){                       // a rule whose requirement is out goes out with it
+    swept = false;
+    pool.forEach(e => { if (live.has(e.key) && (e.req||[]).some(r => !live.has(r))){ live.delete(e.key); swept = true; } });
+  }
+  const slice = (list, n) => {
+    const d = list.filter(i => i.enabled);
+    for (let i = d.length - 1; i > 0; i--){ const j = (Math.random()*(i+1))|0; [d[i],d[j]] = [d[j],d[i]]; }
+    return { live: d.slice(0, n).map(i => i.id), out: d.slice(n).map(i => i.id) };
+  };
+  const items = slice(SHOP_CATALOG.filter(i => !i.craftOnly), DRAW.ITEMS);
+  const exotics = slice(EXOTICS, DRAW.EXOTICS);
+  return {
+    rulesOut: pool.filter(e => !live.has(e.key)).map(e => e.key),
+    items: items.live, itemsOut: items.out,
+    exotics: exotics.live, exoticsOut: exotics.out,
+    shelf: new Set([...items.live, ...exotics.live]),
+  };
+}
+const itemInPlay = it => !(game && game.draw) || game.draw.shelf.has(it.id);
 /* ---- DATA: Boss Battle (foundation skeleton) ------------------------
    The mode's board is a hollow rectangle: RING_COLS x RING_ROWS cells, only
    the perimeter is walkable (2*(COLS+ROWS)-4 = 40 tiles, clockwise laps).
@@ -2759,10 +2830,15 @@ function newGame(roster){
     standings: null, marketVisits: 0, traps: [],
     family: VARIANTS.family, dualDice: VARIANTS.dualDice, manual: VARIANTS.manual,
     tour:false, legModId:null, floodRows:0, noBounce:false, windowCloseRound:0,
-    nightTwistId:null, nightTwistRound:0, twistBaseRound:1,
+    nightTwistId:null, nightTwistRound:0, twistBaseRound:1, draw:null,
   };
+  DRAW.POOL.forEach(e => { FEATURES[e.key] = FEATURE_BASE[e.key]; });   // undo last game's hand
   // Family Mode flips its feature set off for this game (and back for a normal one)
   FAMILY.OFF.forEach(k => { FEATURES[k] = game.family ? false : FEATURE_BASE[k]; });
+  if (game.mode === "classic" && !tour && boardOpt("nightlyDraw")){
+    game.draw = drawNightHand();
+    game.draw.rulesOut.forEach(k => { FEATURES[k] = false; });
+  }
   if (game.mode === "classic" && !tour && FEATURES.legMods && boardOpt("twistNight")
       && Math.random() < TWIST_NIGHT.CHANCE){
     const mod = drawNightTwist();
@@ -2780,7 +2856,7 @@ function newGame(roster){
   TRAP89_TILES.splice(0, Infinity, TRAP89.TILE);   // re-arm the tile-89 trapdoor for the new game
   RAD_TILES.splice(0, Infinity);                   // clear last game's fallout
   WARP.active = 0; WARP.owner = -1; applyWarp();   // right the board if a warp was live
-  setSpecialTiles(boardOpt("scrambledStart") ? scrambledLayout() : DEFAULT_SPECIALS);
+  setSpecialTiles((game.draw && DRAW.SCRAMBLE) || boardOpt("scrambledStart") ? scrambledLayout() : DEFAULT_SPECIALS);
   rulesSeen = {};
   buildBoard();
   fogG = null; floodG = null;                      // the board wipe destroyed any twist overlays
@@ -4642,6 +4718,7 @@ function newBossGame(roster){
     tour:false, legModId:null, floodRows:0, noBounce:false, windowCloseRound:0,
   };
   game.players.forEach(p => { p.pos = BOSS_MODE.START_TILE; p.bossHalf = false; p.bossRollPlus = 0; });
+  DRAW.POOL.forEach(e => { FEATURES[e.key] = FEATURE_BASE[e.key]; });
   FAMILY.OFF.forEach(k => { FEATURES[k] = FEATURE_BASE[k]; });
   die2.style.display = "none";
   die2.classList.remove("dim","faded"); die.classList.remove("dim");
@@ -7274,7 +7351,7 @@ async function hornBlast(p){
 
 // Mystery Box: pops open into a random enabled consumable (never another box).
 function openMysteryBox(p){
-  const pool = SHOP_CATALOG.filter(i => i.enabled && !i.craftOnly && i.kind === "consumable" && i.id !== "mysterybox");
+  const pool = SHOP_CATALOG.filter(i => i.enabled && !i.craftOnly && i.kind === "consumable" && i.id !== "mysterybox" && itemInPlay(i));
   if (!pool.length){
     awardCoin(p, "📦 The box held nothing but loose change", MYSTERY.FALLBACK_COINS, "blue");
     return;
@@ -8038,7 +8115,7 @@ function renderInventory(){
 /* ---- shop (gold square): spend coins on items ----------------------- */
 // Each visit stocks SHOP.STOCK items drawn at random from the enabled catalog.
 function shopStock(){
-  const pool = SHOP_CATALOG.filter(i => i.enabled && !i.craftOnly);
+  const pool = SHOP_CATALOG.filter(i => i.enabled && !i.craftOnly && itemInPlay(i));
   for (let i = pool.length - 1; i > 0; i--){ const j = (Math.random()*(i+1))|0; [pool[i],pool[j]] = [pool[j],pool[i]]; }
   return pool.slice(0, SHOP.STOCK);
 }
@@ -8181,7 +8258,7 @@ async function runBlackMarket(p){
   SFX.play("leviathan");
   // shelf = EXOTIC_STOCK exotics (at their listed price — a deal is a deal) + NORMAL_STOCK
   // normal items at the dealer's flexing price
-  const pool = EXOTICS.filter(i => i.enabled);
+  const pool = EXOTICS.filter(i => i.enabled && itemInPlay(i));
   for (let i = pool.length - 1; i > 0; i--){ const j = (Math.random()*(i+1))|0; [pool[i],pool[j]] = [pool[j],pool[i]]; }
   const stock = [...pool.slice(0, MARKET.EXOTIC_STOCK),
                  ...shopStock().slice(0, MARKET.NORMAL_STOCK).map(i => ({...i, cost: marketPrice(p, i)}))];
@@ -8431,6 +8508,28 @@ const END_STATS = [
   { ico:"🐍", name:"Times descended",     stat:p=>p.descents||0,     best:"low"  },
   { ico:"🤝", name:"Player interactions", stat:p=>p.interactions||0, best:"high" },
 ];
+// The party payoff of a drawn game: after the podium the hand goes face-up —
+// what was live tonight, what never existed at all.
+function tonightsBoardHtml(){
+  if (!game.draw) return "";
+  const d = game.draw;
+  const rule = (k, out) => { const e = DRAW.POOL.find(x => x.key === k);
+    return e ? `<span class="chip${out ? " out" : ""}">${e.ico} ${e.name}</span>` : ""; };
+  const icon = (id, out) => { const it = itemDef(id);
+    return it ? `<span class="chip${out ? " out" : ""}" title="${it.name}">${it.ico}</span>` : ""; };
+  let h = `<div class="drawcard"><div class="lbtitle">🎴 Tonight's board</div>`;
+  const twist = !game.tour ? activeLegMod() : null;
+  if (twist) h += `<div class="drawrow"><span class="rowlab">Twist of the night:</span><span class="chip">${twist.ico} ${twist.name}</span></div>`;
+  h += `<div class="drawrow"><span class="rowlab">In play:</span>` +
+       DRAW.POOL.filter(e => FEATURES[e.key]).map(e => rule(e.key, false)).join("") +
+       [...d.items, ...d.exotics].map(id => icon(id, false)).join("") + `</div>`;
+  let ghosts = d.rulesOut.map(k => rule(k, true)).join("") +
+       [...d.itemsOut, ...d.exoticsOut].map(id => icon(id, true)).join("");
+  const slept = game.nightTwistId && LEG_MODS.find(m => m.id === game.nightTwistId);
+  if (slept) ghosts += `<span class="chip out">${slept.ico} ${slept.name} — never woke</span>`;
+  if (ghosts) h += `<div class="drawrow"><span class="rowlab">Never existed:</span>${ghosts}</div>`;
+  return h + `</div>`;
+}
 function showStandings(){
   const s = game.standings;
   const trophies = p => isKoth() ? ` 🏆${p.trophies||0}` : "";
@@ -8476,7 +8575,7 @@ function showStandings(){
       `<div class="serieswins">${line}</div></div>`;
   }
   document.getElementById("bannerNew").textContent = series && !series.done ? "▶ Next game" : "Play again";
-  document.getElementById("bannerText").innerHTML = seriesHtml + pod + lb;
+  document.getElementById("bannerText").innerHTML = seriesHtml + pod + lb + tonightsBoardHtml();
   document.getElementById("banner").classList.add("show");
   confettiBurst();
 }

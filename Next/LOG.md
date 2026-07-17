@@ -3,6 +3,35 @@
 Newest first. One entry per working session; note what shipped and what's next.
 
 ---
+## 2026-07-18 (later) — The Nightly Draw (Twist Direction v2, Phase 2)
+
+Isak: "work on the SS2 Next list, keep the direction instructions in mind."
+Phase 2 built behind its own default-OFF toggle, so Phase 1's playtest gate
+stays intact.
+
+- **🎴 Nightly draw** (Advanced → 🗺️ Board, OFF by default): each Classic
+  game secretly deals its hand — `DRAW` DATA: 24-rule pool with `req`
+  dependencies (auto-drop sweep), 60–75% of the pool live per game, shop
+  shelf sliced to 12 items + 4 exotics, scrambled board forced.
+- **Overlay, not mutation**: `newGame` restores the pool from `FEATURE_BASE`,
+  then flips the drawn-out rules off for the game (same pattern Family mode
+  uses — and Family composes: its OFF list never enters the hand). Boss-mode
+  init restores too. Tile painting is feature-gated, so out-rules' tiles
+  simply don't exist tonight.
+- **`itemInPlay`** filters the shop stock, Mystery Box pool and black-market
+  exotics down to the night's shelf; settings lists and bags are untouched.
+- **🎴 Tonight's board**: end-screen reveal under the leaderboard — chips for
+  everything live, struck-through ghosts for what never existed (including a
+  drawn twist that never woke). Secret until then; no HUD tell.
+- **Verified headless Edge 31/31, 0 JS errors**: statics, 200-draw dependency
+  /slice/variance sweep, overlay + scramble + restore, family compose,
+  shopStock⊆shelf, full drawn 4-bot game (round 28) with the reveal card,
+  control game without it.
+- RULES.md synced (spoiler-light — pools exist, contents unlisted); defaults
+  + coins-out note in QUESTIONS.md. Next: Phase 3 pop-ups after Isak's
+  playtests, or straight away if he says go.
+
+---
 ## 2026-07-18 — Twist of the Night (Twist Direction v2, Phase 1)
 
 Isak rejected the v1 story/Director plan (party game, replayability first —

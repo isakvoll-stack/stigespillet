@@ -672,6 +672,18 @@ and snakes themselves never move). With it off, every new game uses the classic
 fixed layout — so a mid-game 🌀 wheel shuffle no longer carries over into the
 next game.
 
+**🎴 Nightly draw** *(Advanced settings → 🗺️ Board — OFF by default while it's
+playtested)* — each Classic game secretly plays its own hand: a core of
+always-on rules is guaranteed, the rest of the hidden-rule pool is dealt in or
+out at random, the shop and black-market shelves carry only a slice of the full
+catalog, and the special tiles start in fresh spots. Nothing announces itself
+up front — you find out what's live tonight by tripping over it. After the
+podium, the end screen turns the hand face-up: **🎴 Tonight's board** lists
+what was in play and what never existed at all. (Which rules and items are in
+the pools stays unlisted here on purpose — that's the fun.) With the toggle
+off, every rule and every shelf runs full, exactly as before. Family mode
+composes: its calm-list rules never enter the hand.
+
 **Consumables** (held in your bag; *used* from the inventory **before** you roll):
 
 - **☕ Coffee** — **4 coins.** +4 to your next roll.

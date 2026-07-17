@@ -26,8 +26,20 @@ See `LOG.md` for the running session history.
       weighting + default flip. Questions in QUESTIONS.md (2026-07-18 section).
       - [x] **Phase 1 — Twist of the Night** shipped 2026-07-18 (1-in-3 Classic
             games, suspense-card announce round 2–5, no-repeat memory, 🗺️ Board
-            toggle ON; headless-verified 13 games / 0 errors). Awaiting Isak's
-            feel pass before Phase 2 (the Nightly Draw).
+            toggle ON; headless-verified 13 games / 0 errors). Isak's feel pass
+            still open (card feel, odds, window).
+      - [x] **Phase 2 — The Nightly Draw** shipped 2026-07-18 (same session,
+            behind its own toggle so Phase 1's gate isn't jumped): 🎴 Nightly
+            draw board option (OFF by default until playtested) — `DRAW` DATA
+            (24-rule pool with `req` dependencies, 60–75% live per game, shop
+            slice 12 + exotics 4, scrambled board forced), per-game FEATURES
+            overlay in `newGame` (family composes; base/`FEATURE_BASE` never
+            mutated), `itemInPlay` filter on shop/mystery/black-market pools,
+            end-screen **🎴 Tonight's board** reveal (live chips + "never
+            existed" ghosts, incl. a drawn twist that never woke).
+            Headless-verified 31/31, two full bot games, 0 errors. Defaults in
+            QUESTIONS.md (2026-07-18). Next: Phase 3 pop-ups, then Phase 4
+            freshness weighting + default flips after Isak's playtests.
 
 ### Queued from Isak's 8-point batch (2026-07-10)
 - [x] **Design game mode — «Boss battle»** (Isak, 2026-07-10) — design locked in

@@ -29,7 +29,21 @@ was rejected by Isak 2026-07-18 and is recorded as such in the doc.)*
   you'd exclude from Classic? Should KOTH games draw one too?
 - [ ] **End-screen "Tonight's board" reveal**: full draw shown after the podium
   (what was live, what never existed). Keep, or should some things stay secret
-  even then?
+  even then? *(Phase 2 BUILT 2026-07-18 with the full reveal — including a
+  drawn twist that never got to wake up, and crafting listed vaguely as
+  "🌑 Strange fusions" so the Singularity stays secret.)*
+- [ ] **Nightly Draw defaults** *(Phase 2 BUILT 2026-07-18, toggle 🎴 in
+  Advanced → 🗺️ Board, OFF until you playtest it)*: icon is 🎴 (🃏 was taken
+  by Twist of the night); pool = 24 rules (core: exact finish, six-again,
+  encounter; meta flags like sound/bot popups and the dual-dice snake eyes
+  never drawn); dependencies auto-drop (no shop without coins, no black
+  market without the secret square + coins, no fish powers without fishing…).
+  Note: **coins can sit out** (~1 game in 3) and take the whole economy chain
+  with them — shop, market, Gate, crafting. Fine as a "quiet hand", or should
+  coins be promoted to always-on?
+- [ ] **Draw + Advanced toggles**: an item/rule you disable in settings is
+  simply out of the pool (forced-off works). "Forced-ON in every draw" isn't
+  built — worth adding a third state per toggle, or is the core list enough?
 - [ ] **Pop-up count**: 2–4 per game guaranteed (tiles growing in, chests, rules
   waking mid-game). Feel right for a ~30–45 min game?
 
