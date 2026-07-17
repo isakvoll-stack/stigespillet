@@ -55,13 +55,20 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
+Recently shipped (2026-07-18, later still): **Pop-ups** (Twist Direction v2,
+Phase 3) — 🎈 board option (OFF by default until Isak playtests): 2–4 moments
+per Classic game where something new visibly enters mid-play — a special tile
+grows in, a 🎁 chest drops (first to land keeps it), a dormant rule wakes, or a
+stray chaos strike fires (`POPUPS` DATA, round-wrap scheduler, announce card
+only at the moment itself). Moments join the 🎴 Tonight's board reveal.
+
 Recently shipped (2026-07-18, later): **The Nightly Draw** (Twist Direction v2,
 Phase 2) — 🎴 board option (OFF by default until Isak playtests): each Classic
 game secretly deals its own hand of rules + a sliced shop shelf on a scrambled
 board (`DRAW` DATA, per-game FEATURES overlay, `itemInPlay` shelf filter), with
 the **🎴 Tonight's board** reveal on the end screen. Phase 1 (🃏 Twist of the
-night) shipped earlier the same day; both await Isak's feel pass — Phase 3
-(pop-ups) is next per `Next/TWIST_DIRECTION.md`.
+night) shipped earlier the same day. All three await Isak's feel pass — Phase 4
+(freshness weighting + default flips) is last per `Next/TWIST_DIRECTION.md`.
 
 Recently shipped (2026-07-17, later): **menus/coins/boss-tiles batch** —
 boss weakpoints now sit in **pre-arranged symmetrical patterns**

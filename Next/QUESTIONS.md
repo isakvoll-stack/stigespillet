@@ -45,7 +45,15 @@ was rejected by Isak 2026-07-18 and is recorded as such in the doc.)*
   simply out of the pool (forced-off works). "Forced-ON in every draw" isn't
   built — worth adding a third state per toggle, or is the core list enough?
 - [ ] **Pop-up count**: 2–4 per game guaranteed (tiles growing in, chests, rules
-  waking mid-game). Feel right for a ~30–45 min game?
+  waking mid-game). Feel right for a ~30–45 min game? *(Phase 3 BUILT
+  2026-07-18 — 🎈 toggle in Advanced → 🗺️ Board, OFF until you playtest.
+  Defaults picked: moments land at random rounds 3–14, min 2 rounds apart,
+  at most one per round; weights grow 3 / chest 3 / rule-wake 2 / stray
+  strike 1; chest holds 1 random consumable (pays past a full bag, like the
+  pity box; 🪙6 if no item pool exists); the stray strike draws from the
+  full wheel-chaos pool — nukes included. Pop-ups also run in Family games,
+  but the strike pool and wakeable rules respect Family's calm list. Right
+  window/weights? Should the strike skip the heaviest events (nuke, Kong)?)*
 
 ## 2026-07-17 — menus/coins/boss-tiles batch (defaults picked, say if wrong)
 

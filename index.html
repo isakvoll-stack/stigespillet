@@ -782,6 +782,7 @@ const FEATURES = {
   botThoughts:   true,   // bots pause to show the decision they're weighing (slower, watchable bot turns)
   sound:         true,   // sound effects
   legMods:       true,   // Grand Tour leg twists (the generic MOVE_BONUSES / RARE_EVENTS hooks they ride on)
+  popups:        true,   // plumbing for the 🎈 Pop-ups board option (the chest tile rule rides on it)
 };
 const FEATURE_BASE = Object.assign({}, FEATURES);   // the authored defaults; Family Mode flips a set off per game
 
@@ -1190,6 +1191,8 @@ const BOARD_OPTIONS = [
     desc:"Some games secretly carry one game-bending twist, revealed mid-game." },
   { key:"nightlyDraw", ico:"🎴", name:"Nightly draw", enabled:false,
     desc:"Each game secretly plays its own hand — a slice of the rules, a slice of the shop, tiles in fresh spots. The end screen turns the hand face-up." },
+  { key:"popups", ico:"🎈", name:"Pop-ups", enabled:false,
+    desc:"A few times a game something new enters mid-play — a square grows in, a chest drops, a sleeping rule wakes." },
 ];
 const boardOpt = key => { const o = BOARD_OPTIONS.find(b => b.key === key); return !!(o && o.enabled); };
 /* ---- DATA: the finish line (Advanced settings → Game) -----------------
@@ -1514,6 +1517,176 @@ function drawNightHand(){
   };
 }
 const itemInPlay = it => !(game && game.draw) || game.draw.shelf.has(it.id);
+/* ---- DATA: Pop-ups (Twist Direction v2, phase 3) --------------------
+   With the 🎈 Pop-ups board option on, a few moments per Classic game
+   something NEW visibly enters mid-play, announced only as it happens:
+   a special tile grows onto a plain square, a 🎁 chest drops (first to
+   land there keeps it), a dormant rule wakes up, or a stray strike fires
+   from the chaos pool. Scheduled by round window at newGame, fired on the
+   round wrap so they ride between turns, never inside one. */
+const POPUPS = {
+  COUNT_MIN:2, COUNT_MAX:4,        // guaranteed moments per game
+  ROUND_MIN:3, ROUND_MAX:14,       // the window the moments land in
+  GAP_ROUNDS:2,                    // rounds two moments must sit apart
+  CARD_MS:2000, GROW_MS:700,       // announce-card hold; tile grow-in tween
+  CHEST:{ ITEMS:1, FALLBACK_COINS:6 },
+  POOL:[ { id:"grow", w:3 }, { id:"chest", w:3 }, { id:"wake", w:2 }, { id:"strike", w:1 } ],
+  GROW:[                           // tile rules a pop-up may grow onto the board
+    { id:"fishing",  ico:"🎣", name:"a fishing hole" },
+    { id:"teleport", ico:"🌀", name:"a teleporter" },
+    { id:"orange",   ico:"🟧", name:"an orange square" },
+    { id:"shop",     ico:"🏪", name:"a shop" },
+    { id:"setback",  ico:"↩️", name:"a dark-red square" },
+    { id:"dizzy",    ico:"🍥", name:"a dizzy square" },
+    { id:"warp",     ico:"🌫️", name:"a gray square" },
+    { id:"freeze",   ico:"🧊", name:"an icy square" },
+  ],
+};
+const CHEST_TILES = [];            // dynamic — chests currently sitting on the board
+const CHEST_COLOR = "#b98336";
+const CHESTS = new Map();          // cell -> 🎁 marker element
+function schedulePopups(){
+  const n = POPUPS.COUNT_MIN + ((Math.random()*(POPUPS.COUNT_MAX - POPUPS.COUNT_MIN + 1))|0);
+  const cand = [];
+  for (let r = POPUPS.ROUND_MIN; r <= POPUPS.ROUND_MAX; r++) cand.push(r);
+  for (let i = cand.length - 1; i > 0; i--){ const j = (Math.random()*(i+1))|0; [cand[i],cand[j]] = [cand[j],cand[i]]; }
+  const picked = [];
+  for (const r of cand){
+    if (picked.length >= n) break;
+    if (picked.every(x => Math.abs(x - r) >= POPUPS.GAP_ROUNDS)) picked.push(r);
+  }
+  return picked.sort((a,b) => a - b);
+}
+async function popupCard(ico, headline, sub){
+  const card = document.getElementById("bonuscard");
+  document.getElementById("bcTitle").textContent = "🎈 Something pops up!";
+  document.getElementById("bcCat").textContent = `${ico} ${headline}`;
+  document.getElementById("bcWho").textContent = sub || "";
+  card.classList.add("show");
+  SFX.play("sparkle");
+  flashScreen();
+  await sleep(POPUPS.CARD_MS);
+  card.classList.remove("show");
+  await sleep(250);
+}
+function growCellFx(cell){
+  return new Promise(res => {
+    const c = cellCenter(cell), C = BOARD.CELL;
+    repaintCell(cell);
+    const g = el("g",{});
+    g.appendChild(el("rect",{x:-C/2+1, y:-C/2+1, width:C-2, height:C-2, rx:6,
+      fill:cellColor(cell), stroke:"#fff", "stroke-width":"2.5"}));
+    if (tokenEls.length) svg.insertBefore(g, tokenEls[0]); else svg.appendChild(g);
+    const t0 = performance.now(), ms = ffms(POPUPS.GROW_MS);
+    (function frame(){
+      const t = Math.min(1, (performance.now() - t0) / ms);
+      const s = t < .8 ? (t/.8) * 1.18 : 1.18 - (t-.8)/.2 * .18;    // grow past size, then settle
+      g.setAttribute("transform", `translate(${c.x},${c.y}) scale(${s})`);
+      if (t < 1) requestAnimationFrame(frame);
+      else { g.remove(); res(); }
+    })();
+  });
+}
+function popupPlainSpots(){
+  const spots = [];
+  for (let t = 2; t < BOARD.WIN; t++){
+    if (!isPlainTile(t)) continue;
+    if (CHEST_TILES.includes(t)) continue;
+    if (game.traps && game.traps.some(tr => tr.tile === t)) continue;
+    if (game.players.some(q => q.pos === t && !q.finished)) continue;
+    spots.push(t);
+  }
+  return spots;
+}
+const growablePopupRoles = () => POPUPS.GROW.filter(g => FEATURES[TILE_RULES[g.id].feature]);
+const wakeablePopupRules = () => DRAW.POOL.filter(e => !FEATURES[e.key] && FEATURE_BASE[e.key]
+  && !(game.family && FAMILY.OFF.includes(e.key)) && (e.req || []).every(r => FEATURES[r]));
+function notePopup(txt){ (game.popupLog = game.popupLog || []).push(txt); }
+function drawChest(cell){
+  const c = cellCenter(cell);
+  const t = el("text",{x:c.x + 24, y:c.y + 30, "text-anchor":"middle", "font-size":"22"});
+  t.textContent = "🎁";
+  if (tokenEls.length) svg.insertBefore(t, tokenEls[0]); else svg.appendChild(t);
+  CHESTS.set(cell, t);
+}
+// First to land on a chest tile (own roll or knocked there) keeps the loot;
+// a full bag still pays out, past the cap — the pity-box rule.
+async function collectChest(p){
+  const cell = p.pos;
+  CHEST_TILES.splice(CHEST_TILES.indexOf(cell), 1);
+  const m = CHESTS.get(cell);
+  if (m){ m.remove(); CHESTS.delete(cell); }
+  repaintCell(cell);
+  SFX.play("sparkle");
+  const pool = SHOP_CATALOG.filter(i => i.enabled && !i.craftOnly && i.kind === "consumable" && itemInPlay(i));
+  const got = [];
+  for (let k = 0; k < POPUPS.CHEST.ITEMS && pool.length; k++){
+    const it = pool[(Math.random()*pool.length)|0];
+    if (!giveItem(p, it.id)){
+      p.items.push(it.id);
+      if (it.id === "loadeddice") p.diceCharges = LOADED.CHARGES;
+      checkCrafting(p);
+    }
+    got.push(`${it.ico} ${it.name}`);
+  }
+  if (got.length){
+    await itemFlourish(p, "🎁");
+    log(`🎁 ${p.name} opens the chest — ${got.join(", ")}!`);
+  } else awardCoin(p, "🎁 The chest held loose change", POPUPS.CHEST.FALLBACK_COINS, "blue");
+  renderScoreboard();
+  return true;
+}
+const POPUP_RUN = {
+  async grow(){
+    const opts = growablePopupRoles(), spots = popupPlainSpots();
+    if (!opts.length || !spots.length) return;
+    const g = opts[(Math.random()*opts.length)|0];
+    const cell = spots[(Math.random()*spots.length)|0];
+    await popupCard(g.ico, `${g.name} grows in!`, "keep an eye on the board…");
+    TILE_RULES[g.id].tiles.push(cell);
+    await growCellFx(cell);
+    notePopup(`${g.ico} ${g.name} grew in at ${cell}`);
+    log(`🎈 Pop-up: ${g.ico} ${g.name} grows in at tile ${cell}!`);
+  },
+  async chest(){
+    const spots = popupPlainSpots();
+    if (!spots.length) return;
+    const cell = spots[(Math.random()*spots.length)|0];
+    await popupCard("🎁", "a chest drops from the sky!", `tile ${cell} — first to land there keeps it`);
+    CHEST_TILES.push(cell);
+    drawChest(cell);
+    await growCellFx(cell);
+    notePopup(`🎁 a chest landed on ${cell}`);
+    log(`🎈 Pop-up: 🎁 a chest lands on tile ${cell} — first to land there keeps it!`);
+  },
+  async wake(){
+    const opts = wakeablePopupRules();
+    if (!opts.length) return;
+    const e = opts[(Math.random()*opts.length)|0];
+    await popupCard(e.ico, `${e.name} wakes up!`, "it was here all along — asleep");
+    FEATURES[e.key] = true;
+    if (game.draw) game.draw.rulesOut = game.draw.rulesOut.filter(k => k !== e.key);
+    const tr = Object.values(TILE_RULES).find(r => r.feature === e.key);
+    if (tr) for (const c of tr.tiles) await growCellFx(c);
+    notePopup(`${e.ico} ${e.name} woke mid-game`);
+    log(`🎈 Pop-up: ${e.ico} ${e.name} is now in play!`);
+  },
+  async strike(){
+    await popupCard("🎲", "the chaos wheel twitches…", "a stray strike gets loose");
+    await randomBoardEvent(game.players[game.current]);
+    notePopup("🎲 a stray chaos strike got loose");
+  },
+};
+async function firePopup(){
+  const kinds = POPUPS.POOL.filter(k =>
+    k.id === "grow"  ? growablePopupRoles().length && popupPlainSpots().length :
+    k.id === "chest" ? popupPlainSpots().length :
+    k.id === "wake"  ? wakeablePopupRules().length : true);
+  if (!kinds.length) return;
+  let roll = Math.random() * kinds.reduce((s,k) => s + k.w, 0), kind = kinds[kinds.length-1];
+  for (const k of kinds){ roll -= k.w; if (roll <= 0){ kind = k; break; } }
+  await POPUP_RUN[kind.id]();
+}
 /* ---- DATA: Boss Battle (foundation skeleton) ------------------------
    The mode's board is a hollow rectangle: RING_COLS x RING_ROWS cells, only
    the perimeter is walkable (2*(COLS+ROWS)-4 = 40 tiles, clockwise laps).
@@ -2011,7 +2184,7 @@ const BOT = {
   SING_SAFE_DIST:7,                             // bots only detonate the singularity this far from the epicenter
   THINK_MS:700, DECIDE_MS:650,                  // decision popup: thinking pause + verdict linger (FEATURES.botThoughts)
   SCORE:{ WIN:60, FREEZE:-8, RADIOACTIVE:-6, FISHING:-1, ORANGE:2, SHOP:2,
-          TELEPORT_BEHIND:3, TELEPORT_AHEAD:-2, BLUE:1 },   // landing-quality guesses per special tile
+          TELEPORT_BEHIND:3, TELEPORT_AHEAD:-2, BLUE:1, CHEST:5 },   // landing-quality guesses per special tile
 };
 
 /* =====================================================================
@@ -2497,13 +2670,16 @@ const TILE_RULES = {
 
   warp: { feature:"warp", tiles:WARP_TILES, color:WARP_COLOR,     // stop here and the countdown begins…
     onLand: warpCountdown, offLand: warpCountdown },
+
+  chest: { feature:"popups", tiles:CHEST_TILES, color:CHEST_COLOR,   // a dropped 🎁 — first to land keeps it
+    onLand: collectChest, offLand: collectChest },
 };
 
 /* Who gets the landing first, per path. On your own roll the freeze check
    runs last (only if no tile fired); off-turn the frost beats the teleporter. */
 const LANDING_ORDER = {
-  turn:    ["fishing", "teleport", "orange", "shop", "setback", "trap89", "radioactive", "dizzy", "warp", "freeze"],
-  offTurn: ["setback", "trap89", "radioactive", "freeze", "dizzy", "warp", "teleport"],
+  turn:    ["chest", "fishing", "teleport", "orange", "shop", "setback", "trap89", "radioactive", "dizzy", "warp", "freeze"],
+  offTurn: ["chest", "setback", "trap89", "radioactive", "freeze", "dizzy", "warp", "teleport"],
 };
 
 function specialTileColor(cell){
@@ -2839,6 +3015,8 @@ function newGame(roster){
     game.draw = drawNightHand();
     game.draw.rulesOut.forEach(k => { FEATURES[k] = false; });
   }
+  game.popupRounds = (game.mode === "classic" && !tour && boardOpt("popups")) ? schedulePopups() : [];
+  game.popupLog = [];
   if (game.mode === "classic" && !tour && FEATURES.legMods && boardOpt("twistNight")
       && Math.random() < TWIST_NIGHT.CHANCE){
     const mod = drawNightTwist();
@@ -2855,6 +3033,7 @@ function newGame(roster){
   hideSecret();
   TRAP89_TILES.splice(0, Infinity, TRAP89.TILE);   // re-arm the tile-89 trapdoor for the new game
   RAD_TILES.splice(0, Infinity);                   // clear last game's fallout
+  CHEST_TILES.splice(0, Infinity); CHESTS.clear(); // unclaimed chests don't survive the night
   WARP.active = 0; WARP.owner = -1; applyWarp();   // right the board if a warp was live
   setSpecialTiles((game.draw && DRAW.SCRAMBLE) || boardOpt("scrambledStart") ? scrambledLayout() : DEFAULT_SPECIALS);
   rulesSeen = {};
@@ -3961,6 +4140,7 @@ function tileScore(cell, p){
   if (FEATURES.orange && ORANGE_TILES.includes(cell)) s += S.ORANGE;
   if (FEATURES.shop && SHOP_TILES.includes(cell)) s += S.SHOP;
   if (FEATURES.teleport && TELEPORTERS.includes(cell)) s += botBehind(p) > 0 ? S.TELEPORT_BEHIND : S.TELEPORT_AHEAD;
+  if (CHEST_TILES.includes(cell)) s += S.CHEST;
   if (FEATURES.coins && isPlainTile(cell) && isBlueTile(cell)) s += S.BLUE;
   return s;
 }
@@ -4370,6 +4550,12 @@ async function endTurn(){
     if (game.nightTwistId && game.round >= game.nightTwistRound && !game.over){
       game.busy = true; refreshHUD();
       await twistNightBegin();
+      game.busy = false;
+    }
+    if (game.popupRounds && game.popupRounds.length && game.round >= game.popupRounds[0] && !game.over){
+      game.popupRounds.shift();                    // pop-ups ride the round wrap, one at most per round
+      game.busy = true; refreshHUD();
+      await firePopup();
       game.busy = false;
     }
     const rm = activeLegMod();
@@ -8511,8 +8697,8 @@ const END_STATS = [
 // The party payoff of a drawn game: after the podium the hand goes face-up —
 // what was live tonight, what never existed at all.
 function tonightsBoardHtml(){
-  if (!game.draw) return "";
-  const d = game.draw;
+  const pops = game.popupLog || [];
+  if (!game.draw && !pops.length) return "";
   const rule = (k, out) => { const e = DRAW.POOL.find(x => x.key === k);
     return e ? `<span class="chip${out ? " out" : ""}">${e.ico} ${e.name}</span>` : ""; };
   const icon = (id, out) => { const it = itemDef(id);
@@ -8520,14 +8706,19 @@ function tonightsBoardHtml(){
   let h = `<div class="drawcard"><div class="lbtitle">🎴 Tonight's board</div>`;
   const twist = !game.tour ? activeLegMod() : null;
   if (twist) h += `<div class="drawrow"><span class="rowlab">Twist of the night:</span><span class="chip">${twist.ico} ${twist.name}</span></div>`;
-  h += `<div class="drawrow"><span class="rowlab">In play:</span>` +
-       DRAW.POOL.filter(e => FEATURES[e.key]).map(e => rule(e.key, false)).join("") +
-       [...d.items, ...d.exotics].map(id => icon(id, false)).join("") + `</div>`;
-  let ghosts = d.rulesOut.map(k => rule(k, true)).join("") +
-       [...d.itemsOut, ...d.exoticsOut].map(id => icon(id, true)).join("");
-  const slept = game.nightTwistId && LEG_MODS.find(m => m.id === game.nightTwistId);
-  if (slept) ghosts += `<span class="chip out">${slept.ico} ${slept.name} — never woke</span>`;
-  if (ghosts) h += `<div class="drawrow"><span class="rowlab">Never existed:</span>${ghosts}</div>`;
+  if (pops.length) h += `<div class="drawrow"><span class="rowlab">Popped up:</span>` +
+    pops.map(t => `<span class="chip">${t}</span>`).join("") + `</div>`;
+  if (game.draw){
+    const d = game.draw;
+    h += `<div class="drawrow"><span class="rowlab">In play:</span>` +
+         DRAW.POOL.filter(e => FEATURES[e.key]).map(e => rule(e.key, false)).join("") +
+         [...d.items, ...d.exotics].map(id => icon(id, false)).join("") + `</div>`;
+    let ghosts = d.rulesOut.map(k => rule(k, true)).join("") +
+         [...d.itemsOut, ...d.exoticsOut].map(id => icon(id, true)).join("");
+    const slept = game.nightTwistId && LEG_MODS.find(m => m.id === game.nightTwistId);
+    if (slept) ghosts += `<span class="chip out">${slept.ico} ${slept.name} — never woke</span>`;
+    if (ghosts) h += `<div class="drawrow"><span class="rowlab">Never existed:</span>${ghosts}</div>`;
+  }
   return h + `</div>`;
 }
 function showStandings(){

@@ -684,6 +684,18 @@ the pools stays unlisted here on purpose — that's the fun.) With the toggle
 off, every rule and every shelf runs full, exactly as before. Family mode
 composes: its calm-list rules never enter the hand.
 
+**🎈 Pop-ups** *(Advanced settings → 🗺️ Board — OFF by default while it's
+playtested)* — a few times per Classic game (2–4 moments, scheduled at random
+rounds early-to-mid game), something new visibly **enters the game mid-play**,
+announced with a quick card only as it happens: a special tile **grows onto a
+plain square** before your eyes; a **🎁 chest drops** somewhere — the first
+player to land on it (own roll or knocked there) keeps the loot, even with a
+full bag; a **sleeping rule wakes up**; or a **stray strike** gets loose from
+the chaos pool and hits a random player. Pop-up moments ride between turns and
+are listed on the end screen's **🎴 Tonight's board**. Composes freely with the
+Nightly draw (a woken rule is one the draw had left out) — and a quiet hand
+still gets its "wait, WHAT?" moments.
+
 **Consumables** (held in your bag; *used* from the inventory **before** you roll):
 
 - **☕ Coffee** — **4 coins.** +4 to your next roll.

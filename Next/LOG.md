@@ -3,6 +3,33 @@
 Newest first. One entry per working session; note what shipped and what's next.
 
 ---
+## 2026-07-18 (later still) — Pop-ups (Twist Direction v2, Phase 3)
+
+Isak: "Continue with Phase 3, the pop-ups." Built behind its own default-OFF
+🎈 board toggle, like the Draw.
+
+- **`POPUPS` DATA + scheduler**: 2–4 guaranteed moments per Classic game,
+  scheduled at newGame into random rounds 3–14 (min 2 apart), fired on the
+  round wrap (rides between turns, one per round max). Weighted kind pick
+  at fire time, eligibility-filtered.
+- **Four kinds**: 🌱 a special tile grows onto a plain square (8 growable
+  rules from `POPUPS.GROW`, scale-in FX via `growCellFx` + `repaintCell`);
+  🎁 a chest drops — built as a real `chest` TILE_RULES entry (first lander
+  loots 1 consumable, pays past a full bag like the pity box, bots score
+  the tile `BOT.SCORE.CHEST`); 💤 a dormant rule wakes (drawn-out rules
+  only; req-gated; leaves the ghost list, its tiles grow in); 🎲 a stray
+  strike from `randomBoardEvent` (family-safe via the existing pool filter).
+- **Announce card** (`popupCard`) fires only at the moment itself — short
+  hold, no drumroll. Moments logged to `game.popupLog` and listed on the
+  🎴 Tonight's board reveal, which now also shows for popup-only games.
+- **Verified headless Edge 25/25, 0 JS errors**: statics, 100 schedules,
+  each kind unit-tested (grow/chest drop+loot/wake/strike), full drawn game
+  round 22 with all 4 moments fired organically, control game clean.
+- RULES.md synced; defaults + "should the strike skip nukes?" in
+  QUESTIONS.md. Next: Phase 4 (freshness weighting + default flips) after
+  Isak's playtests of Phases 1–3.
+
+---
 ## 2026-07-18 (later) — The Nightly Draw (Twist Direction v2, Phase 2)
 
 Isak: "work on the SS2 Next list, keep the direction instructions in mind."

@@ -38,7 +38,19 @@ See `LOG.md` for the running session history.
             end-screen **🎴 Tonight's board** reveal (live chips + "never
             existed" ghosts, incl. a drawn twist that never woke).
             Headless-verified 31/31, two full bot games, 0 errors. Defaults in
-            QUESTIONS.md (2026-07-18). Next: Phase 3 pop-ups, then Phase 4
+            QUESTIONS.md (2026-07-18).
+      - [x] **Phase 3 — Pop-ups** shipped 2026-07-18 (same session): 🎈 board
+            option (OFF by default until playtested) — `POPUPS` DATA, 2–4
+            guaranteed moments per Classic game scheduled in a round window
+            (3–14, min 2 apart), fired on the round wrap: a special tile
+            **grows in** (8 growable rules, scale-in FX), a **🎁 chest drops**
+            (new `chest` registry tile rule — first lander loots it, pity-box
+            cap rule; bots value it), a **dormant rule wakes** (drawn-out
+            rules re-enter; ghost list updated), or a **stray chaos strike**
+            (reuses `randomBoardEvent`). Quick announce card at fire time,
+            never before; moments listed on 🎴 Tonight's board (which now also
+            shows for popup-only games). Headless-verified 25/25 incl. a full
+            game where all 4 fired organically, 0 errors. Next: Phase 4
             freshness weighting + default flips after Isak's playtests.
 
 ### Queued from Isak's 8-point batch (2026-07-10)
