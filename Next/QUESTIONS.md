@@ -3,6 +3,16 @@
 Standing file: autonomous sessions log clarifications here instead of stopping to ask.
 Answer whenever — each answer gets folded in and the question checked off.
 
+## 2026-07-18 — fishing + cheating batch
+
+- [ ] **Foul called by the player who is mid-move**: the SPACE window now stays
+  open while the next player places their piece. If that same player calls a
+  FALSE foul mid-placement, they're knocked flat/shamed by the verdict but still
+  finish the move they already rolled (the knock-down bites from their next turn).
+  Felt acceptable for couch play — want it to cancel their move instead?
+- [ ] Fail popup wording is "It got away… The line snaps and the catch slips
+  free." and the reel-meter boat is the 🚣 emoji — happy to reword/reskin.
+
 ## 2026-07-18 — Twist Direction v2 (party/replayability rework; see Next/TWIST_DIRECTION.md)
 
 *(The 2026-07-17 Director/story questions were withdrawn — that whole direction
