@@ -3,6 +3,17 @@
 Standing file: autonomous sessions log clarifications here instead of stopping to ask.
 Answer whenever — each answer gets folded in and the question checked off.
 
+## 2026-07-18 — music/ambience + nightfall defaults
+
+- [ ] **Nightfall tile**: picked tiles **31 & 74**, night lasts **3 rounds**,
+      visual = the Forever Night fog. OK, or want a full-board darkening
+      instead of the fog?
+- [ ] **Music defaults**: music volume defaults to **40%** of master; menus are
+      silent (music starts with a game). Twist variations are key/tempo shifts
+      of the standard track for now — distinct per-twist tracks are queued as v2.
+- [ ] **Fishing bonus roll**: a catch's bonus roll can chain (catch → roll →
+      another fishing square → catch…). Left unlimited — cap it?
+
 ## 2026-07-18 — fishing + cheating batch
 
 - [ ] **Foul called by the player who is mid-move**: the SPACE window now stays

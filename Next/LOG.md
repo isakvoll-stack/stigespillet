@@ -3,6 +3,30 @@
 Newest first. One entry per working session; note what shipped and what's next.
 
 ---
+## 2026-07-18 (night) — fishing tune-up + music/ambience v1 + item FX slice
+
+- **Fishing**: card = "It's a nice day for fishing, ain't it?"; a catch grants
+  a **bonus roll** (generic `p.bonusRoll` in `settleLanding`); rebalance —
+  reel meter 1.5× slower (`DRAIN .10 / FILL .15`) and near streak-flat
+  (`DRAIN_STREAK .01`), streak difficulty moved into the fish
+  (`FISH_SPEED_STREAK 70`, `RETARGET_STREAK .13`, floor .22).
+- **Music v1** (`MUSIC` DATA + `BGM` engine, direction preserved in
+  `Next/MUSIC.md` — KEEP): standard + boss tracks, per-boss key/tempo
+  variations, per-twist variations, Mayhem sped up, Forever Night →
+  cricket/owl/drone ambience; volume = 🔊 master × 🎵 music, adjustable
+  mid-game (side-panel 🔊 Sound button) + Settings sliders; persisted.
+- **🌃 Nightfall tile** (registry rule, tiles 31/74): night (Forever-Night
+  fog + ambience) for 3 rounds, extends on re-trigger, respects an active
+  night twist; in the nightly-draw pool; RULES.md section added.
+- **Item FX slice**: `flyIcon` arc primitive + 8 SFX voices; boomerang
+  out-and-back flight, sleep-dart flight, real bell ring + rings, rocket
+  launch, magnet hum, map dig, extinguisher spray. Audit of what still
+  lacks bespoke FX logged in TASKS.md (Active).
+- **IDEAS.md checked — inbox empty** (nothing to build). Task audit: Active
+  list matches shipped state; both regression bot games green.
+- **Verified headless Edge 18/18, 2 full bot games, 0 JS errors.**
+
+---
 ## 2026-07-18 (evening) — fishing + cheating batch (Isak's 3-point list)
 
 - **Fishing**: rule card no longer hints at any fail punishment; a fail now

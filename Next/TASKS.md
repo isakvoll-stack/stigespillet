@@ -11,6 +11,34 @@ See `LOG.md` for the running session history.
 
 ## Active
 
+### Music & board ambience (Isak, 2026-07-18) — direction in `Next/MUSIC.md` (KEEP that file)
+- [x] **v1 shipped 2026-07-18**: `BGM` procedural engine, standard + boss
+      tracks, per-boss variations, Evernight cricket/owl ambience, every twist
+      mapped to a variation, 🌃 Nightfall black tile (night for 3 rounds),
+      master + music volume adjustable **mid-game** (🔊 Sound side-panel
+      button) and on the Settings screen. See MUSIC.md build state.
+- [ ] v2: distinct per-twist tracks, more standard tracks, stingers, cutscene
+      ducking — gate on Isak's listen-through of v1.
+
+### Animations & sound for every item (Isak, 2026-07-18): "better animations
+### for all new items and items that does not have an animation yet, and sound"
+- [x] **First slice shipped 2026-07-18** — new shared `flyIcon` arc primitive
+      (emoji flies square→square) + 8 new SFX voices (hoot, bellring, whoosh,
+      dart, dig, spray, magnetize, rocketup). Upgraded: 🪃 Boomerang (flies
+      out AND back), 💤 Sleep Dart (dart flight + 💤 popup), 🔔 Alarm Bell
+      (real bell ring + shockwave rings), 🚀 Pocket Rocket (launch whoosh +
+      🔥), 🧲 Magnet (hum + 🧲 popup), 🗺️ Treasure Map (dig thuds + ⛏️),
+      🧯 Extinguisher (spray hiss + 💨).
+- [ ] Audit remainder — still on the generic flourish+sparkle only: ☕ Coffee,
+      🍀 Clover, 🛡️ Shield, 🪞 Mirror, 📦 Mystery Box (open animation?),
+      🎲 Loaded Dice, 🐒 Monkey's Paw (board scramble has FX; the wish
+      itself doesn't), and the 10 boss support items (bandage/banner/rally/
+      grapple/seeker/flare/warpaint/decoy/gust/elixir — all iconPopup+stock
+      SFX). Passives have no use-moment (nothing to do). Big items (bomb,
+      fire egg, horn, snowball, banana, singularity) already have bespoke FX.
+- [ ] New-rule sounds worth adding: chest-drop thud exists; consider tile-rule
+      stingers (orange choice, warp flip already has FX/siren).
+
 ### The Twist Direction v2 (Isak, 2026-07-17; reworked per his 2026-07-18 ruling)
 - [ ] **Make the game the "unexpected twist" on S&L it's meant to be** — full
       plan in **`Next/TWIST_DIRECTION.md`** (READ IT FIRST — it also records the

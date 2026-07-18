@@ -514,6 +514,11 @@
         <button class="btn" id="confirmBtn" style="width:100%;margin-top:10px;display:none">✔ Confirm move</button>
         <button class="btn ghost" id="invBtn" style="width:100%;margin-top:10px">🎒 Inventory</button>
         <button class="btn ghost" id="journalBtn" style="width:100%;margin-top:6px">📖 Discovered rules</button>
+        <button class="btn ghost" id="soundBtn" style="width:100%;margin-top:6px">🔊 Sound</button>
+        <div id="soundPanel" style="display:none;margin-top:6px;padding:6px 8px;border:1px dashed var(--brass);border-radius:10px;text-align:left;font-size:13px;color:var(--cream)">
+          <div>🔊 <input type="range" id="gameVolume" min="0" max="100" style="width:72%;vertical-align:middle"></div>
+          <div>🎵 <input type="range" id="gameMusicVol" min="0" max="100" style="width:72%;vertical-align:middle"></div>
+        </div>
         <div class="legend" id="legend">
           <span><b>Ladder</b> ↑ up</span><span><b>Chute</b> ↓ down</span>
         </div>
@@ -602,6 +607,7 @@
       <label class="toggle"><input type="checkbox" id="optManual"> Manual moves 🖐️ (move your own piece each roll — applies to new games)</label>
       <label class="toggle"><input type="checkbox" id="optFull"> 🔓 Full experience (unlock the other game modes & every advanced setting)</label>
       <label class="toggle">🔊 Volume <input type="range" id="optVolume" min="0" max="100" value="100" style="width:150px;vertical-align:middle;margin-left:8px"></label>
+      <label class="toggle">🎵 Music <input type="range" id="optMusicVol" min="0" max="100" value="40" style="width:150px;vertical-align:middle;margin-left:8px"></label>
       <button class="btn ghost" id="settingsBack">Back</button>
     </div>
   </div>
@@ -780,6 +786,7 @@ const FEATURES = {
   sniper:        true,   // every 5th round the last-place player gets a one-shot sniper
   kickWhileDown: true,   // kicking a downed player drops them a row & shames the kicker
   fishing:       true,   // landing on the dark-blue square triggers a fishing minigame
+  nightfall:     true,   // the pitch-black dusk square drops the whole board into night for a few rounds
   teleport:      true,   // teal squares let you swap places with a random player
   teleportMalfunction: true, // carrying a fish forces the swap (biased toward the front)
   lightning:     true,   // very rare: lightning strikes the leader
@@ -1478,6 +1485,7 @@ async function twistNightBegin(){
   await twistNightReveal(mod);
   log(`🃏 Twist of the night — ${mod.name}: ${mod.desc}`);
   if (mod.apply) mod.apply();
+  BGM.twist(mod.id);
   renderScoreboard(); refreshHUD();
 }
 /* ---- DATA: the Nightly Draw (Twist Direction v2, phase 2) -----------
@@ -1504,6 +1512,7 @@ const DRAW = {
     { key:"orange",        ico:"🟧", name:"Orange choice" },
     { key:"snakeCollision",ico:"💥", name:"Pile-up" },
     { key:"freeze",        ico:"🧊", name:"Deep freeze" },
+    { key:"nightfall",     ico:"🌃", name:"Nightfall" },
     { key:"radioactive",   ico:"☢️", name:"Radioactive fallout", req:["orange"] },
     { key:"trapdoor",      ico:"🕳️", name:"The rotten plank" },
     { key:"warp",          ico:"🌫️", name:"The gray square" },
@@ -1976,7 +1985,12 @@ const RULE_INFO = {
   fishing: {
     ico: "🎣",
     name: "Fishing",
-    text: "GRAB A ROD! The dark water is BITING today — cast, reel, glory!",
+    text: "It's a nice day for fishing, ain't it?",
+  },
+  nightfall: {
+    ico: "🌃",
+    name: "Nightfall",
+    text: "Some squares hold the last light of dusk. Tread on one and the whole board tips into night for a while — listen… crickets.",
   },
   teleport: {
     ico: "🌀",
@@ -2107,6 +2121,36 @@ const UNLOCKS = { full:false };
 
 /* ---- DATA: sound + pacing (Settings screen) ------------------------- */
 const SOUND = { VOLUME:1 };                      // master volume 0..1 (0 = mute)
+/* ---- DATA: background music (procedural — no audio files) -----------
+   Full direction lives in Next/MUSIC.md (Isak 2026-07-18 — keep it).
+   A track = 16 eighth-note steps (bass/lead patterns in SEMITONES from
+   root, null = rest) + one pad chord per 4-step bar. Variants transpose
+   and retime a track: per-boss, per-twist, per-mode. "nightAmbience"
+   swaps the band for crickets, owl hoots and a low drone (Evernight /
+   the Nightfall square). */
+const MUSIC = {
+  VOLUME:0.4, enabled:true,                      // 🎵 slider default; times the 🔊 master
+  STEP:16, LOOKAHEAD_S:0.4, TICK_MS:120,
+  TRACKS:{
+    standard:{ tempo:96, root:220,
+      bass:[0,null,0,null, 9,null,9,null, 5,null,5,null, 7,null,7,null],
+      lead:[12,null,9,null, 7,9,null,12, 5,null,7,9, 7,null,4,null],
+      pad:[[0,4,7],[9,12,16],[5,9,12],[7,11,14]],
+      gain:{ bass:0.10, lead:0.065, pad:0.03 } },
+    boss:{ tempo:132, root:220,
+      bass:[0,0,null,0, 0,null,0,0, 8,8,null,8, 10,10,null,10],
+      lead:[12,null,null,10, 12,null,15,null, 8,null,null,7, 10,null,7,null],
+      pad:[[0,3,7],[0,3,7],[8,12,15],[10,14,17]],
+      gain:{ bass:0.12, lead:0.06, pad:0.03 } },
+  },
+  BOSS_VAR:{ dragon:{semis:0,tempo:8}, kraken:{semis:-4,tempo:-10}, titan:{semis:-7,tempo:-26},
+             wyrm:{semis:5,tempo:22}, maw:{semis:-9,tempo:-16}, kong:{semis:2,tempo:14}, joker:{semis:6,tempo:0} },
+  TWIST_VAR:{ night:"nightAmbience", ice:{semis:4,tempo:-14}, mirror:{semis:-3,tempo:0},
+              opposite:{semis:-6,tempo:4}, flood:{semis:-5,tempo:-8}, musical:{semis:7,tempo:10},
+              magnet:{semis:2,tempo:6}, toll:{semis:-2,tempo:-6}, goldrush:{semis:3,tempo:18}, pace:{semis:0,tempo:26} },
+  MODE_VAR:{ mayhem:{semis:2,tempo:26} },
+  NIGHT:{ ROOT:55, DRONE_GAIN:0.028, CRICKET_GAP:[0.6,2.2], OWL_GAP:[9,22] },
+};
 const SPEED = { FF_DIV:3, fastForward:false };   // ⏩ bot-turn pacing divided by FF_DIV when on
 /* ---- DATA: cutscene versions -----------------------------------------
    Higher = newer look; flip any single one back if a redo feels worse.
@@ -2135,9 +2179,9 @@ const FISH   = {
   TILES:[35, 49, 70], SPIT_MAX:30,        // dark-blue squares -> fishing; loss spits you to 1..SPIT_MAX
   // --- minigame difficulty curve (read by fishParams), per the player's own catch streak ---
   ZONE_BASE:134, ZONE_SHRINK:15, ZONE_MIN:41,             // catch-zone height: base, shrink/streak, floor (px)
-  FISH_SPEED:110, FISH_SPEED_STREAK:50,                   // fish drift speed: base + per-streak (px/s)
-  RETARGET:0.85, RETARGET_STREAK:0.09, RETARGET_MIN:0.40, // seconds between fish direction changes
-  DRAIN:0.15, DRAIN_STREAK:0.047, FILL:0.23,             // progress drain (per s, +streak) and fill rate
+  FISH_SPEED:110, FISH_SPEED_STREAK:70,                   // fish drift speed: base + per-streak (px/s) — streak difficulty lives HERE
+  RETARGET:0.85, RETARGET_STREAK:0.13, RETARGET_MIN:0.22, // seconds between fish direction changes — erratic with streak
+  DRAIN:0.10, DRAIN_STREAK:0.01, FILL:0.15,               // reel meter: slow (1.5x the old ride) and near-flat over streaks
   // --- minigame bar physics (read by fishingGame) ---
   GRAVITY:540, REEL:1080, START:0.38,                     // bar gravity-down, reel-up, starting progress (0..1)
   METER:{ BOAT:30, FISH:22 },                             // reel meter: boat header + fish emoji heights (px)
@@ -2179,6 +2223,8 @@ const FREEZE = { GETUP_MIN: 4, ADJ: 1,     // need 4+ to break free; LANDING wit
    START your turn standing on it and the whole board flips (90/180/270°)
    with every colour inverted — and you play your turn like that. The
    board rights itself when the next player's turn begins. */
+const NIGHTFALL = { TILES:[31, 74], ROUNDS:3, COLOR:"#191527" };  // pitch-black dusk squares — night falls for ROUNDS rounds
+const FLY = { ARC:90, SPIN:540, MS:520 };  // thrown-item emoji arc: height (px), spin (deg), flight time
 const WARP_TILES = [44];
 const WARP_COLOR = "#9aa0a6";              // plain gray
 const WARP = { ANGLES:[90, 180, 270], SPIN_MS:800, active:0,
@@ -2714,6 +2760,10 @@ const TILE_RULES = {
   fishing: { feature:"fishing", tiles:FISH.TILES, color:FISH_COLOR,
     async onLand(p){ await runFishing(p); return true; } },
 
+  nightfall: { feature:"nightfall", tiles:NIGHTFALL.TILES, color:NIGHTFALL.COLOR,
+    async onLand(p){ await runNightfall(p); return true; },
+    async offLand(p){ await runNightfall(p); return true; } },
+
   teleport: { feature:"teleport", tiles:TELEPORTERS, color:TELEPORT_COLOR,
     matches(p, ctx){ return TELEPORTERS.includes(p.pos) && !ctx.skipTeleport; },
     async onLand(p){ await runTeleporter(p); return true; },
@@ -2760,8 +2810,8 @@ const TILE_RULES = {
 /* Who gets the landing first, per path. On your own roll the freeze check
    runs last (only if no tile fired); off-turn the frost beats the teleporter. */
 const LANDING_ORDER = {
-  turn:    ["chest", "fishing", "teleport", "orange", "shop", "setback", "trap89", "radioactive", "dizzy", "warp", "freeze"],
-  offTurn: ["chest", "setback", "trap89", "radioactive", "freeze", "dizzy", "warp", "teleport"],
+  turn:    ["chest", "fishing", "teleport", "orange", "shop", "setback", "trap89", "radioactive", "dizzy", "warp", "freeze", "nightfall"],
+  offTurn: ["chest", "setback", "trap89", "radioactive", "freeze", "dizzy", "warp", "teleport", "nightfall"],
 };
 
 function specialTileColor(cell){
@@ -3058,8 +3108,106 @@ const SFX = (() => {
         o.frequency.setValueAtTime(f,t); o.frequency.linearRampToValueAtTime(f*1.335,t+0.25);
         o.connect(g); o.start(t); o.stop(t+1.45); });
       g.connect(master); },
+    hoot: ()=> { tone(320, 0.4, "sine", 0.1); tone(285, 0.5, "sine", 0.1, 0.45); },
+    bellring: ()=> { tone(1180, 0.9, "triangle", 0.16); tone(1770, 0.9, "triangle", 0.07, 0.01); tone(590, 0.5, "sine", 0.1, 0.02); },
+    whoosh: ()=> { for (let i=0;i<8;i++) tone(300+i*90+Math.random()*60, 0.05, "sawtooth", 0.05, i*0.04); },
+    dart: ()=> { tone(1500, 0.06, "square", 0.1); tone(700, 0.08, "square", 0.07, 0.05); },
+    dig: ()=> { for (let i=0;i<3;i++) tone(110+Math.random()*40, 0.1, "sawtooth", 0.18, i*0.16); },
+    spray: ()=> { for (let i=0;i<12;i++) tone(2200+Math.random()*1800, 0.03, "square", 0.03, i*0.035); },
+    magnetize: ()=> { for (let i=0;i<7;i++) tone(180+i*70, 0.07, "sine", 0.1, i*0.05); },
+    rocketup: ()=> { for (let i=0;i<10;i++) tone(140+i*95, 0.06, "sawtooth", 0.09, i*0.045); },
   };
   return { play: (n) => { if (!FEATURES.sound || SOUND.VOLUME <= 0) return; try { (table[n]||(()=>{}))(); } catch(e){} } };
+})();
+
+/* ---- background music: a tiny procedural sequencer (see MUSIC DATA) --
+   BGM.base(track, variant) remembers + starts the game's base soundtrack;
+   BGM.twist(id) swaps the base per the TWIST_VAR map; BGM.night() plays
+   the Evernight ambience (crickets/owls/drone); BGM.resume() returns to
+   the remembered base (Nightfall lifting); BGM.stop() on menus. */
+const BGM = (() => {
+  let ctx = null, bus = null, timer = null, ambTimers = [], drones = [];
+  let cur = null, nextT = 0, step = 0, baseSel = null;
+  function ac(){
+    if (!ctx){
+      try { ctx = new (window.AudioContext||window.webkitAudioContext)(); bus = ctx.createGain(); bus.connect(ctx.destination); }
+      catch(e){ return null; }
+    }
+    if (ctx.state === "suspended") ctx.resume();
+    refreshVol();
+    return ctx;
+  }
+  function refreshVol(){ if (bus) bus.gain.value = MUSIC.enabled ? SOUND.VOLUME * MUSIC.VOLUME : 0; }
+  const hz = (root, s) => root * Math.pow(2, s/12);
+  function note(freq, t, dur, type, gain){
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = type; o.frequency.setValueAtTime(freq, t);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(gain, t + 0.03);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(bus); o.start(t); o.stop(t + dur + 0.05);
+  }
+  function silence(){
+    if (timer){ clearInterval(timer); timer = null; }
+    ambTimers.forEach(clearTimeout); ambTimers = [];
+    drones.forEach(o => { try { o.stop(); } catch(e){} }); drones = [];
+    cur = null;
+  }
+  function schedule(){
+    if (!cur) return;
+    const t = cur.t, stepDur = 60 / cur.tempo / 2;
+    while (nextT < ctx.currentTime + MUSIC.LOOKAHEAD_S){
+      const s = step % MUSIC.STEP;
+      const b = t.bass[s]; if (b !== null) note(hz(t.root/2, b + cur.semis), nextT, stepDur*1.8, "triangle", t.gain.bass);
+      const l = t.lead[s]; if (l !== null) note(hz(t.root, l + cur.semis), nextT, stepDur*1.4, "sine", t.gain.lead);
+      if (s % 4 === 0) t.pad[(s/4)|0].forEach(sm => note(hz(t.root, sm + cur.semis), nextT, stepDur*4.2, "sine", t.gain.pad));
+      nextT += stepDur; step++;
+    }
+  }
+  function startTrack(track, variant){
+    const c = ac(); if (!c) return;
+    silence();
+    const t = MUSIC.TRACKS[track]; if (!t) return;
+    cur = { t, semis:(variant && variant.semis) || 0, tempo: Math.max(50, t.tempo + ((variant && variant.tempo) || 0)) };
+    step = 0; nextT = c.currentTime + 0.15;
+    timer = setInterval(schedule, MUSIC.TICK_MS); schedule();
+  }
+  const gap = ([lo,hi]) => (lo + Math.random()*(hi - lo)) * 1000;
+  function chirp(){
+    const t0 = ctx.currentTime, n = 4 + (Math.random()*3|0);
+    for (let i = 0; i < n; i++) note(4300 + Math.random()*500, t0 + i*0.055, 0.045, "sine", 0.035);
+  }
+  function hoot(){
+    const t0 = ctx.currentTime;
+    note(320, t0, 0.4, "sine", 0.055); note(285, t0 + 0.45, 0.5, "sine", 0.055);
+  }
+  function startNight(){
+    const c = ac(); if (!c) return;
+    silence();
+    [0, 3].forEach(s => { const o = c.createOscillator(), g = c.createGain();
+      o.type = "sine"; o.frequency.value = hz(MUSIC.NIGHT.ROOT, s);
+      g.gain.value = MUSIC.NIGHT.DRONE_GAIN; o.connect(g); g.connect(bus); o.start(); drones.push(o); });
+    (function cricket(){ ambTimers.push(setTimeout(()=>{ try{chirp();}catch(e){} cricket(); }, gap(MUSIC.NIGHT.CRICKET_GAP))); })();
+    (function owl(){ ambTimers.push(setTimeout(()=>{ try{hoot();}catch(e){} owl(); }, gap(MUSIC.NIGHT.OWL_GAP))); })();
+  }
+  function playSel(sel){
+    if (!sel) return;
+    if (sel.ambience) startNight(); else startTrack(sel.track, sel.variant);
+  }
+  return {
+    base(track, variant){ baseSel = { track, variant: variant || null }; playSel(baseSel); },
+    twist(id){
+      const v = MUSIC.TWIST_VAR[id];
+      if (v === "nightAmbience") baseSel = { ambience:true };
+      else if (v) baseSel = { track:"standard", variant:v };
+      else return;
+      playSel(baseSel);
+    },
+    night(){ startNight(); },
+    resume(){ playSel(baseSel); },
+    stop(){ silence(); baseSel = null; },
+    refreshVol,
+  };
 })();
 
 function makePlayers(roster){
@@ -3067,7 +3215,7 @@ function makePlayers(roster){
     name: r.name || `Player ${i+1}`,
     color: FANCY_BY_ID[r.color] ? FANCY_BY_ID[r.color].base : (r.color || PLAYER_COLORS[i]),
     fancy: FANCY_BY_ID[r.color] ? r.color : null, pos:0, bot: !!r.bot,
-    downed:false, frozen:false, sniper:false, finished:false, shame:0, getupMin: SNIPER.GETUP_MIN, fish:0, fishStreak:0, fishCaught:0, onSecret:false, marketDue:false,
+    downed:false, frozen:false, sniper:false, finished:false, shame:0, getupMin: SNIPER.GETUP_MIN, fish:0, fishStreak:0, fishCaught:0, bonusRoll:false, onSecret:false, marketDue:false,
     items:[], passive:null, passive2:null, rollBonus:0, forceSix:false, coins:COIN.START,
     tourPts:0, crowned:false, bossSkip:0, bossSinge:0, bossDamage:0,
     radSick:false, radTurns:0, radLevel:0, radImmune:false, shieldOn:false,
@@ -3129,6 +3277,7 @@ function newGame(roster){
   layoutTokens();                 // line everyone up in the START lane
   logEl.innerHTML = "";
   hideBanner();
+  BGM.base("standard", isMayhem() ? MUSIC.MODE_VAR.mayhem : null);
   refreshHUD();
 }
 
@@ -3792,7 +3941,15 @@ async function settleLanding(p, i, from, landed, rollsAgain, dual){
   if (!rollsAgain && !slipped){
     const fired = await runTileRules(p, {offTurn:false, depth:0});
     if (game.over) return;
-    if (fired){ await endTurn(); return; }
+    if (fired){
+      // a tile rule may have earned the player a bonus roll (e.g. a fishing catch)
+      if (p.bonusRoll && !p.finished && !p.downed){
+        p.bonusRoll = false;
+        game.busy = false; refreshHUD(); maybeAuto(); return;
+      }
+      p.bonusRoll = false;
+      await endTurn(); return;
+    }
   }
 
   // coin for landing on a plain tile (no special effect this stop)
@@ -4571,6 +4728,27 @@ function refreshBadges(){ if (game) game.players.forEach((_,i)=>{ updateShame(i)
 
 // Mario-style pop: an icon (coin, trophy …) rises off the player's head and fades.
 function coinPopup(p, n, scale){ iconPopup(p, "🪙", n, scale); }
+// A thrown item's emoji arcs from one board square to another (screen space,
+// warp-safe via cellToScreen). Resolves when it lands.
+function flyIcon(fromCell, toCell, ico, ms){
+  return new Promise(res => {
+    let a, b;
+    try { a = cellToScreen(fromCell); b = cellToScreen(toCell); } catch(e){ res(); return; }
+    const d = document.createElement("div");
+    d.textContent = ico;
+    d.style.cssText = "position:fixed;z-index:60;font-size:30px;pointer-events:none";
+    document.body.appendChild(d);
+    const t0 = performance.now(), dur = ffms(ms || FLY.MS);
+    (function fr(now){
+      const t = Math.min(1, (now - t0)/dur);
+      d.style.left = (a.x + (b.x - a.x)*t) + "px";
+      d.style.top  = (a.y + (b.y - a.y)*t - FLY.ARC*Math.sin(Math.PI*t)) + "px";
+      d.style.transform = `translate(-50%,-50%) rotate(${t*FLY.SPIN}deg)`;
+      if (t < 1) requestAnimationFrame(fr); else { d.remove(); res(); }
+    })(t0);
+  });
+}
+
 function iconPopup(p, ico, n, scale){
   const g = tokenEls[idxOf(p)]; if (!g) return;
   const t = el("text",{y:-60,"text-anchor":"middle","font-size":20*TOKEN.ICON_SCALE*(scale||1)});
@@ -4689,6 +4867,12 @@ async function endTurn(){
       game.busy = true; refreshHUD();
       await firePopup();
       game.busy = false;
+    }
+    if (game.nightfallUntil && game.round > game.nightfallUntil){
+      game.nightfallUntil = 0;
+      const nightTwist = activeLegMod() && activeLegMod().id === "night";
+      if (!nightTwist){ clearFog(); BGM.resume(); }
+      log("🌅 The night lifts — dawn returns to the board.");
     }
     const rm = activeLegMod();
     if (rm && rm.onRoundStart){ game.busy = true; refreshHUD(); await rm.onRoundStart(); game.busy = false; }
@@ -5017,6 +5201,7 @@ async function bossIntro(){
   }
   t.textContent = b.def.ico;
   SFX.play("six"); flashScreen();
+  BGM.base("boss", MUSIC.BOSS_VAR[b.def.id] || null);   // the arena takes the boss's own key + tempo
   await sleep(BOSS_INTRO.HOLD_MS);
   t.remove();
 }
@@ -5054,6 +5239,7 @@ function newBossGame(roster){
   paintBossLose();
   logEl.innerHTML = "";
   hideBanner();
+  BGM.base("boss");
   refreshHUD();
 }
 // Every tile already spoken for: START, weakpoints, the ring's coin/box/light
@@ -6145,6 +6331,22 @@ async function leviathanFx(fromCell, toCell, victim){
   await sleep(460); ovl.remove(); dim.remove();
 }
 
+/* ---- the pitch-black dusk square: night falls for a few rounds ------ */
+async function runNightfall(p){
+  await revealRuleOnce("nightfall");
+  const fresh = !game.nightfallUntil;
+  game.nightfallUntil = game.round + NIGHTFALL.ROUNDS;
+  SFX.play("hoot");
+  if (fresh){
+    log(`🌃 ${p.name} treads on the dusk square — night falls over the board!`);
+    if (!fogG){ buildFog(); updateFog(); }
+    BGM.night();
+  } else {
+    log(`🌃 The dusk square deepens the dark — the night holds a while longer…`);
+  }
+  await sleep(600);
+}
+
 async function runFishing(p){
   await revealRuleOnce("fishing");
   const streak = p.fishStreak || 0;
@@ -6162,8 +6364,9 @@ async function runFishing(p){
   if (won){
     p.fish = (p.fish||0) + 1; p.fishStreak = streak + 1;
     p.fishCaught = (p.fishCaught || 0) + 1;
+    p.bonusRoll = true;
     SFX.play("catch");
-    log(`${p.name} caught a fish! 🐟`);
+    log(`${p.name} caught a fish — and earns another roll! 🐟`);
     awardTrophy(p, "🐟 A catch", KOTH.TROPHY_FISH);
     renderScoreboard();
   } else {
@@ -8110,10 +8313,15 @@ async function useItem(p, idx){
     if (!ahead){ log(`🪃 Nobody ahead to clip.`); return; }
     p.items.splice(idx, 1);
     await itemFlourish(p, "🪃");
+    const home = Math.max(1, p.pos);
+    SFX.play("whoosh");
+    await flyIcon(home, ahead.pos, "🪃");
     SFX.play("chute");
     log(`🪃 ${p.name}'s boomerang clips ${ahead.name} — ${BOOMERANG.KNOCK} tiles back!`);
     setBackPos(ahead, ahead.pos - BOOMERANG.KNOCK);
     layoutTokens(); renderScoreboard();
+    SFX.play("whoosh");
+    await flyIcon(ahead.pos, home, "🪃");
     await resolveLanding(ahead, 0);
   } else if (id === "magnet"){
     const near = game.players.filter(q => q !== p && !q.finished && q.pos > 0)
@@ -8123,7 +8331,8 @@ async function useItem(p, idx){
     await itemFlourish(p, "🧲");
     const dir = near.pos > p.pos ? -1 : 1;
     const target = near.pos + dir * Math.min(MAGNET.PULL, Math.abs(near.pos - p.pos));
-    SFX.play("teleport");
+    SFX.play("magnetize");
+    iconPopup(near, "🧲", 1);
     if (dir === -1) setBackPos(near, target);
     else { noteSkip(near, near.pos, target); near.pos = target; }
     log(`🧲 ${p.name} drags ${near.name} ${dir === -1 ? "back" : "forward"} to tile ${near.pos}!`);
@@ -8133,7 +8342,8 @@ async function useItem(p, idx){
     if (p.pos < 1){ log(`🔔 The bell clangs in the start lane — nobody flinches.`); return; }
     p.items.splice(idx, 1);
     await itemFlourish(p, "🔔");
-    SFX.play("horn");
+    SFX.play("bellring");
+    hornRings(p.pos);
     const victims = game.players.filter(q => q !== p && !q.finished && q.pos > 0
       && gridNear(p.pos, q.pos, BELL.NEAR));
     if (!victims.length) log(`🔔 The bell rings out — nobody close enough to flinch.`);
@@ -8155,7 +8365,8 @@ async function useItem(p, idx){
       await resolveLanding(p, 0);
     } else {
       const n = ROCKET.MIN + ((Math.random()*(ROCKET.MAX - ROCKET.MIN + 1))|0);
-      SFX.play("sparkle");
+      SFX.play("rocketup");
+      iconPopup(p, "🔥", 1);
       log(`🚀 ${p.name} straps in — ${n} tiles!`);
       await advancePlayer(p, n);
     }
@@ -8168,6 +8379,9 @@ async function useItem(p, idx){
     if (!t || t === "back") return;
     p.items.splice(idx, 1);
     await itemFlourish(p, "💤");
+    SFX.play("dart");
+    await flyIcon(Math.max(1, p.pos), t.pos, "💤");
+    iconPopup(t, "💤", 1);
     log(`💤 ${p.name}'s dart finds ${t.name} — lights out.`);
     downPlayer(t);
     layoutTokens(); renderScoreboard();
@@ -8176,11 +8390,14 @@ async function useItem(p, idx){
     await itemFlourish(p, "🧯");
     p.radSick = false; p.radLevel = 0; p.radTurns = 0;
     p.singeRolls = 0; p.dizzy = false;
-    SFX.play("catch");
+    SFX.play("spray");
+    iconPopup(p, "💨", 1);
     log(`🧯 ${p.name} hoses off — radiation, burns and dizziness all wash away.`);
   } else if (id === "map"){
     p.items.splice(idx, 1);
     await itemFlourish(p, "🗺️");
+    SFX.play("dig");
+    iconPopup(p, "⛏️", 1);
     const n = TREASURE.MIN + ((Math.random()*(TREASURE.MAX - TREASURE.MIN + 1))|0);
     awardCoin(p, "🗺️ Buried treasure", n, "blue");
   } else if (id === "singcasing"){
@@ -8741,6 +8958,7 @@ function tourDress(){
   if (m){
     log(`${m.ico} Leg twist — ${m.name}: ${m.desc}`);
     if (m.apply) m.apply();
+    BGM.twist(m.id);
   }
   renderScoreboard(); refreshHUD();
 }
@@ -9044,6 +9262,7 @@ function buildAdvanced(){
 /* ---- screen flow: title -> setup -> game --------------------------- */
 function showScreen(which){
   closeColorPop();
+  if (which !== "game") BGM.stop();      // menus are quiet; newGame restarts the soundtrack
   document.getElementById("screenTitle").classList.toggle("show", which==="title");
   document.getElementById("screenMode").classList.toggle("show", which==="mode");
   document.getElementById("screenSetup").classList.toggle("show", which==="setup");
@@ -9289,6 +9508,7 @@ function saveSettings(){
     localStorage.setItem(SETTINGS_KEY, JSON.stringify({
       botThoughts: FEATURES.botThoughts,
       volume: SOUND.VOLUME,
+      music: MUSIC.VOLUME,
       fastForward: SPEED.fastForward,
       rgb: RGB.enabled,
       full: UNLOCKS.full,
@@ -9307,6 +9527,7 @@ function loadSettings(){
     if (!s) return;
     if (typeof s.botThoughts === "boolean") FEATURES.botThoughts = s.botThoughts;
     if (typeof s.volume === "number") SOUND.VOLUME = Math.min(1, Math.max(0, s.volume));
+    if (typeof s.music === "number") MUSIC.VOLUME = Math.min(1, Math.max(0, s.music));
     if (typeof s.fastForward === "boolean") SPEED.fastForward = s.fastForward;
     if (typeof s.rgb === "boolean") RGB.enabled = s.rgb;
     if (typeof s.full === "boolean") UNLOCKS.full = s.full;
@@ -9417,6 +9638,7 @@ document.getElementById("settingsBtn").addEventListener("click", ()=>{
   document.getElementById("optManual").checked = VARIANTS.manual;
   document.getElementById("optFull").checked = UNLOCKS.full;
   document.getElementById("optVolume").value = Math.round(SOUND.VOLUME * 100);
+  document.getElementById("optMusicVol").value = Math.round(MUSIC.VOLUME * 100);
   showScreen("settings");
 });
 document.getElementById("optFamily").addEventListener("change", e=>{ VARIANTS.family = e.target.checked; saveSettings(); });
@@ -9432,7 +9654,29 @@ document.getElementById("optBotThoughts").addEventListener("change", e=>{ FEATUR
 document.getElementById("optFastForward").addEventListener("change", e=>{ SPEED.fastForward = e.target.checked; saveSettings(); });
 document.getElementById("optVolume").addEventListener("change", e=>{
   SOUND.VOLUME = Math.min(1, Math.max(0, (+e.target.value)/100));
-  saveSettings(); SFX.play("coin");                      // a taste of the new level
+  BGM.refreshVol(); saveSettings(); SFX.play("coin");    // a taste of the new level
+});
+document.getElementById("optMusicVol").addEventListener("change", e=>{
+  MUSIC.VOLUME = Math.min(1, Math.max(0, (+e.target.value)/100));
+  BGM.refreshVol(); saveSettings();
+});
+// mid-game sound panel: the same two knobs, live under the 🔊 Sound button
+document.getElementById("soundBtn").addEventListener("click", ()=>{
+  const panel = document.getElementById("soundPanel");
+  const open = panel.style.display === "none";
+  if (open){
+    document.getElementById("gameVolume").value = Math.round(SOUND.VOLUME * 100);
+    document.getElementById("gameMusicVol").value = Math.round(MUSIC.VOLUME * 100);
+  }
+  panel.style.display = open ? "" : "none";
+});
+document.getElementById("gameVolume").addEventListener("input", e=>{
+  SOUND.VOLUME = Math.min(1, Math.max(0, (+e.target.value)/100));
+  BGM.refreshVol(); saveSettings();
+});
+document.getElementById("gameMusicVol").addEventListener("input", e=>{
+  MUSIC.VOLUME = Math.min(1, Math.max(0, (+e.target.value)/100));
+  BGM.refreshVol(); saveSettings();
 });
 document.getElementById("toSetup").addEventListener("click", openPlay);
 document.getElementById("backBtn").addEventListener("click", ()=>{ if (UNLOCKS.full) showScreen("mode"); else showScreen("title"); });

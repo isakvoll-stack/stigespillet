@@ -384,16 +384,33 @@ you reel** — reach the boat and it's a **catch** (you keep a 🐟 and stay put
 If the fish slips all the way off the line, a plain **"It got away…"** box just
 says you failed — and only once it's dismissed does the **leviathan** rear up,
 swallow you and spit you onto a **random tile near the start (1–30)**. The rule
-card never hints at that part.
+card never hints at that part (it just says *"It's a nice day for fishing,
+ain't it?"*). **A catch earns another roll** — land it and the turn is yours
+again (`p.bonusRoll`, handed out in `settleLanding`).
 
 It's tricky even the first time, and **every catch in a row makes YOUR next one
-harder** (a 3rd straight attempt is brutal); a miss resets it to the base
-difficulty. The pond keeps score **per angler** — someone else's hot streak
-doesn't sour your fishing. *Controls: only the **↑ Up arrow** — no mouse /
+harder** — the difficulty lives in the **fish itself**: each straight catch makes
+it **swim faster and dart more erratically** (`FISH_SPEED_STREAK`,
+`RETARGET_STREAK`), while the reel meter itself fills and drains **slowly and
+almost streak-independently** (~1.5× the old ride, `DRAIN`/`FILL`, near-zero
+`DRAIN_STREAK`). A miss resets the streak. The pond keeps score **per angler** —
+someone else's hot streak doesn't sour your fishing. *Controls: only the **↑ Up arrow** — no mouse /
 space / enter.*
 
 *Toggle: `FEATURES.fishing`. Trigger tiles = `FISH.TILES` (35, 49 & 70 — the dark-blue
 squares). Fishing is a **core rule**: the nightly draw never benches it (`DRAW.CORE`).*
+
+### Nightfall (hidden rule)
+Two **pitch-black squares** hold the last light of dusk. Stop on one (landed or
+thrown there) and **night falls over the whole board for 3 rounds**: the board
+ahead sinks into the same dark fog as 🌙 Forever Night, and the soundtrack gives
+way to **night ambience** — crickets, the occasional owl. At dawn the fog lifts
+and the board's music returns. Stepping on a dusk square while it's already
+night just extends it. If the Forever Night twist is running, the night simply
+never lifts.
+
+*Toggle: `FEATURES.nightfall`. Tunables in `NIGHTFALL` (tiles 31 & 74, 3 rounds);
+in the nightly-draw pool; scrambles with the other specials.*
 
 ### Fish powers (hidden rule)
 The fish you catch aren't just trophies — carrying them changes how you play, with
@@ -851,8 +868,18 @@ self-contained page. Toggle with `FEATURES.sound`. On the big dramatic moments
 decision popups** toggle, **⏩ Fast-forward bot turns** (bot turns run at 3× —
 `SPEED.FF_DIV` — human turns are untouched), the **🌈 RGB player** toggle (see
 *Players & bots*), the **👨‍👩‍👧 Family mode** and **🖐️ Manual moves** toggles (see
-*Game variants* — both apply to new games), and a **🔊 master volume slider** (0 = mute; covers all effects
-and the kill-announcer voice, `SOUND.VOLUME`). All settings — including the Advanced
+*Game variants* — both apply to new games), a **🔊 master volume slider** (0 = mute; covers all effects
+and the kill-announcer voice, `SOUND.VOLUME`) and a **🎵 music volume slider**
+(`MUSIC.VOLUME`, times the master). **Mid-game**, the 🔊 Sound button in the side
+panel opens the same two sliders — both are live immediately.
+
+**🎵 Background music** (all synthesized — still one file, no audio assets): the
+board picks its soundtrack. Classic/KOTH play the standard track; **Mayhem** runs
+it faster; **each boss gets its own variation** (key + tempo, chosen when the giant
+die lands — the Joker included); **every leg twist** swaps in its own variation,
+and **🌙 Forever Night** replaces music with night ambience — crickets, the odd
+owl hoot, a low eerie drone. Tunables/patterns in the `MUSIC` DATA block; the
+full direction lives in `Next/MUSIC.md`. All settings — including the Advanced
 item/exotic/board/finish-line toggles on the setup screen, the RGB toggle and the
 chosen theme — are **remembered between sessions** (browser `localStorage`; still one
 self-contained file, clearing browser data resets them).

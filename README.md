@@ -55,6 +55,17 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
+Recently shipped (2026-07-18, night): **fishing tune-up + music & ambience v1** —
+fishing card is now "It's a nice day for fishing, ain't it?", a catch earns
+another roll, and difficulty moved into the fish (faster/more erratic per streak;
+reel meter 1.5× slower and near streak-flat). NEW: procedural background music
+(`BGM`/`MUSIC` — standard + Mayhem variant, per-boss variations, a variation per
+leg twist), Evernight cricket/owl ambience, the 🌃 **Nightfall black tile** (night
+falls for 3 rounds), master+music volume adjustable mid-game (🔊 Sound side
+button) and in Settings, and an item FX pass (boomerang flies, dart flies, bell
+rings, rocket roars, magnet hums, map digs, extinguisher sprays). Direction kept
+in `Next/MUSIC.md`. IDEAS.md inbox was empty (nothing to build from it).
+
 Recently shipped (2026-07-18, evening): **fishing + cheating batch** — fishing is
 now a CORE rule (never benched by the nightly draw); its rule card no longer hints
 at a fail punishment (a plain "It got away…" box, THEN the leviathan surprise);
