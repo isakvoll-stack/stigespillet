@@ -209,7 +209,8 @@ random. They're built to bend what you take for granted:
   and if a ladder/chute waits there, **its foot or its far end are both legal**.
   With two dice, either die's landing is fine. In this mode **Space never
   rolls** (Enter, ↓ or the dice do) — Space is reserved: press it **any time
-  before the next player's move begins** if you think the last move was wrong.
+  until the next player's move is CONFIRMED** — even after they've cast (or are
+  still picking) their dice — if you think the last move was wrong.
   A giant **CHEATER!** fills the screen, the accuser picks themselves, and
   after a beat a **verdict box** states the outcome — the sentence lands only
   when it's dismissed. **Caught cheating** → the piece goes back where it came
@@ -220,7 +221,11 @@ random. They're built to bend what you take for granted:
   **knocked flat and shamed**; *already* shamed or down → **4–6 squares back**;
   *both* → **11–15 back**. Bots always move honestly (their moves are automatic
   and can't be called out). The manual walk skips shop pass-by browsing.
-  *(All numbers in `CHEAT`.)*
+  The walk itself plays along with a cheat: a placement one row up may **hop up
+  the wrong side of the switchback** when that route's step count matches the
+  rolled amount better than the honest way round (ties — and clear mismatches —
+  walk the honest way), so a well-measured miscount doesn't give itself away.
+  *(All numbers in `CHEAT`; the route pick is `manualHopPath`.)*
 
 - **🃏 Twist of the night** *(Advanced settings → 🗺️ Board — ON by default)* —
   some Classic games (about **1 in 3**) secretly carry **one** of the Grand Tour
@@ -370,11 +375,16 @@ frost off your square before the freeze check runs.
 
 ### Fishing (hidden rule)
 Land on the **dark-blue square** and you play a quick **fishing minigame**. Like
-all minigames it opens with a **"Get into position, NAME"** screen — press
-**Enter** once the right player is at the keyboard. Then **hold the ↑ Up arrow**
-to lift the green bar and keep it over the fish until the meter fills (a **catch**:
-you keep a 🐟 and stay put). Let the meter empty and a **leviathan** swallows you
-and spits you onto a **random tile near the start (1–30)**.
+all minigames it opens with a **"Get into position, NAME"** screen — it shows a
+little picture of the pond (*move the green zone over the fish to reel it in*) —
+press **Enter** once the right player is at the keyboard. Then **hold the ↑ Up
+arrow** to lift the green zone and keep it over the fish. Beside the pond a
+**little rowboat** holds your line: the hooked fish **climbs toward the boat as
+you reel** — reach the boat and it's a **catch** (you keep a 🐟 and stay put).
+If the fish slips all the way off the line, a plain **"It got away…"** box just
+says you failed — and only once it's dismissed does the **leviathan** rear up,
+swallow you and spit you onto a **random tile near the start (1–30)**. The rule
+card never hints at that part.
 
 It's tricky even the first time, and **every catch in a row makes YOUR next one
 harder** (a 3rd straight attempt is brutal); a miss resets it to the base
@@ -382,7 +392,8 @@ difficulty. The pond keeps score **per angler** — someone else's hot streak
 doesn't sour your fishing. *Controls: only the **↑ Up arrow** — no mouse /
 space / enter.*
 
-*Toggle: `FEATURES.fishing`. Trigger tiles = `FISH.TILES` (35, 49 & 70 — the dark-blue squares).*
+*Toggle: `FEATURES.fishing`. Trigger tiles = `FISH.TILES` (35, 49 & 70 — the dark-blue
+squares). Fishing is a **core rule**: the nightly draw never benches it (`DRAW.CORE`).*
 
 ### Fish powers (hidden rule)
 The fish you catch aren't just trophies — carrying them changes how you play, with
@@ -788,7 +799,8 @@ a new passive fills a free slot first, then replaces a non-Candle one):
 Some items don't want to stay apart. Carry **any two** of **🛡️ Shield, 💣 Bomb and
 🔥 Fire Egg** in your bag at the same time and they **fuse by themselves** into a
 **🌑 Singularity Casing** — it can't be used, it just hums, and it remembers which
-piece is missing (a *second* copy of something you already fed it won't do). Gain
+piece is missing: its **bag description names the exact piece it still waits for**
+(a *second* copy of something you already fed it won't do). Gain
 that last piece and the casing **snaps shut**: you now carry the **🕳️ SINGULARITY
 BOMB** — the only item in the game that can't be bought anywhere.
 
@@ -904,10 +916,11 @@ tile you settle on is), with a dash of random jitter so they stay beatable:
 While a bot decides, a **🤖 thought popup** shows what it's weighing and its verdict
 (deliberately slows bot turns a touch so you can watch them play — turn off with
 `FEATURES.botThoughts`). At the **fishing** square a bot's odds get **harder the
-more fish that bot has already caught itself** — roughly a 40% loss on its first
-catch, then 60% / 80% / 90% / 95% (other players' catches don't count against it).
+longer its own current catch streak** — a 10% loss on a fresh streak, then
+25 / 40 / 55 / 65 / 70 / 75 / 80 / 85%, capping at **90% from the 9th straight
+catch on**. A miss resets it, and other players' catches don't count against it.
 *(Tunables: the `BOT` DATA block — scores/weights/popup timing — and
-`FISH.BOT_LOSS_BY_CATCHES`.)*
+`FISH.BOT_LOSS_BY_STREAK`.)*
 
 ---
 

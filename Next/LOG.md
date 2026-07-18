@@ -3,6 +3,37 @@
 Newest first. One entry per working session; note what shipped and what's next.
 
 ---
+## 2026-07-18 (evening) — fishing + cheating batch (Isak's 3-point list)
+
+- **Fishing**: rule card no longer hints at any fail punishment; a fail now
+  shows a plain "It got away…" box FIRST, and the leviathan animation only
+  plays once it's dismissed (the monster stays a surprise). Get-ready screen
+  gained a mini picture of the minigame + "move the green zone over the fish
+  to reel it in". The side progress meter is now a 🚣 rowboat at the top with
+  a line down to the hooked 🐟 — reeling raises the fish toward the boat
+  (`FISH.METER`, `.fprog/.fboat/.fline/.fcatch`).
+- **Bot fishing odds** now scale with the bot's CURRENT catch streak, not
+  lifetime catches: 10 / 25 / 40 / 55 / 65 / 70 / 75 / 80 / 85 / 90% loss
+  (`FISH.BOT_LOSS_BY_STREAK`); applies to bots in mixed games too
+  (`game.autonomous || p.bot` — before, a bot in a mixed game got the human
+  minigame).
+- **Fishing is CORE**: moved from `DRAW.POOL` to `DRAW.CORE`; the req sweep
+  now treats live core rules as present, so Fish powers / Faulty teleporter
+  can still draw.
+- **Singularity Casing** bag description names the exact missing piece
+  (`descFor(p)` reading `p.craftNeed`; inventory renders `descFor` when present).
+- **Manual mode fouls**: SPACE stays armed until the next player's move is
+  CONFIRMED — works mid-placement and mid dual-die-pick (`fireCheatCall`
+  midTurn path keeps `game.busy`; the interrupted turn resumes after the
+  verdict). `lastMove` now retires on placement confirm, not on roll.
+- **Cheat-friendly pathing**: `manualHopPath` — a placement one row up hops
+  up the WRONG side of the switchback when that route's step count is closer
+  to the actual roll (ties honest; never tramples tile 90 unless it's the
+  target), so a measured miscount doesn't give itself away.
+- **Verified headless Edge 18/18, 0 JS errors** (incl. full bot game and
+  wrong-side path unit checks). RULES.md + README updated.
+
+---
 ## 2026-07-18 (late night) — polish + clarity batch (wrap-up of the marathon)
 
 Tail end of the "keep on working" session; shell tooling was down for a

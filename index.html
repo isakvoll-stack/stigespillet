@@ -218,8 +218,14 @@
   .fbar{position:absolute;left:0;width:64px;top:120px;height:120px;
     background:rgba(70,200,110,.5);border-top:3px solid #2e9e54;border-bottom:3px solid #2e9e54}
   .ffish{position:absolute;left:0;width:64px;height:26px;top:147px;text-align:center;font-size:22px;line-height:26px}
-  .fprog{width:16px;height:320px;border-radius:8px;overflow:hidden;background:rgba(0,0,0,.35);display:flex;align-items:flex-end}
-  .fprogfill{width:100%;height:45%;background:linear-gradient(#ffe27a,#e0a83b)}
+  .fprog{position:relative;width:40px;height:320px}
+  .fboat{position:absolute;left:0;top:0;width:40px;text-align:center;font-size:26px;line-height:30px}
+  .fline{position:absolute;left:19px;top:30px;width:2px;background:#e7d8ba}
+  .fcatch{position:absolute;left:0;width:40px;text-align:center;font-size:18px;line-height:22px}
+  .fdemo{display:flex;justify-content:center;margin:10px 0 4px}
+  .fdemotrack{position:relative;width:34px;height:110px;border-radius:6px;background:linear-gradient(#9fd8f0,#2f7fb5);border:2px solid #1f6fb0}
+  .fdemobar{position:absolute;left:0;width:34px;top:28px;height:44px;background:rgba(70,200,110,.5);border-top:2px solid #2e9e54;border-bottom:2px solid #2e9e54}
+  .fdemofish{position:absolute;left:0;width:34px;top:38px;text-align:center;font-size:16px;line-height:22px}
 
   /* whose-turn arrow (bobs above the active token) */
   .turnarrow{pointer-events:none;animation:arrowBob .85s ease-in-out infinite}
@@ -716,6 +722,8 @@
         <div class="ico">🎣</div>
         <h3>Get into position</h3>
         <div class="rulename" id="fishWho"></div>
+        <div class="fdemo"><div class="fdemotrack"><div class="fdemobar"></div><div class="fdemofish">🐟</div></div></div>
+        <p>Move the <b>green zone</b> over the fish to reel it in.</p>
         <p>You'll hold the <b>↑ Up arrow</b> to reel. Press <b>Enter</b> when you're ready.</p>
       </div>
       <div id="fishPlay" style="display:none">
@@ -727,7 +735,7 @@
             <div class="fbar" id="fbar"></div>
             <div class="ffish" id="ffish">🐟</div>
           </div>
-          <div class="fprog"><div class="fprogfill" id="fprogfill"></div></div>
+          <div class="fprog"><div class="fboat">🚣</div><div class="fline" id="fline"></div><div class="fcatch" id="fcatch">🐟</div></div>
         </div>
       </div>
       <div id="fishResult" style="display:none">
@@ -1114,7 +1122,9 @@ const SHOP_CATALOG = [
   { id:"tophat", ico:"🎩", name:"Top Hat",          kind:"passive",    cost:8,  enabled:true,
     desc:"Passive: style pays — every 6 you roll earns 3 coins instead of 1." },
   { id:"singcasing", ico:"🌑", name:"Singularity Casing", kind:"consumable", cost:0, enabled:true, craftOnly:true,
-    desc:"Two pieces fused into something that shouldn't exist. It can't be used — it hums, waiting for a final piece." },
+    desc:"Two pieces fused into something that shouldn't exist. It can't be used — it hums, waiting for a final piece.",
+    descFor(p){ const need = p && p.craftNeed ? itemDef(p.craftNeed) : null;
+      return need ? `Two pieces fused into something that shouldn't exist. It can't be used — it hums, waiting for ${need.ico} ${need.name}.` : this.desc; } },
   { id:"singularity", ico:"🕳️", name:"Singularity Bomb",  kind:"consumable", cost:0, enabled:true, craftOnly:true,
     desc:"When used: tears a hole in the board where you aim — EVERYONE on the map is dragged in, then hurled back out. Stand well back." },
 ];
@@ -1481,11 +1491,10 @@ const DRAW = {
   KEEP_MIN:.6, KEEP_MAX:.75,       // share of the optional rule pool live per game
   ITEMS:12, EXOTICS:4,             // shop-catalog / black-market shelf slices
   SCRAMBLE:true,                   // drawn games always start on a scrambled board
-  CORE:["exactFinish","sixRollsAgain","encounter"],
+  CORE:["exactFinish","sixRollsAgain","encounter","fishing"],
   POOL:[
     { key:"sniper",        ico:"🎯", name:"Sniper" },
     { key:"kickWhileDown", ico:"😳", name:"Shame for the shameless" },
-    { key:"fishing",       ico:"🎣", name:"Fishing" },
     { key:"fishPowers",    ico:"🐟", name:"Fish powers", req:["fishing"] },
     { key:"teleport",      ico:"🌀", name:"Teleporters" },
     { key:"teleportMalfunction", ico:"⚡", name:"Faulty teleporter", req:["teleport","fishing"] },
@@ -1516,7 +1525,7 @@ function drawNightHand(){
   const live = new Set(weightedSample(pool, keep, e => freshWeight(ages.rules[e.key])).map(e => e.key));
   for (let swept = true; swept; ){                       // a rule whose requirement is out goes out with it
     swept = false;
-    pool.forEach(e => { if (live.has(e.key) && (e.req||[]).some(r => !live.has(r))){ live.delete(e.key); swept = true; } });
+    pool.forEach(e => { if (live.has(e.key) && (e.req||[]).some(r => !live.has(r) && !(DRAW.CORE.includes(r) && FEATURES[r]))){ live.delete(e.key); swept = true; } });
   }
   const slice = (list, n) => {
     const d = list.filter(i => i.enabled);
@@ -1967,7 +1976,7 @@ const RULE_INFO = {
   fishing: {
     ico: "🎣",
     name: "Fishing",
-    text: "GRAB A ROD! The dark water is BITING today — cast, reel, glory! (Just… mind what else is circling down there.)",
+    text: "GRAB A ROD! The dark water is BITING today — cast, reel, glory!",
   },
   teleport: {
     ico: "🌀",
@@ -2131,10 +2140,10 @@ const FISH   = {
   DRAIN:0.15, DRAIN_STREAK:0.047, FILL:0.23,             // progress drain (per s, +streak) and fill rate
   // --- minigame bar physics (read by fishingGame) ---
   GRAVITY:540, REEL:1080, START:0.38,                     // bar gravity-down, reel-up, starting progress (0..1)
-  // --- self-play (autonomous/bot) catch odds: LOSS chance by how many fish THIS
-  //     player has already caught (index = own catches; last value repeats).
-  //     Their 1st attempt 40% loss, then 60 / 80 / 90 / 95% as they land more. ---
-  BOT_LOSS_BY_CATCHES:[0.40, 0.60, 0.80, 0.90, 0.95],
+  METER:{ BOAT:30, FISH:22 },                             // reel meter: boat header + fish emoji heights (px)
+  // --- self-play / bot catch odds: LOSS chance by the player's current catch
+  //     STREAK (index = streak; last value repeats). ---
+  BOT_LOSS_BY_STREAK:[0.10, 0.25, 0.40, 0.55, 0.65, 0.70, 0.75, 0.80, 0.85, 0.90],
   // --- fish powers (FEATURES.fishPowers): rewards + quirks that scale with fish held ---
   MOVE_PER_FISH:3,                        // +1 movement every turn per this many fish (3 fish -> +1, 6 -> +2 …)
   ICE_FISH:2, ICE_GETUP:3,                // with >=2 fish, breaking out of ice only needs a 3+
@@ -3430,7 +3439,8 @@ async function snakeEyesMove(p, again){
    previews the spot, then the pawn walks there tile by tile as usual. Legal
    squares: where the walk (bonuses included) ends, plus a waiting ladder/
    chute's other end. Nothing stops a "miscount"… but the move stays open to
-   a SPACE call-out until the NEXT player's move begins. The call shows a
+   a SPACE call-out until the NEXT player's move is CONFIRMED — a cast die,
+   even a die being picked, keeps the window open. The call shows a
    verdict box first; only its dismissal applies the sentence: a caught cheat
    is put back and handcuffed (doubles / a 6 / serve CHEAT.CUFF_TURNS turns),
    a false accuser is knocked flat and shamed — repeat slander walks back. */
@@ -3440,7 +3450,6 @@ let judging = false;     // a call-out is being resolved
 
 async function manualMove(cur, faces, again, dual){
   const i = game.current;
-  lastMove = null;                                // a new move retires the old call
   await revealRuleOnce("manual");
   cur.onSecret = false; cur.marketDue = false;
   const legal = [];
@@ -3453,14 +3462,11 @@ async function manualMove(cur, faces, again, dual){
     return { f, cells };
   });
   const target = await placePiece(cur, i);
+  lastMove = null;                                // the confirmed move retires the old call
   const face = (byFace.find(e => e.cells.includes(target)) || byFace[0]).f;
-  moveBonusTotal(cur, face);                      // the roll is walked: bonuses are spent
+  const rolled = face + moveBonusTotal(cur, face);   // the roll is walked: bonuses are spent
   const fromPos = cur.pos, from = fromPos === 0 ? 1 : fromPos;
-  // normal tile-by-tile hops to the chosen square (up or down the path)
-  const path = [];
-  if (fromPos === 0){ for (let c = 1; c <= target; c++) path.push(c); }
-  else { const dir = target >= fromPos ? 1 : -1;
-         for (let c = fromPos + dir; dir > 0 ? c <= target : c >= target; c += dir) path.push(c); }
+  const path = manualHopPath(fromPos, target, rolled);
   cur.steps = (cur.steps||0) + path.length;
   let at = fromPos;
   for (const c of path){
@@ -3485,6 +3491,29 @@ async function manualMove(cur, faces, again, dual){
     await endTurn(); return;
   }
   await settleLanding(cur, i, from, target, again, dual);
+}
+
+// The hop route for a manual placement. Normally the numbered path — but a
+// placement one row up may instead hop up the WRONG side of the switchback
+// when that route's step count sits closer to what was actually rolled, so a
+// cheat's walk looks like the count it claims (ties go the honest way).
+function manualHopPath(fromPos, target, rolled){
+  const path = [];
+  if (fromPos === 0){ for (let c = 1; c <= target; c++) path.push(c); }
+  else { const dir = target >= fromPos ? 1 : -1;
+         for (let c = fromPos + dir; dir > 0 ? c <= target : c >= target; c += dir) path.push(c); }
+  if (fromPos < 1 || target <= fromPos) return path;
+  const A = cellRC(fromPos), B = cellRC(target);
+  if (A.row - B.row !== 1) return path;
+  const wrongCol = (BOARD.ROWS - 1 - A.row) % 2 === 0 ? 0 : BOARD.COLS - 1;
+  const side = [];
+  const out = wrongCol > A.col ? 1 : -1;
+  for (let c = A.col + out; out > 0 ? c <= wrongCol : c >= wrongCol; c += out) side.push(rcToCell(A.row, c));
+  side.push(rcToCell(B.row, wrongCol));
+  const back = wrongCol > B.col ? -1 : 1;
+  for (let c = wrongCol + back; back > 0 ? c <= B.col : c >= B.col; c += back) side.push(rcToCell(B.row, c));
+  if (side.includes(BOARD.WIN) && target !== BOARD.WIN) return path;
+  return Math.abs(side.length - rolled) < Math.abs(path.length - rolled) ? side : path;
 }
 
 // Ghost-pawn placement: click any square (the ghost follows), then Confirm.
@@ -3517,7 +3546,7 @@ function placePiece(p, i){
     }
     svg.addEventListener("click", click);
     placeState = { confirm(){
-      if (!chosen) return;
+      if (!chosen || judging) return;
       svg.removeEventListener("click", click);
       ghost.remove(); btn.style.display = "none";
       hidePrompt(); placeState = null;
@@ -3531,7 +3560,8 @@ function placePiece(p, i){
 // accuser, pause, then a verdict box — the sentence lands only after it's
 // dismissed.
 async function fireCheatCall(){
-  if (!game || !lastMove || judging || game.busy) return;
+  const midTurn = !!(placeState || dicePick);      // the next player's roll is cast but not walked
+  if (!game || !lastMove || judging || (game.busy && !midTurn)) return;
   const lm = lastMove;
   const cands = game.players.filter(q => q !== lm.mover && !q.bot && !q.finished);
   if (!cands.length) return;
@@ -3545,12 +3575,14 @@ async function fireCheatCall(){
   shout.classList.remove("show");
   if (!caller){                                    // the call is taken back; the move stays open
     lastMove = lm; judging = false;
-    game.busy = false; refreshHUD(); maybeAuto();
+    if (!midTurn){ game.busy = false; maybeAuto(); }
+    refreshHUD();
     return;
   }
   await sleep(ffms(CHEAT.VERDICT_PAUSE_MS));
   const endNeeded = await resolveCheatCall(lm, caller);
   judging = false;
+  if (midTurn){ refreshHUD(); return; }            // the interrupted turn picks up where it left off
   if (endNeeded) await endTurn();                  // a rolled-back finish: hand the turn on properly
   else { game.busy = false; refreshHUD(); maybeAuto(); }
 }
@@ -5713,7 +5745,7 @@ function fishingGame(streak){
   document.getElementById("fishMeta").textContent =
     "Catch #" + (streak+1) + (streak>=4 ? " — EXTREME!" : streak>=2 ? " — tricky!" : "");
   const bar = document.getElementById("fbar"), fish = document.getElementById("ffish"),
-        prog = document.getElementById("fprogfill");
+        line = document.getElementById("fline"), reelFish = document.getElementById("fcatch");
   bar.style.height = P.barH + "px";
   let barTop = (TH - P.barH)/2, v = 0;
   let fishTop = (TH - fishH)/2, fishTarget = fishTop, retT = 0, p = FISH.START, holding = false;
@@ -5737,7 +5769,9 @@ function fishingGame(streak){
       fishTop += Math.sign(fishTarget-fishTop) * Math.min(Math.abs(fishTarget-fishTop), P.fishSpeed*dt);
       const fc = fishTop + fishH/2;
       p += (fc >= barTop && fc <= barTop+P.barH) ? P.fill*dt : -P.drain*dt;
-      bar.style.top = barTop+"px"; fish.style.top = fishTop+"px"; prog.style.height = (p*100)+"%";
+      bar.style.top = barTop+"px"; fish.style.top = fishTop+"px";
+      const reel = FISH.METER.BOAT + (1-p) * (TH - FISH.METER.BOAT - FISH.METER.FISH);
+      line.style.height = (reel - FISH.METER.BOAT)+"px"; reelFish.style.top = reel+"px";
       if (p >= 1){ finish(true); return; }
       if (p <= 0){ finish(false); return; }
       raf = requestAnimationFrame(frame);
@@ -5748,10 +5782,10 @@ function fishingGame(streak){
 
 function fishingResult(won){
   showFishPhase("result");
-  document.getElementById("fishResultIco").textContent   = won ? "🐟" : "🌊";
-  document.getElementById("fishResultTitle").textContent = won ? "You caught a fish!" : "Leviathan!";
+  document.getElementById("fishResultIco").textContent   = won ? "🐟" : "💨";
+  document.getElementById("fishResultTitle").textContent = won ? "You caught a fish!" : "It got away…";
   document.getElementById("fishResultText").textContent  = won
-    ? "Reel it in and carry on." : "A monster swallowed you and spat you back near the start.";
+    ? "Reel it in and carry on." : "The line snaps and the catch slips free.";
   return new Promise(res => {
     const done = () => { document.removeEventListener("keydown", h); document.getElementById("fish").classList.remove("show"); res(); };
     const h = e => { if (e.code === "Enter"){ e.preventDefault(); done(); } };
@@ -6115,11 +6149,10 @@ async function runFishing(p){
   await revealRuleOnce("fishing");
   const streak = p.fishStreak || 0;
   let won;
-  if (game.autonomous){
-    // bot odds: loss chance climbs with how many fish this player has already caught
-    const caught = p.fishCaught || 0;
-    const table = FISH.BOT_LOSS_BY_CATCHES;
-    const loss = table[Math.min(caught, table.length - 1)];
+  if (game.autonomous || p.bot){
+    // bot odds: loss chance climbs with the player's current catch streak
+    const table = FISH.BOT_LOSS_BY_STREAK;
+    const loss = table[Math.min(streak, table.length - 1)];
     won = Math.random() >= loss;
   } else {
     await getReady(p.name);
@@ -8389,7 +8422,7 @@ function renderInventory(){
     const label = document.createElement("div");
     label.style.cssText = "flex:1;text-align:left;color:var(--cream);font-size:14px";
     const charges = id === "loadeddice" ? ` (${p.diceCharges} charge${p.diceCharges === 1 ? "" : "s"})` : "";
-    label.innerHTML = `${def.ico} <b>${def.name}${charges}</b> — ${def.desc}`;
+    label.innerHTML = `${def.ico} <b>${def.name}${charges}</b> — ${def.descFor ? def.descFor(p) : def.desc}`;
     row.appendChild(label);
     const b = document.createElement("button"); b.className = "btn"; b.style.padding = "8px 14px"; b.textContent = "Use";
     b.onclick = async () => { closeInventory(); await useItem(p, idx); };
@@ -9299,14 +9332,15 @@ function loadSettings(){
 die.addEventListener("click", ()=>{ if (dicePick) dicePick.res(dicePick.a); else roll(); });
 die2.addEventListener("click", ()=>{ if (dicePick) dicePick.res(dicePick.b); else roll(); });
 document.addEventListener("keydown", e=>{
-  if (placeState){                                                          // manual placement: Enter confirms
+  if (placeState && !judging){                     // manual placement: Enter confirms, Space still calls the foul
     if (e.code === "Enter"){ e.preventDefault(); placeState.confirm(); }
-    else if (e.code === "Space") e.preventDefault();
+    else if (e.code === "Space"){ e.preventDefault(); fireCheatCall(); }
     return;
   }
-  if (dicePick){                                                            // dual dice: pick with ← / → or 1 / 2
+  if (dicePick && !judging){                       // dual dice: pick with ← / → or 1 / 2
     if (e.code === "ArrowLeft" || e.code === "Digit1" || e.code === "Numpad1") dicePick.res(dicePick.a);
     else if (e.code === "ArrowRight" || e.code === "Digit2" || e.code === "Numpad2") dicePick.res(dicePick.b);
+    else if (e.code === "Space" && game && game.manual){ e.preventDefault(); fireCheatCall(); }
     return;
   }
   if (document.getElementById("fish").classList.contains("show")) return;   // minigame owns its keys

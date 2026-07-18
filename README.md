@@ -55,6 +55,17 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
+Recently shipped (2026-07-18, evening): **fishing + cheating batch** — fishing is
+now a CORE rule (never benched by the nightly draw); its rule card no longer hints
+at a fail punishment (a plain "It got away…" box, THEN the leviathan surprise);
+the get-ready screen shows a mini picture of the minigame and the progress meter
+is a 🚣 rowboat reeling the fish up its line; bot fishing odds now scale with the
+bot's catch streak (10% → 90% loss, `FISH.BOT_LOSS_BY_STREAK`). The Singularity
+Casing's bag description names its missing piece. Manual mode: the SPACE foul
+call stays open until the next player's move is CONFIRMED (even mid-placement /
+mid die-pick), and a cheated one-row-up placement now hops up the wrong side of
+the switchback when that path matches the rolled count better (`manualHopPath`).
+
 Recently shipped (2026-07-18, late night): **polish + clarity batch** — the
 pop-up 🎁 chest now visibly falls from the sky; new **📖 Discovered rules**
 journal (this game's Rule+ cards, zero spoilers) and a **legend that grows** a
