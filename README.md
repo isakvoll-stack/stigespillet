@@ -55,6 +55,12 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
+Recently shipped (2026-07-18, late night): **polish + clarity batch** — the
+pop-up 🎁 chest now visibly falls from the sky; new **📖 Discovered rules**
+journal (this game's Rule+ cards, zero spoilers) and a **legend that grows** a
+swatch per discovered tile rule (IMPROVEMENTS A1+B2). Design proposals for
+Night in Classic (§N) and Black market v2 (§M) await Isak in `SUGGESTIONS.md`.
+
 Recently shipped (2026-07-18, night): **Freshness memory** (Twist Direction v2,
 Phase 4 — the direction is now fully BUILT): nightly draws, pop-ups and twists
 lean toward what the table has seen least recently (`FRESH` localStorage store,

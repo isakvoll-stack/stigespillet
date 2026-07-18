@@ -4,6 +4,64 @@ Written on Isak's request: what to work on next + a pool of item ideas for the s
 Pick what you like, strike what you don't; picked items get curated into `TASKS.md`.
 Costs are suggestions on today's 4–10 coin scale.
 
+---
+
+## 2026-07-18 — Design proposals: Night in Classic + Black market v2
+
+Both tasks say "design before building", so these are worked proposals for you
+to pick from / mark up — nothing is built. Both were checked against the code.
+
+### N — Night in Classic (your 2026-07-14 ask: item, tile, or scenarios?)
+
+Fact first: 🌙 **Forever Night already reaches Classic** since Phase 1 — it's
+one of the ten Twists of the Night, so ~1 in 30 Classic games goes dark for the
+whole game. That's the rare full-dose. The forms below add night in *doses*,
+all reusing the existing `NIGHT_MOD` fog machinery (fog past the leading pawn,
+`fogG` overlay) with a round counter — no new visual tech needed:
+
+- **N1 — 🕯️ Item, "Snuffer" (recommended, ~6 coins):** use it and night falls
+  for a full round (everyone plays one turn in the dark, you included — you
+  know it's coming, they don't). Cheap chaos with a decision attached, fits
+  the shop scale, and bots can value it (use when leaders are near snakes /
+  unrevealed specials). One `SHOP_CATALOG` entry + a rounds-remaining counter.
+- **N2 — Tile, "the dark square":** a deep-purple square; landing on it rolls
+  night over the board until the lander's next turn (like the gray warp's
+  shape, but darkness). Would join the scramble pool + the pop-up grow list
+  automatically. Slightly weaker than N1 because nobody *chooses* it.
+- **N3 — Scenario/pop-up, "nightfall":** a pop-up moment (new POPUPS kind or
+  a RARE_EVENTS entry, chance-tunable): "the sun sets…" — night for 2 rounds,
+  then dawn. Zero player agency, pure atmosphere; cheapest to build.
+- **Recommendation:** N1 + N3 together (a chooseable dose + an ambient dose).
+  N2 only if you want a *visible* threat on the board. All three can coexist —
+  they share the same night engine and the same `NIGHT` DATA block.
+
+### M — Black market v2: the real stock (your idea pool, worked out)
+
+The Broken Gate (free cursed pacts) already covers "going into debt with fate";
+these are priced-goods designs for the dealer's shelf itself. Delayed-cost is
+the theme: great now, horrible later. Prices on the exotic scale (8–14).
+
+- **M1 — 🩸 Blood Coffee (9):** +6 to your next roll… and −1 to your next
+  three after that. The classic loan.
+- **M2 — 📜 Debt Note (pay 0 now):** take 8 coins instantly; the dealer
+  collects 12 whenever you next stand on a shop or market square — can't buy
+  anything anywhere until it's paid. (Your "going into debt", as an item.)
+- **M3 — 🎭 Cursed Mask (10, passive, never removable):** +1 to every roll,
+  but every knockdown you suffer lasts one extra get-up attempt (getupMin +1).
+  A permanently-better/permanently-worse trade — pairs with the Soul Candle
+  precedent of locked passives.
+- **M4 — ⏳ Borrowed Time (12):** take an extra full turn right now; in 3
+  rounds you lose a turn at the worst moment — the skip triggers on the first
+  round you'd start in the top half of the field. Feels great, bites when
+  you're winning.
+- **M5 — 🧷 Pity Pin (8, passive):** while you're in LAST place, +2 every
+  roll; the moment you're not last, it pays nothing and takes 1 coin per turn
+  as "rent". (Your "pity items" — self-balancing.)
+- **Recommendation:** M1 + M2 + M4 as the v2 exotic rotation (three flavours
+  of delayed cost: roll-debt, coin-debt, time-debt), M3/M5 as the second
+  wave. All fit the existing EXOTICS table + MOVE_BONUSES/turn hooks; M2/M4
+  need one small state field each on the player.
+
 > **2026-07-06 — Isak's first picks, all BUILT:** Mystery Box, Snowball, Banana Peel
 > (+ the trap system, #6), Helmet, Crown, Monkey's Paw, Loaded Dice, Soul Candle,
 > the QoL trio (#10 localStorage, #11 volume, #12 fast-forward) and a new 🪞 Mirror

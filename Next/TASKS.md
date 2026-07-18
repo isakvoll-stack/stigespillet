@@ -188,7 +188,10 @@ See `LOG.md` for the running session history.
       (tiles ahead hidden until someone lands nearby) is loved enough to also
       exist in Classic — as **an item, a tile, or a set of scenarios** that
       switches night on for a period of time. Form TBD (QUESTIONS.md); design
-      before building.
+      before building. **Design proposal delivered 2026-07-18** →
+      `SUGGESTIONS.md` §N (N1 Snuffer item / N2 dark square / N3 nightfall
+      pop-up; note: 🌙 Forever Night already reaches Classic via the Twist of
+      the Night). Awaiting Isak's pick before building.
 - [ ] **Skins system** (Isak, 2026-07-10): proper pawn *skins*, not just colours —
       the colour picker built today is the stepping stone. Direction: a `SKINS`
       DATA table (id/name/how the pawn is drawn), `makePawn` reads the seat's
@@ -740,6 +743,9 @@ See `LOG.md` for the running session history.
 - [ ] **Black market v2 — design the real stock + costs** (delayed-cost "very powerful"
       items). Idea pool from Isak: passives you can never replace, going into debt,
       powerful items with horrible side effects, cursed items, pity items.
+      **Design proposal delivered 2026-07-18** → `SUGGESTIONS.md` §M (M1 Blood
+      Coffee / M2 Debt Note / M3 Cursed Mask / M4 Borrowed Time / M5 Pity Pin;
+      recommended rotation M1+M2+M4). Awaiting Isak's picks before building.
 - [ ] **Polish pass**: more simple animations + SFX on everything; then QoL improvements
       once all other tasks are done.
 

@@ -1,5 +1,12 @@
 # Intuition & clarity audit — improvements list (2026-07-17)
 
+> **2026-07-18 — first batch BUILT** (Isak: "keep on working"): **A1** 📖
+> Discovered-rules journal (button under Inventory; this-game discoveries in
+> order, vague text; title-screen version waits for A2 persistence) + **B2**
+> growing legend (a colour swatch + name per discovered tile rule, gated on
+> `rulesSeen` — B4 respected automatically: trap 89 only shows once sprung).
+> Everything else below is still open — pick by number as before.
+
 Isak's brief: the joy of the game is discovering arbitrary rules ONE AT A
 TIME — that surprise must not drown in confusion. This is a written audit of
 the whole game against that goal. **Nothing here is implemented** — pick

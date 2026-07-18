@@ -3,6 +3,37 @@
 Newest first. One entry per working session; note what shipped and what's next.
 
 ---
+## 2026-07-18 (late night) — polish + clarity batch (wrap-up of the marathon)
+
+Tail end of the "keep on working" session; shell tooling was down for a
+stretch, so design proposals landed in SUGGESTIONS.md meanwhile.
+
+- **🎁 Chest drop animation** (`chestDropFx`, tunables in `POPUPS.CHEST`):
+  the pop-up chest now visibly falls out of the sky onto its tile —
+  accelerating drop, one bounce (+ bounce SFX) — before the resting marker
+  and grow-in fire. (SFX audit came back saturated — ladders, chutes, buys
+  all covered — so this was the one real polish gap.)
+- **📖 Discovered rules journal (IMPROVEMENTS A1)**: button under Inventory —
+  every Rule+ card found this game, discovery order, same vague text, zero
+  spoilers; Enter/Esc closes. Title-screen placement waits for A2
+  (persisted discoveries).
+- **Growing legend (IMPROVEMENTS B2)**: the Ladder/Chute legend gains a
+  colour swatch + rule name per DISCOVERED tile rule (`renderLegend`, gated
+  on `rulesSeen` + feature flags; resets each game; trap 89 stays hidden
+  until sprung = B4 for free).
+- **Design proposals delivered** → `SUGGESTIONS.md`: §N Night in Classic
+  (N1 Snuffer item / N2 dark square / N3 nightfall pop-up; Forever Night
+  already reaches Classic via the twist) + §M Black market v2 (Blood
+  Coffee / Debt Note / Cursed Mask / Borrowed Time / Pity Pin). Awaiting
+  Isak's picks.
+- **Verified headless Edge 11/11, 0 JS errors**: chest drop + collect,
+  legend base→grow→reset, journal list/close, full drawn game (round 16,
+  3 pop-ups, 4 legend rows grown organically).
+- **Backlog state**: everything left is Isak-gated — playtest sign-off for
+  the 🎴/🎈 default flips, boss tuning (BOSS_DESIGN.md), Family-mode
+  session, skins design, N/M proposal picks, IMPROVEMENTS next batches.
+
+---
 ## 2026-07-18 (night) — Freshness memory (Twist Direction v2, Phase 4)
 
 Isak: "Continue with Phase 4, then everything else."

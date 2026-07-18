@@ -418,8 +418,13 @@
     padding:3px 6px;border-bottom:1px solid rgba(212,166,86,.12)}
   .lbrow .place{width:52px;color:#cdb892;flex:none}
   .lbstats{margin-left:auto;display:flex;gap:7px;flex-wrap:wrap;font-size:12px;color:#cdb892}
-  .legend{font-size:12px;color:#cdb892;margin-top:2px;display:flex;gap:14px}
+  .legend{font-size:12px;color:#cdb892;margin-top:2px;display:flex;gap:8px 14px;flex-wrap:wrap}
   .legend b{color:var(--cream)}
+  .lgsw{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px;border:1px solid rgba(255,255,255,.25)}
+  .jlist{max-height:56vh;overflow:auto;text-align:left;margin:8px 0;padding-right:6px}
+  .jentry{margin:0 0 12px}
+  .jname{font-weight:700;color:var(--brass);font-family:Georgia,serif}
+  .jtext{font-size:.86em;opacity:.85;line-height:1.4}
 
   /* ---- cozy cabin atmosphere ---------------------------------------- */
   body::before{ content:"";position:fixed;inset:0;pointer-events:none;z-index:1;
@@ -502,7 +507,8 @@
         </div>
         <button class="btn" id="confirmBtn" style="width:100%;margin-top:10px;display:none">✔ Confirm move</button>
         <button class="btn ghost" id="invBtn" style="width:100%;margin-top:10px">🎒 Inventory</button>
-        <div class="legend">
+        <button class="btn ghost" id="journalBtn" style="width:100%;margin-top:6px">📖 Discovered rules</button>
+        <div class="legend" id="legend">
           <span><b>Ladder</b> ↑ up</span><span><b>Chute</b> ↓ down</span>
         </div>
       </div>
@@ -645,6 +651,15 @@
       <div class="rulename" id="revealName"></div>
       <p id="revealText"></p>
       <button class="btn" id="revealOk">Press Enter to continue</button>
+    </div>
+  </div>
+
+  <div class="modal" id="journal">
+    <div class="box">
+      <div class="ico">📖</div>
+      <h3>Discovered rules</h3>
+      <div class="jlist" id="journalList"></div>
+      <button class="btn" id="journalOk">Press Enter to continue</button>
     </div>
   </div>
 
@@ -1563,7 +1578,7 @@ const POPUPS = {
   ROUND_MIN:3, ROUND_MAX:14,       // the window the moments land in
   GAP_ROUNDS:2,                    // rounds two moments must sit apart
   CARD_MS:2000, GROW_MS:700,       // announce-card hold; tile grow-in tween
-  CHEST:{ ITEMS:1, FALLBACK_COINS:6 },
+  CHEST:{ ITEMS:1, FALLBACK_COINS:6, DROP_MS:900, DROP_FALL:260 },   // loot; fall tween + drop height
   POOL:[ { id:"grow", w:3 }, { id:"chest", w:3 }, { id:"wake", w:2 }, { id:"strike", w:1 } ],
   GROW:[                           // tile rules a pop-up may grow onto the board
     { id:"fishing",  ico:"🎣", name:"a fishing hole" },
@@ -1643,6 +1658,26 @@ function drawChest(cell){
   if (tokenEls.length) svg.insertBefore(t, tokenEls[0]); else svg.appendChild(t);
   CHESTS.set(cell, t);
 }
+// The chest visibly falls out of the sky onto its tile — accelerating drop,
+// one little bounce on impact — before the resting marker takes over.
+function chestDropFx(cell){
+  return new Promise(res => {
+    const c = cellCenter(cell), tx = c.x + 24, ty = c.y + 30, H = POPUPS.CHEST.DROP_FALL;
+    const t = el("text",{x:tx, y:ty - H, "text-anchor":"middle", "font-size":"22"});
+    t.textContent = "🎁";
+    svg.appendChild(t);                                  // airborne: above everything
+    const t0 = performance.now(), ms = ffms(POPUPS.CHEST.DROP_MS);
+    let landed = false;
+    (function frame(){
+      const k = Math.min(1, (performance.now() - t0) / ms);
+      const fall = k < .75 ? (k/.75) * (k/.75) : 1 - Math.sin((k-.75)/.25 * Math.PI) * .12;
+      t.setAttribute("y", ty - H * (1 - fall));
+      if (k >= .75 && !landed){ landed = true; SFX.play("bounce"); }
+      if (k < 1) requestAnimationFrame(frame);
+      else { t.remove(); res(); }
+    })();
+  });
+}
 // First to land on a chest tile (own roll or knocked there) keeps the loot;
 // a full bag still pays out, past the cap — the pity-box rule.
 async function collectChest(p){
@@ -1690,6 +1725,7 @@ const POPUP_RUN = {
     const cell = spots[(Math.random()*spots.length)|0];
     await popupCard("🎁", "a chest drops from the sky!", `tile ${cell} — first to land there keeps it`);
     CHEST_TILES.push(cell);
+    await chestDropFx(cell);
     drawChest(cell);
     await growCellFx(cell);
     notePopup(`🎁 a chest landed on ${cell}`);
@@ -3074,6 +3110,7 @@ function newGame(roster){
   WARP.active = 0; WARP.owner = -1; applyWarp();   // right the board if a warp was live
   setSpecialTiles((game.draw && DRAW.SCRAMBLE) || boardOpt("scrambledStart") ? scrambledLayout() : DEFAULT_SPECIALS);
   rulesSeen = {};
+  renderLegend();
   buildBoard();
   fogG = null; floodG = null;                      // the board wipe destroyed any twist overlays
   if (game.mode === "mayhem") mayhemScramble();    // every plain square hides a special tile
@@ -4124,10 +4161,36 @@ function getEncounterChoice(p, others){
   });
 }
 
+// A discovered rule is never re-guessed: the legend grows a swatch per
+// revealed tile rule, and the 📖 journal replays every card found so far
+// (this game only — vague text, discovery order, zero spoilers).
+function renderLegend(){
+  const lg = document.getElementById("legend");
+  if (!lg) return;
+  let h = `<span><b>Ladder</b> ↑ up</span><span><b>Chute</b> ↓ down</span>`;
+  for (const id in TILE_RULES){
+    const r = TILE_RULES[id], info = RULE_INFO[r.feature];
+    if (!info || !FEATURES[r.feature] || !rulesSeen[r.feature]) continue;
+    h += `<span><span class="lgsw" style="background:${r.color}"></span><b>${info.name}</b></span>`;
+  }
+  lg.innerHTML = h;
+}
+function openJournal(){
+  const keys = Object.keys(rulesSeen).filter(k => RULE_INFO[k]);
+  document.getElementById("journalList").innerHTML = keys.length
+    ? keys.map((k, i) => {
+        const r = RULE_INFO[k], txt = typeof r.text === "function" ? r.text("someone") : r.text;
+        return `<div class="jentry"><div class="jname">${r.ico} Rule+ #${i+1} — ${r.name}</div><div class="jtext">${txt}</div></div>`;
+      }).join("")
+    : `<div class="jentry jtext">Nothing discovered yet — the board keeps its secrets…</div>`;
+  document.getElementById("journal").classList.add("show");
+}
+function closeJournal(){ document.getElementById("journal").classList.remove("show"); }
 function revealRuleOnce(key, arg){
   return new Promise(res => {
     if (rulesSeen[key]){ res(); return; }
     rulesSeen[key] = true;
+    renderLegend();                                  // the legend grows with each discovery
     SFX.play("rule");
     const num = Object.keys(rulesSeen).length;          // discovery order: 1st, 2nd, ...
     const info = RULE_INFO[key];
@@ -9251,6 +9314,10 @@ document.addEventListener("keydown", e=>{
     if (e.code === "Enter"){ e.preventDefault(); closeInventory(); }
     return;                                                                 // inventory uses buttons
   }
+  if (document.getElementById("journal").classList.contains("show")){
+    if (e.code === "Enter" || e.code === "Escape"){ e.preventDefault(); closeJournal(); }
+    return;
+  }
   if (document.getElementById("picker").classList.contains("show")) return; // pick via buttons
   if (document.getElementById("wheel").classList.contains("show")) return;  // wheel is spinning
   if (document.getElementById("orange").classList.contains("show")){
@@ -9295,6 +9362,8 @@ document.getElementById("optGun").addEventListener("click", ()=>{ if (orangeReso
 ["pointerdown","keydown"].forEach(ev => document.addEventListener(ev, ()=>SFX.play("click"), { once:true }));
 
 document.getElementById("invBtn").addEventListener("click", openInventory);
+document.getElementById("journalBtn").addEventListener("click", openJournal);
+document.getElementById("journalOk").addEventListener("click", closeJournal);
 document.getElementById("invDone").addEventListener("click", closeInventory);
 function openPlay(){
   if (UNLOCKS.full) showScreen("mode");
