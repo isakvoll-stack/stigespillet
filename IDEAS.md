@@ -18,6 +18,12 @@ Entry format:
 
 ---
 
+> **Raw dumps go in `RAW_NOTES.md` now** — that file is Isak's free-form scratchpad
+> (raw text, no format). This file stays the structured one-idea-per-entry inbox.
+> The 2026-07-18 raw batch was moved there and worked into the game the same day.
+
 ## Unsorted
 
-<!-- newest first; nothing yet -->
+<!-- newest first; use the entry format above -->
+
+*(empty)*

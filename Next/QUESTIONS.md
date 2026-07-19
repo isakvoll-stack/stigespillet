@@ -3,6 +3,37 @@
 Standing file: autonomous sessions log clarifications here instead of stopping to ask.
 Answer whenever — each answer gets folded in and the question checked off.
 
+## 2026-07-19 — raw-notes batch (defaults picked, say if wrong)
+
+- [ ] **Board twist timing**: wakes when **50 ± 20 individual turns** have passed
+  AND the pack's **average position is ≥ tile 40** (halfway-ish). Both gates must
+  pass, so plenty of games end with the twist never waking — which I read as what
+  you meant by "not guaranteed to happen at all". Right feel, or should the
+  average-position gate be higher/lower?
+- [ ] **Twist board dressing**: each twist gets a board tint + a room colour wash
+  + its own falling particles (`TWIST_FX`). I kept the tints **subtle on purpose**
+  — the tile colours carry rules, so a heavy wash would make the board harder to
+  read. Say if you want any of them stronger. Musical Squares turns every hop into
+  a note; the other twists keep normal step sounds.
+- [ ] **Coordinate ranges**: Snowball 3 · Sleep Dart 3 · Bomb 2 · Fire Egg 2
+  (measured on the grid, 8-way, so diagonals count). Those are big cuts from 8 —
+  the reach is now genuinely local. Too tight?
+- [ ] **Banana peel** goes on the square directly behind you, always. If a peel is
+  already there you keep yours (nothing is wasted). OK?
+- [ ] **Kong barrels**: 40% ladder ride / 60% pass, one square per turn, ride takes
+  2 turns pausing halfway — all as you specified. Barrels burst at tile 1 and only
+  ever roll **down** the numbered path. They currently have **no lifespan cap** —
+  from the top row that's ~89 turns of barrel. Want a cap?
+- [ ] **Evernight**: 3.5-tile light circle per player, white grid + white
+  ladder/snake lines outside it, both hidden inside the light. Tile numbers and
+  colours are invisible in the dark — deliberate. Too dark to play?
+- [ ] **Sky above the board**: added 130 board-units of headroom. If clouds/boxes
+  still clip anything, say what and I'll raise it.
+- [ ] **3 AM raw-notes routine** — NOT created yet. Setting up a scheduled cloud
+  agent needs your account side (the HH routines are the model). Want me to create
+  it next session, or will you set it up? Meanwhile any session can run it: the
+  protocol is written at the top of `RAW_NOTES.md`.
+
 ## 2026-07-18 — music/ambience + nightfall defaults
 
 - [ ] **Nightfall tile**: picked tiles **31 & 74**, night lasts **3 rounds**,

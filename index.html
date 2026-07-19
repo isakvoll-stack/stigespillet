@@ -100,7 +100,7 @@
   .cheatshout{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
     font-size:min(17vw,150px);font-weight:900;letter-spacing:.02em;color:#ff2b2b;
     -webkit-text-stroke:4px #fff;paint-order:stroke;text-shadow:0 10px 34px rgba(0,0,0,.6);
-    z-index:60;pointer-events:none;opacity:0}
+    z-index:5;pointer-events:none;opacity:0}   /* below the modals: the accuser picker must sit on top of the shout */
   .cheatshout.show{animation:cheatbounce 1.3s cubic-bezier(.2,1.4,.4,1) forwards}
   @keyframes cheatbounce{0%{opacity:0;transform:scale(.15) rotate(-9deg)}
     18%{opacity:1;transform:scale(1.3) rotate(3deg)}
@@ -437,6 +437,8 @@
     background:radial-gradient(135% 105% at 50% 22%, transparent 58%, rgba(30,70,40,.28) 100%); }
   header,.game{position:relative;z-index:3}
   .snow{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:2}
+  /* twist dressing: a colour wash over the room while a board twist runs */
+  #twistwash{position:fixed;inset:0;pointer-events:none;z-index:2;opacity:0;transition:opacity 1.2s}
   /* drifting summer leaves & petals (was snow) */
   .flake{position:absolute;top:-18px;line-height:1;animation:snowfall linear infinite;will-change:transform}
   @keyframes snowfall{
@@ -457,6 +459,17 @@
   .rgbflash{animation:rgbhue 1.4s linear infinite}
   @keyframes rgbhue{to{filter:hue-rotate(360deg)}}
 
+  /* burning pawn: the 🔥 badge flickers */
+  .burnbadge{transform-box:fill-box;transform-origin:center;animation:burnflick .55s ease-in-out infinite alternate}
+  @keyframes burnflick{from{opacity:.6;transform:scale(.9)}to{opacity:1;transform:scale(1.15)}}
+
+  /* end-screen stats: one proper table, numbers bare except the ⭐ / ⚫ marks */
+  .statstable{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px;color:var(--cream)}
+  .statstable th{font-weight:400;font-size:15px;padding:2px 4px;border-bottom:1px solid rgba(212,166,86,.4)}
+  .statstable td{padding:3px 4px;text-align:center;font-variant-numeric:tabular-nums;
+    border-bottom:1px solid rgba(212,166,86,.12)}
+  .statstable td:first-child,.statstable th:first-child{text-align:left;white-space:nowrap}
+
   /* player-colour picker (setup screen) */
   .namerow .swatch.pick{cursor:pointer}
   .colorpop{position:fixed;z-index:12;display:flex;gap:6px;flex-wrap:wrap;width:320px;
@@ -476,6 +489,8 @@
 </head>
 <body>
   <div class="snow" id="snow" aria-hidden="true"></div>
+  <div class="snow" id="twistflakes" aria-hidden="true"></div>
+  <div id="twistwash" aria-hidden="true"></div>
   <div class="clouds" id="clouds" aria-hidden="true"></div>
   <div class="game">
     <div class="side left">
@@ -518,6 +533,10 @@
         <div id="soundPanel" style="display:none;margin-top:6px;padding:6px 8px;border:1px dashed var(--brass);border-radius:10px;text-align:left;font-size:13px;color:var(--cream)">
           <div>🔊 <input type="range" id="gameVolume" min="0" max="100" style="width:72%;vertical-align:middle"></div>
           <div>🎵 <input type="range" id="gameMusicVol" min="0" max="100" style="width:72%;vertical-align:middle"></div>
+        </div>
+        <button class="btn ghost" id="visualBtn" style="width:100%;margin-top:6px">👁️ Visuals</button>
+        <div id="visualPanel" style="display:none;margin-top:6px;padding:6px 8px;border:1px dashed var(--brass);border-radius:10px;text-align:left;font-size:13px;color:var(--cream)">
+          <div><label>🔢 <input type="checkbox" id="gameTileNums" checked> Display tile numbers</label></div>
         </div>
         <div class="legend" id="legend">
           <span><b>Ladder</b> ↑ up</span><span><b>Chute</b> ↓ down</span>
@@ -608,6 +627,7 @@
       <label class="toggle"><input type="checkbox" id="optFull"> 🔓 Full experience (unlock the other game modes & every advanced setting)</label>
       <label class="toggle">🔊 Volume <input type="range" id="optVolume" min="0" max="100" value="100" style="width:150px;vertical-align:middle;margin-left:8px"></label>
       <label class="toggle">🎵 Music <input type="range" id="optMusicVol" min="0" max="100" value="40" style="width:150px;vertical-align:middle;margin-left:8px"></label>
+      <label class="toggle"><input type="checkbox" id="optTileNums" checked> Display tile numbers 🔢</label>
       <button class="btn ghost" id="settingsBack">Back</button>
     </div>
   </div>
@@ -766,8 +786,11 @@ const BOARD = {
   COLS: 9, ROWS: 10,          // the real Norwegian board: 9x10 = 90 squares
   get COUNT(){ return this.COLS * this.ROWS; },
   get WIN(){ return this.COUNT; },
-  MARGIN: 20, CELL: 100,      // SVG units; viewBox is 940 x 1040
+  MARGIN: 20, CELL: 100,      // SVG units; the classic board face is 940 x 1040
 };
+// The svg's full view: the secret-square strip on the left + open SKY above the top
+// row, so lightning clouds / prompts / popups never sit on tiles (Isak, 2026-07-18).
+const VIEW = { X:-96, SKY:130, W:1174, get Y(){ return -this.SKY; }, get H(){ return 1040 + this.SKY; } };
 
 /* ---- DATA: rules ---------------------------------------------------- */
 const RULES = {
@@ -834,7 +857,7 @@ const VARIANT_TOGGLES = [          // Family Mode lives on the Settings screen (
    the CHEATER! shout beat, the pause before the verdict box, cuff sentence
    length, the ghost-pawn look, and the knock-back ranges for false accusers
    (already shamed OR down / both). */
-const CHEAT = { SHOUT_MS:1000, VERDICT_PAUSE_MS:900, CUFF_TURNS:4,
+const CHEAT = { SHOUT_MS:1000, VERDICT_PAUSE_MS:900, CUFF_TURNS:4, WRONG_SIDE_BIAS:2,
   GHOST_OPACITY:.55, BACK_ONE:[4,6], BACK_BOTH:[11,15] };
 const FAMILY = {
   OFF: ["fateSwap","warp","secretSquare","blackMarket","brokenGate","crafting"],
@@ -1095,9 +1118,9 @@ const SHOP_CATALOG = [
   { id:"mysterybox", ico:"📦", name:"Mystery Box",  kind:"consumable", cost:5,  enabled:true,
     desc:"When used: pops open into a random item — could be anything." },
   { id:"snowball", ico:"❄️", name:"Snowball",       kind:"consumable", cost:6,  enabled:true,
-    desc:"When used: throw it at a rival within 8 tiles — they freeze solid." },
+    desc:"When used: throw it at a rival up to 3 squares away in any direction — they freeze solid." },
   { id:"banana", ico:"🍌", name:"Banana Peel",      kind:"consumable", cost:5,  enabled:true,
-    desc:"When used: drop it on a tile ahead — the first rival to land there slips back." },
+    desc:"When used: drops a peel on the square right behind you — the first rival to land there slips back." },
   { id:"mirror", ico:"🪞", name:"Mirror",           kind:"consumable", cost:7,  enabled:true,
     desc:"When used: raises a mirror that deflects the next hit aimed at you onto someone else." },
   { id:"helmet", ico:"🪖", name:"Helmet",           kind:"passive",    cost:8,  enabled:true,
@@ -1105,9 +1128,9 @@ const SHOP_CATALOG = [
   { id:"crown",  ico:"👑", name:"Crown",            kind:"passive",    cost:12, enabled:true,
     desc:"Passive: +5 coins every round you end your turn in the lead." },
   { id:"bomb",   ico:"💣", name:"Bomb",             kind:"consumable", cost:6,  enabled:true,
-    desc:"When used: lob it at a tile within 8 — the blast flattens everyone on and beside it." },
+    desc:"When used: lob it at a tile up to 2 squares away in any direction — the blast flattens everyone on and beside it." },
   { id:"fireegg", ico:"🔥", name:"Fire Egg",        kind:"consumable", cost:5,  enabled:true,
-    desc:"When used: hurl it at a rival within 8 — singed, their next roll burns 2 steps shorter." },
+    desc:"When used: hurl it at a rival up to 2 squares away in any direction — singed, their next roll burns 2 steps shorter." },
   { id:"boomerang", ico:"🪃", name:"Boomerang",     kind:"consumable", cost:6,  enabled:true,
     desc:"When used: whirls at the nearest rival ahead of you — knocked 3 tiles back." },
   { id:"magnet", ico:"🧲", name:"Magnet",           kind:"consumable", cost:5,  enabled:true,
@@ -1117,7 +1140,7 @@ const SHOP_CATALOG = [
   { id:"rocket", ico:"🚀", name:"Pocket Rocket",    kind:"consumable", cost:8,  enabled:true,
     desc:"When used: strap in — it flies you far ahead… when it doesn't misfire." },
   { id:"sleepdart", ico:"💤", name:"Sleep Dart",    kind:"consumable", cost:7,  enabled:true,
-    desc:"When used: a rival within 8 tiles takes a sudden nap, face down." },
+    desc:"When used: a rival up to 3 squares away in any direction takes a sudden nap, face down." },
   { id:"extinguisher", ico:"🧯", name:"Extinguisher", kind:"consumable", cost:4, enabled:true,
     desc:"When used: hoses YOU down — radiation, burns and dizziness all wash away." },
   { id:"map", ico:"🗺️", name:"Treasure Map",        kind:"consumable", cost:5,  enabled:true,
@@ -1187,19 +1210,19 @@ const BOOMERANG = { KNOCK:3 };                   // nearest rival ahead is knock
 const MAGNET    = { PULL:4 };                    // nearest rival dragged this many tiles toward the user
 const BELL      = { NEAR:2, BACK:3 };            // clang reach in grid-tiles; how far the flinch sends victims
 const ROCKET    = { MIN:7, MAX:12, MISFIRE:0.25, BACK:5 };   // flight range; misfire odds + backfire distance
-const SLEEPDART = { RANGE:8 };                   // dart reach in tiles (either direction)
+const SLEEPDART = { RANGE:3 };                   // dart reach in GRID-tiles, any direction (coordinate ranges — Isak, 2026-07-18)
 const TREASURE  = { MIN:3, MAX:8 };              // coins under the X
 const PIGGY_MULT = 2;                            // Piggy Bank: blue-tile multiplier
 const TOPHAT_SIX = 3;                            // Top Hat: coins per rolled 6
-const SNOWBALL = { RANGE:8 };                    // hits a rival within this many tiles (either direction)
-const BANANA   = { RANGE:6, SLIP:5 };            // peel goes on a plain tile up to RANGE ahead; victims slip SLIP back
+const SNOWBALL = { RANGE:3 };                    // hits a rival within this many GRID-tiles, any direction
+const BANANA   = { SLIP:5 };                     // the peel drops on the tile right behind the player; victims slip SLIP back
 const MYSTERY  = { FALLBACK_COINS:3 };           // if no item can pop out, the box pays coins instead
 const HELMET_GETUP = 1;                          // Helmet wearers rise on any roll
 const CROWN_COINS  = 5;                          // paid each time the holder ends their turn in the lead
 const LOADED   = { CHARGES:3, CURSE_ROLLS:3 };   // picked faces per purchase; forced 1s once the charges run dry
 const CANDLE   = { BONUS:2, LIGHTNING_MULT:2 };  // the Soul Candle's permanent stride; lightning hurls a candle holder this many times further back
-const BOMB     = { RANGE:8, NEAR:1 };            // lob range in tiles; the blast floors the target tile + NEAR grid-rings around it
-const FIRE_EGG = { RANGE:8, SINGE:2 };           // singe: the victim's next roll loses SINGE steps
+const BOMB     = { RANGE:2, NEAR:1 };            // lob range in GRID-tiles (any direction); the blast floors the target tile + NEAR grid-rings around it
+const FIRE_EGG = { RANGE:2, SINGE:2 };           // throw range in GRID-tiles; singe: the victim's next roll loses SINGE steps
 const SING = {                                   // the crafted Singularity Bomb (never sold)
   SPREAD_MIN:3, SPREAD_MAX:10,                   // how far the blast hurls everyone from the epicenter
   SELF_PULL:[[3,0.95],[5,0.55],[7,0.25],[999,0.10]],   // [max distance, suction odds] for the thrower — stand well back
@@ -1219,8 +1242,8 @@ const CRAFT = [
 const BOARD_OPTIONS = [
   { key:"scrambledStart", ico:"🌀", name:"Scrambled board", enabled:false,
     desc:"Every special tile starts at a random spot each new game." },
-  { key:"twistNight", ico:"🃏", name:"Twist of the night", enabled:true,
-    desc:"Some games secretly carry one game-bending twist, revealed mid-game." },
+  { key:"twistNight", ico:"🃏", name:"Board twist", enabled:true,
+    desc:"Some games secretly carry one game-bending twist, revealed late in the race." },
   { key:"nightlyDraw", ico:"🎴", name:"Nightly draw", enabled:false,
     desc:"Each game secretly plays its own hand — a slice of the rules, a slice of the shop, tiles in fresh spots. The end screen turns the hand face-up." },
   { key:"popups", ico:"🎈", name:"Pop-ups", enabled:false,
@@ -1239,19 +1262,24 @@ const FINISH = { NEED:1 };
 const THEMES = [
   { id:"summer",    ico:"☀️", name:"Summer",         sub:"summer at the cabin",
     sky:["#7cc6ec","#a9dca0","#5fa84f"], glow:"rgba(255,243,170,.95)",
-    glyphs:["🍃","🌿","🌼","🦋","✿"], flakes:38, clouds:5 },
+    glyphs:["🍃","🌿","🌼","🦋","✿"], flakes:38, clouds:5,
+    music:{ semis:0, tempo:0 } },
   { id:"christmas", ico:"🎄", name:"Christmas",      sub:"christmas at the cabin",
     sky:["#1d2a4d","#5a7fae","#dfe9f2"], glow:"rgba(200,225,255,.75)",
-    glyphs:["❄️","❅","❆","✨"], flakes:60, clouds:0 },
+    glyphs:["❄️","❅","❆","✨"], flakes:60, clouds:0,
+    music:{ semis:3, tempo:-8 } },
   { id:"worldcup",  ico:"⚽", name:"World Cup",      sub:"match day at the cabin",
     sky:["#2f86c8","#57a85e","#2e7d32"], glow:"rgba(255,255,255,.8)",
-    glyphs:["⚽","🏆","🎉","🟨"], flakes:26, clouds:4 },
+    glyphs:["⚽","🏆","🎉","🟨"], flakes:26, clouds:4,
+    music:{ semis:2, tempo:12 } },
   { id:"sakura",    ico:"🌸", name:"Sakura",         sub:"hanami at the cabin",
     sky:["#f6c7dd","#fbe3ee","#dba3c0"], glow:"rgba(255,240,246,.9)",
-    glyphs:["🌸","💮","🌷","✿"], flakes:55, clouds:3 },
+    glyphs:["🌸","💮","🌷","✿"], flakes:55, clouds:3,
+    music:{ semis:-2, tempo:-12 } },
   { id:"minecraft", ico:"⛏️", name:"Minecraft",      sub:"block by block at the cabin",
     sky:["#7ab0ff","#9cc98a","#5d8a44"], glow:"rgba(255,255,255,.6)",
-    glyphs:["🟩","🟫","⬛","⛏️"], flakes:24, clouds:4 },
+    glyphs:["🟩","🟫","⬛","⛏️"], flakes:24, clouds:4,
+    music:{ semis:-5, tempo:-16 } },
 ];
 const THEME = { current:0 };
 /* ---- DATA: game modes -------------------------------------------------
@@ -1319,7 +1347,12 @@ const TOUR = {
    RARE_EVENTS), linkAt (replaces ladder/snake lookup), linkGate (may veto
    or tax a link), rollAdjust (bends the die), coinMult, onRoundStart,
    afterLanding, afterMove, apply/remove (leg start/end). */
-const NIGHT_MOD = { AHEAD: 8 };                       // tiles past the leading pawn stay dark
+/* Evernight look (Isak's 2026-07-18 vision): the board goes black except a circle
+   of light following EVERY pawn; outside the light a white line-grid shows where
+   tiles are, plus white overlays tracing the ladders and snakes. The lines vanish
+   inside the light. Shared by the Nightfall square. */
+const NIGHT_MOD = { LIGHT_TILES:3.5, DARK:"#070914", DARK_OPACITY:.965,
+                    GRID:"#ffffff", GRID_OPACITY:.5, GRID_W:1.5, LINK_W:3 };
 const ICE_MOD   = { SKID: 2 };
 const FLOOD_MOD = { START_ROUND: 3, EVERY: 2, MAX_ROWS: 3 };
 const MAGNET_MOD= { RANGE: 2 };
@@ -1424,12 +1457,49 @@ const LEG_MODS = [
     } },
 ];
 function activeLegMod(){ return game && game.legModId ? LEG_MODS.find(m => m.id === game.legModId) : null; }
-/* ---- DATA + WIRING: Twist of the Night (see Next/TWIST_DIRECTION.md) --
+/* ---- DATA: twist board dressing (Isak, 2026-07-18) -------------------
+   Every twist visibly dresses the board while it runs: a subtle tint on
+   the board face (subtle on purpose — tile colours carry meaning), a
+   colour wash over the room, and its own particles falling behind the
+   board. Evernight dresses itself via the roaming-lights dark instead. */
+const TWIST_FX = {
+  ice:     { tint:"saturate(.8) hue-rotate(-16deg) brightness(1.06)", wash:"rgba(140,190,255,.10)", glyphs:["❄","❆"], count:26 },
+  mirror:  { tint:"saturate(.85) contrast(1.05)", wash:"rgba(200,160,255,.07)", glyphs:["🪞","✨"], count:12 },
+  opposite:{ tint:"hue-rotate(24deg)", wash:"rgba(255,170,60,.06)", glyphs:["🙃","🔄"], count:14 },
+  flood:   { tint:"saturate(1.12)", wash:"rgba(46,134,193,.09)", glyphs:["💧"], count:22 },
+  magnet:  { tint:"contrast(1.07)", wash:"rgba(255,90,90,.05)", glyphs:["🧲"], count:12 },
+  toll:    { tint:"sepia(.18)", wash:"rgba(212,166,86,.08)", glyphs:["🪙","💸"], count:14 },
+  musical: { wash:"rgba(255,210,120,.06)", glyphs:["🎵","🎶","♪"], count:22, stepNotes:true },
+  goldrush:{ tint:"saturate(1.15) brightness(1.04)", wash:"rgba(255,200,60,.10)", glyphs:["💰","🪙","✨"], count:18 },
+  pace:    { tint:"contrast(1.1) brightness(1.05)", wash:"rgba(255,255,150,.06)", glyphs:["⚡"], count:12 },
+  night:   {},
+};
+let twistFxId = null;
+const twistFx = () => twistFxId ? TWIST_FX[twistFxId] : null;
+function applyTwistFx(id){
+  clearTwistFx();
+  const fx = TWIST_FX[id]; if (!fx) return;
+  twistFxId = id;
+  paintBoardFilter();
+  const wash = document.getElementById("twistwash");
+  if (fx.wash){ wash.style.background = fx.wash; wash.style.opacity = "1"; }
+  if (fx.glyphs) makeFlakes(document.getElementById("twistflakes"), fx.count, fx.glyphs);
+}
+function clearTwistFx(){
+  twistFxId = null;
+  paintBoardFilter();
+  document.getElementById("twistwash").style.opacity = "0";
+  document.getElementById("twistflakes").innerHTML = "";
+}
+/* ---- DATA + WIRING: the Board Twist (see Next/TWIST_DIRECTION.md) ----
    Some Classic games secretly carry ONE leg twist: drawn at newGame, it
-   announces itself with the suspense card at the start of a random early
-   round and lasts the game. Twists the table has seen recently sit out
-   (remembered in localStorage) until the whole pool has cycled. */
-const TWIST_NIGHT = { CHANCE: 1/3, ROUND_MIN: 2, ROUND_MAX: 5, EXCLUDE: [], CARD_HOLD_MS: 3800 };
+   announces itself with the suspense card LATE in the race — once the
+   pack's average tile is near halfway AND ~50±20 individual turns have
+   passed (turns, not rounds, so it balances across seat counts). A game
+   that ends first simply never wakes its twist. Twists the table has
+   seen recently sit out (localStorage) until the whole pool has cycled. */
+const TWIST_NIGHT = { CHANCE: 1/3, TURNS_MID: 50, TURNS_SPREAD: 20, MIN_AVG_POS: 40,
+                      EXCLUDE: [], CARD_HOLD_MS: 3800 };
 const TWIST_SEEN_KEY = "stigespillet.twistNight.seen.v1";
 function nightTwistSeen(){
   try { return JSON.parse(localStorage.getItem(TWIST_SEEN_KEY) || "[]") || []; } catch(e){ return []; }
@@ -1453,7 +1523,7 @@ function rememberNightTwist(id){
 }
 async function twistNightReveal(mod){
   const card = document.getElementById("bonuscard");
-  document.getElementById("bcTitle").textContent = "🃏 Twist of the night!";
+  document.getElementById("bcTitle").textContent = "🃏 Board twist!";
   const cat = document.getElementById("bcCat"), who = document.getElementById("bcWho");
   cat.innerHTML = `<span style="opacity:.55">…</span>`;
   who.textContent = "";
@@ -1475,6 +1545,14 @@ async function twistNightReveal(mod){
   card.classList.remove("show");
   await sleep(300);
 }
+// The twist wakes only late in the race: enough individual turns played AND the
+// pack's average tile near halfway. A game that ends first keeps its twist asleep.
+function twistNightDue(){
+  if (game.turnCount < game.nightTwistTurn) return false;
+  const ps = game.players;
+  const avg = ps.reduce((s,q)=> s + (q.finished ? BOARD.WIN : Math.max(0, q.pos)), 0) / ps.length;
+  return avg >= TWIST_NIGHT.MIN_AVG_POS;
+}
 async function twistNightBegin(){
   const mod = LEG_MODS.find(m => m.id === game.nightTwistId);
   game.nightTwistId = null;
@@ -1483,8 +1561,9 @@ async function twistNightBegin(){
   game.twistBaseRound = game.round;
   rememberNightTwist(mod.id);
   await twistNightReveal(mod);
-  log(`🃏 Twist of the night — ${mod.name}: ${mod.desc}`);
+  log(`🃏 Board twist — ${mod.name}: ${mod.desc}`);
   if (mod.apply) mod.apply();
+  applyTwistFx(mod.id);
   BGM.twist(mod.id);
   renderScoreboard(); refreshHUD();
 }
@@ -2102,6 +2181,7 @@ const RULE_INFO = {
 /* ---- ANIMATION timing (ms) ----------------------------------------- */
 const ANIM = { STEP:210, SLIDE:600, DICE:560, HANDOFF:350, AUTO:650,
                HOP:26 };   // walking-hop arc height (px); each step is a little jump + landing squash
+const PACE = { TOKEN:0.85, MANUAL:0.8 };   // token-move time factors: ~15% faster everywhere, a further ~20% in manual games (Isak, 2026-07-18)
 /* ---- DATA: canvas particle FX (bursts, trails, confetti) -------------
    One screen-space <canvas> draws every particle; the loop only runs
    while something is alive, so an idle board costs nothing. Each entry
@@ -2121,6 +2201,8 @@ const UNLOCKS = { full:false };
 
 /* ---- DATA: sound + pacing (Settings screen) ------------------------- */
 const SOUND = { VOLUME:1 };                      // master volume 0..1 (0 = mute)
+/* ---- DATA: visual settings (Settings screen + the in-game 👁️ panel) -- */
+const VISUAL = { tileNumbers:true };             // show the number plaque on every square
 /* ---- DATA: background music (procedural — no audio files) -----------
    Full direction lives in Next/MUSIC.md (Isak 2026-07-18 — keep it).
    A track = 16 eighth-note steps (bass/lead patterns in SEMITONES from
@@ -2181,7 +2263,7 @@ const FISH   = {
   ZONE_BASE:134, ZONE_SHRINK:15, ZONE_MIN:41,             // catch-zone height: base, shrink/streak, floor (px)
   FISH_SPEED:110, FISH_SPEED_STREAK:70,                   // fish drift speed: base + per-streak (px/s) — streak difficulty lives HERE
   RETARGET:0.85, RETARGET_STREAK:0.13, RETARGET_MIN:0.22, // seconds between fish direction changes — erratic with streak
-  DRAIN:0.10, DRAIN_STREAK:0.01, FILL:0.15,               // reel meter: slow (1.5x the old ride) and near-flat over streaks
+  DRAIN:0.05, DRAIN_STREAK:0.005, FILL:0.075,             // reel meter: halved 2026-07-18 (Isak: ≥2× longer reel before a catch)
   // --- minigame bar physics (read by fishingGame) ---
   GRAVITY:540, REEL:1080, START:0.38,                     // bar gravity-down, reel-up, starting progress (0..1)
   METER:{ BOAT:30, FISH:22 },                             // reel meter: boat header + fish emoji heights (px)
@@ -2261,8 +2343,10 @@ const FATE      = { CHANCE:0.005 };             // ~0.5% per turn: leader and la
 /* ---- DATA: fixed move/knock amounts (tiles) ------------------------ */
 const MOVE = { SUPPORT:5, WHEEL_NEXT:1, WHEEL_BIG:15, PILEUP_BACK:5 };  // support +5; wheel "next"/+15; chute pile-up knock-back
 const GOLD_RAIN = { COINS:30, DROP_ROWS:2, POP_WAIT_MS:700, FALL_MS:600 };   // wheel 💰: payout, rows hammered straight down, coin-shower pause, fall animation
-const KONG = { BARRELS:3, STEP_MS:70, LADDER_MS:260, SPAWN_MS:600,   // wheel 🦍: barrels thrown, rolling pace, ladder-ride pace, launch stagger
-  PERCH:86, BEATS:3, BEAT_MS:280 };                                  // where Kong appears above the top row + his chest-beat intro
+const KONG = { BARRELS:3, STEP_MS:340, SPAWN_MS:520,   // wheel 🦍: barrels PERSIST — each rolls ONE tile per player-turn (not per round)
+  PERCH:86, BEATS:3, BEAT_MS:280,                      // where Kong appears above the top row + his chest-beat intro
+  LADDER_CHANCE:0.4,                                   // odds a barrel rides a ladder down (60% it rolls past); the ride takes 2 turns — it pauses halfway
+  SIZE:1.5 };                                          // barrel drawing scale
 const CHAOS = { COINS_GAIN:8, COINS_LOSE:8 };   // wheel 🎲 chaos pool: coin windfall / pickpocket amounts
 const GRAZE = { BACK_MIN:1, BACK_MAX:3, DOWN_CHANCE:0.10, RADIUS:40 }; // clipped by a passing slider: 1-3 back, rarely floored; RADIUS = px from the drawn snake curve
 const SLIDE_CURVE = { SEG_PX:26 };         // px per segment when sampling the wavy snake (drawing + graze checks share it)
@@ -2427,6 +2511,7 @@ function setBackPos(pl, rawTarget){
    ===================================================================== */
 const SVGNS = "http://www.w3.org/2000/svg";
 const svg = document.getElementById("board");
+svg.setAttribute("viewBox", `${VIEW.X} ${VIEW.Y} ${VIEW.W} ${VIEW.H}`);
 let tokenEls = [];
 
 function el(name, attrs, children){
@@ -2529,11 +2614,12 @@ function buildBoard(){
     const {x,y} = cellCenter(cell);
     const gx = x - C/2, gy = y - C/2;
     svg.appendChild(el("rect",{"data-cell":cell,x:gx+1,y:gy+1,width:C-2,height:C-2,fill:cellColor(cell),stroke:"#1f6fb0","stroke-width":"1.5"}));
-    svg.appendChild(el("rect",{x:gx+5,y:gy+5,width:26,height:18,rx:4,fill:"rgba(255,255,255,.78)"}));
-    const t = el("text",{x:gx+18,y:gy+19,"text-anchor":"middle","font-size":"14","font-weight":"700",fill:"#2a2018","font-family":"Segoe UI, sans-serif"});
+    svg.appendChild(el("rect",{"class":"tilenum",x:gx+5,y:gy+5,width:26,height:18,rx:4,fill:"rgba(255,255,255,.78)"}));
+    const t = el("text",{"class":"tilenum",x:gx+18,y:gy+19,"text-anchor":"middle","font-size":"14","font-weight":"700",fill:"#2a2018","font-family":"Segoe UI, sans-serif"});
     t.textContent = cell;
     svg.appendChild(t);
   }
+  applyTileNumbers();
 
   // up arrows on every switchback (9→10, 18→19 … 81→82: same column, one row up)
   for (let c = BOARD.COLS; c < BOARD.COUNT; c += BOARD.COLS){
@@ -2555,6 +2641,10 @@ function buildBoard(){
 
 function repaintCell(n){ const r = svg.querySelector(`[data-cell="${n}"]`); if (r) r.setAttribute("fill", cellColor(n)); }
 
+function applyTileNumbers(){
+  svg.querySelectorAll(".tilenum").forEach(n => { n.style.display = VISUAL.tileNumbers ? "" : "none"; });
+}
+
 function slotOffset(k, n){
   // symmetric placement of the k-th of n tokens that share ONE tile; alone = centre
   if (n <= 1) return {x:0, y:0};
@@ -2570,7 +2660,7 @@ function moveTokenTo(i, cell, off){
 
 // Drive token i along path(t) -> {x, y, sx?, sy?} for ms (CSS transition off while tweening).
 function tweenToken(i, ms, path){
-  ms = ffms(ms);
+  ms = ffms(ms) * PACE.TOKEN * (game && game.manual ? PACE.MANUAL : 1);
   const el = tokenEls[i], prevT = el.style.transition, t0 = performance.now();
   el.style.transition = "none";
   return new Promise(res => {
@@ -3116,9 +3206,18 @@ const SFX = (() => {
     spray: ()=> { for (let i=0;i<12;i++) tone(2200+Math.random()*1800, 0.03, "square", 0.03, i*0.035); },
     magnetize: ()=> { for (let i=0;i<7;i++) tone(180+i*70, 0.07, "sine", 0.1, i*0.05); },
     rocketup: ()=> { for (let i=0;i<10;i++) tone(140+i*95, 0.06, "sawtooth", 0.09, i*0.045); },
+    mnote: k => { const s = [0,2,4,7,9,12,9,7,4,2];               // Musical Squares: hops sing a pentatonic run
+      tone(523 * Math.pow(2, s[(k||0) % s.length]/12), 0.2, "triangle", 0.16); },
   };
-  return { play: (n) => { if (!FEATURES.sound || SOUND.VOLUME <= 0) return; try { (table[n]||(()=>{}))(); } catch(e){} } };
+  return { play: (n, arg) => { if (!FEATURES.sound || SOUND.VOLUME <= 0) return; try { (table[n]||(()=>{}))(arg); } catch(e){} } };
 })();
+// One walking hop's sound — under the Musical Squares twist every hop is a note.
+let stepNoteK = 0;
+function stepSfx(){
+  const fx = twistFx();
+  if (fx && fx.stepNotes) SFX.play("mnote", stepNoteK++);
+  else SFX.play("step");
+}
 
 /* ---- background music: a tiny procedural sequencer (see MUSIC DATA) --
    BGM.base(track, variant) remembers + starts the game's base soundtrack;
@@ -3168,7 +3267,9 @@ const BGM = (() => {
     const c = ac(); if (!c) return;
     silence();
     const t = MUSIC.TRACKS[track]; if (!t) return;
-    cur = { t, semis:(variant && variant.semis) || 0, tempo: Math.max(50, t.tempo + ((variant && variant.tempo) || 0)) };
+    const tm = (THEMES[THEME.current] && THEMES[THEME.current].music) || { semis:0, tempo:0 };   // the theme flavours every track
+    cur = { t, semis:((variant && variant.semis) || 0) + tm.semis,
+            tempo: Math.max(50, t.tempo + ((variant && variant.tempo) || 0) + tm.tempo) };
     step = 0; nextT = c.currentTime + 0.15;
     timer = setInterval(schedule, MUSIC.TICK_MS); schedule();
   }
@@ -3236,7 +3337,7 @@ function newGame(roster){
     standings: null, marketVisits: 0, traps: [],
     family: VARIANTS.family, dualDice: VARIANTS.dualDice, manual: VARIANTS.manual,
     tour:false, legModId:null, floodRows:0, noBounce:false, windowCloseRound:0,
-    nightTwistId:null, nightTwistRound:0, twistBaseRound:1, draw:null,
+    nightTwistId:null, nightTwistTurn:0, twistBaseRound:1, draw:null,
   };
   DRAW.POOL.forEach(e => { FEATURES[e.key] = FEATURE_BASE[e.key]; });   // undo last game's hand
   // Family Mode flips its feature set off for this game (and back for a normal one)
@@ -3252,8 +3353,8 @@ function newGame(roster){
     const mod = drawNightTwist();
     if (mod){
       game.nightTwistId = mod.id;
-      game.nightTwistRound = TWIST_NIGHT.ROUND_MIN
-        + ((Math.random() * (TWIST_NIGHT.ROUND_MAX - TWIST_NIGHT.ROUND_MIN + 1)) | 0);
+      game.nightTwistTurn = TWIST_NIGHT.TURNS_MID - TWIST_NIGHT.TURNS_SPREAD
+        + ((Math.random() * (2 * TWIST_NIGHT.TURNS_SPREAD + 1)) | 0);
     }
   }
   die2.style.display = game.dualDice ? "" : "none";
@@ -3264,11 +3365,13 @@ function newGame(roster){
   TRAP89_TILES.splice(0, Infinity, TRAP89.TILE);   // re-arm the tile-89 trapdoor for the new game
   RAD_TILES.splice(0, Infinity);                   // clear last game's fallout
   CHEST_TILES.splice(0, Infinity); CHESTS.clear(); // unclaimed chests don't survive the night
+  game.kongBarrels = [];                           // last game's barrels are gone with the board
   WARP.active = 0; WARP.owner = -1; applyWarp();   // right the board if a warp was live
   setSpecialTiles((game.draw && DRAW.SCRAMBLE) || boardOpt("scrambledStart") ? scrambledLayout() : DEFAULT_SPECIALS);
   rulesSeen = {};
   renderLegend();
   buildBoard();
+  clearTwistFx();                                  // last game's twist dressing comes down
   fogG = null; floodG = null;                      // the board wipe destroyed any twist overlays
   if (game.mode === "mayhem") mayhemScramble();    // every plain square hides a special tile
   buildTokens(count);
@@ -3361,10 +3464,11 @@ function renderScoreboard(){
       `<span class="cell">${cellTxt}</span>`;
     box.appendChild(row);
   });
+  refreshBadges();          // token badges (crown, burns, shame…) track the same state
 }
 
-function makeSnow(n, glyphs){
-  const c = document.getElementById("snow");
+function makeSnow(n, glyphs){ makeFlakes(document.getElementById("snow"), n, glyphs); }
+function makeFlakes(c, n, glyphs){
   c.innerHTML = "";
   glyphs = glyphs || ["🍃","🌿","🌼","🦋","✿"];
   for (let i=0;i<n;i++){
@@ -3620,7 +3724,7 @@ async function manualMove(cur, faces, again, dual){
   let at = fromPos;
   for (const c of path){
     cur.pos = c;
-    SFX.play("step");
+    stepSfx();
     renderScoreboard();
     if (at >= 1) await hopToken(i, at, c, ANIM.STEP);
     else { moveTokenTo(i, c); await sleep(ANIM.STEP); }
@@ -3662,7 +3766,7 @@ function manualHopPath(fromPos, target, rolled){
   const back = wrongCol > B.col ? -1 : 1;
   for (let c = wrongCol + back; back > 0 ? c <= B.col : c >= B.col; c += back) side.push(rcToCell(B.row, c));
   if (side.includes(BOARD.WIN) && target !== BOARD.WIN) return path;
-  return Math.abs(side.length - rolled) < Math.abs(path.length - rolled) ? side : path;
+  return Math.abs(side.length - rolled) + CHEAT.WRONG_SIDE_BIAS < Math.abs(path.length - rolled) ? side : path;
 }
 
 // Ghost-pawn placement: click any square (the ghost follows), then Confirm.
@@ -3687,6 +3791,7 @@ function placePiece(p, i){
         if (d < bd){ bd = d; best = t; }
       }
       if (bd > BOARD.CELL * 0.55) return;
+      if (chosen === best && placeState){ placeState.confirm(); return; }   // second click on the same spot = confirm
       chosen = best;
       const c = cellCenter(best);
       ghost.style.display = "";
@@ -3882,7 +3987,7 @@ async function moveCurrent(rollValue, extraRoll){
   for (let k = 0; k < path.length; k++){
     const c = path[k];
     p.pos = c;
-    SFX.play("step");
+    stepSfx();
     renderScoreboard();
     if (at >= 1) await hopToken(i, at, c, ANIM.STEP);
     else { moveTokenTo(i, c); await sleep(ANIM.STEP); }
@@ -3983,12 +4088,12 @@ function idxOf(p){ return game.players.indexOf(p); }
 function buildOverlays(){
   const defs = el("defs", {});
   const mask = el("mask", {id:"spotmask"});
-  mask.appendChild(el("rect",{x:0,y:0,width:940,height:1040,fill:"#fff"}));
-  spotHole = el("circle",{cx:470,cy:520,r:95,fill:"#000"});
+  mask.appendChild(el("rect",{x:VIEW.X,y:VIEW.Y,width:VIEW.W,height:VIEW.H,fill:"#fff"}));
+  spotHole = el("rect",{x:420,y:470,width:BOARD.CELL,height:BOARD.CELL,rx:10,fill:"#000"});
   mask.appendChild(spotHole);
   defs.appendChild(mask);
   svg.appendChild(defs);
-  spotDark = el("rect",{x:0,y:0,width:940,height:1040,fill:"rgba(0,0,0,.5)",mask:"url(#spotmask)"});
+  spotDark = el("rect",{x:VIEW.X,y:VIEW.Y,width:VIEW.W,height:VIEW.H,fill:"rgba(0,0,0,.5)",mask:"url(#spotmask)"});
   spotDark.style.transition = "opacity .25s"; spotDark.style.opacity = "0"; spotDark.style.pointerEvents = "none";
   svg.appendChild(spotDark);
   beamEl = el("line",{x1:0,y1:0,x2:0,y2:0,stroke:"#ff2b2b","stroke-width":"4","stroke-linecap":"round",opacity:"0"});
@@ -4011,7 +4116,16 @@ function updateTurnArrow(){
   if (g && arrowEl.parentNode !== g) g.appendChild(arrowEl);
 }
 
-function showSpotlight(cell){ const c=cellCenter(cell); spotHole.setAttribute("cx",c.x); spotHole.setAttribute("cy",c.y); spotDark.style.opacity="1"; }
+// The big "this player is choosing/acting" light: it lights up the player's WHOLE
+// square (boss-ring aware). Targeting picks (pickPlayerOnBoard/pickTileOnBoard)
+// keep their round spotlight holes — that shape stays for aiming at OTHER players.
+function showSpotlight(p){
+  const c = isBoss() ? bossCellCenter(p.pos) : cellCenter(Math.max(1, p.pos));
+  const C = isBoss() ? BOSS_MODE.CELL : BOARD.CELL;
+  spotHole.setAttribute("x", c.x - C/2); spotHole.setAttribute("y", c.y - C/2);
+  spotHole.setAttribute("width", C); spotHole.setAttribute("height", C);
+  spotDark.style.opacity = "1";
+}
 function hideSpotlight(){ if (spotDark) spotDark.style.opacity="0"; }
 function showBeamFrom(cell){ beamFrom = cellCenter(cell); beamEl.style.opacity="1"; }
 function updateBeam(tx,ty){
@@ -4338,7 +4452,7 @@ async function glideFrozen(kicker, v){
 function getEncounterChoice(p, others){
   return new Promise(res => {
     if (game.autonomous){ botEncounterChoice(p, others).then(res); return; }   // the bot weighs kick vs bounce
-    showSpotlight(p.pos);                                  // light up the one who must choose
+    showSpotlight(p);                                      // light up the one who must choose
     const names = others.map(o => o.name).join(", ");
     document.getElementById("choiceText").innerHTML =
       `<b style="color:${p.color}">${p.name}</b> landed on ${names}!`;
@@ -4500,7 +4614,7 @@ function botBubble(p, html){
 async function botThink(p, doing){
   if (!FEATURES.botThoughts) return;
   botBubble(p, `${doing}<span class="btdots"><i>.</i><i>.</i><i>.</i></span>`);
-  if (p.pos > 0 && !p.onSecret) showSpotlight(p.pos);
+  if (p.pos > 0 && !p.onSecret) showSpotlight(p);
   await sleep(BOT.THINK_MS);
 }
 async function botDecide(p, verdict){
@@ -4570,7 +4684,7 @@ function grantSniperIfDue(){
 
 async function useSniper(shooter){
   await revealRuleOnce("sniper");
-  showSpotlight(shooter.pos);
+  showSpotlight(shooter);
   showBeamFrom(shooter.pos);
   if (game.autonomous){
     await botThink(shooter, "peers through the scope");
@@ -4579,7 +4693,7 @@ async function useSniper(shooter){
     const pool = clear.length ? clear : targets;
     const mark = pool.length ? pool.reduce((a,q)=> q.pos > a.pos ? q : a) : null;
     await botDecide(shooter, mark ? `locks onto the front-runner — ${mark.name} 🎯` : "finds no one in the scope");
-    showSpotlight(shooter.pos);
+    showSpotlight(shooter);
     const c = mark ? cellCenter(mark.pos) : {x:470, y:120};
     const aim = { x: c.x + (Math.random()*2-1)*BOT.AIM_WOBBLE, y: c.y + (Math.random()*2-1)*BOT.AIM_WOBBLE };
     updateBeam(aim.x, aim.y);
@@ -4724,7 +4838,28 @@ function updateShield(i){
     else g.appendChild(bub);
   } else if (!has && bub){ bub.remove(); }
 }
-function refreshBadges(){ if (game) game.players.forEach((_,i)=>{ updateShame(i); updateCuffs(i); updateShield(i); }); }
+// The tour leader's 👑 sits on their pawn on the board (Grand Tour only).
+function updateCrown(i){
+  const g = tokenEls[i]; if (!g) return;
+  const has = !!(game.tour && game.players[i].crowned);
+  let c = g.querySelector(".crownbadge");
+  if (has && !c){
+    c = el("text",{"class":"crownbadge",x:0,y:-26,"text-anchor":"middle","font-size":18*TOKEN.SCALE});
+    c.textContent = "👑"; g.appendChild(c);
+  } else if (!has && c){ c.remove(); }
+}
+// A flickering 🔥 on any pawn carrying burns (Fire Egg singe / the Dragon's scorch).
+function updateBurn(i){
+  const g = tokenEls[i]; if (!g) return;
+  const p = game.players[i];
+  const burning = (p.singeRolls||0) > 0 || (p.bossSinge||0) > 0;
+  let b = g.querySelector(".burnbadge");
+  if (burning && !b){
+    b = el("text",{"class":"burnbadge",x:15*TOKEN.SCALE,y:-8,"text-anchor":"middle","font-size":15*TOKEN.SCALE});
+    b.textContent = "🔥"; g.appendChild(b);
+  } else if (!burning && b){ b.remove(); }
+}
+function refreshBadges(){ if (game) game.players.forEach((_,i)=>{ updateShame(i); updateCuffs(i); updateShield(i); updateCrown(i); updateBurn(i); }); }
 
 // Mario-style pop: an icon (coin, trophy …) rises off the player's head and fades.
 function coinPopup(p, n, scale){ iconPopup(p, "🪙", n, scale); }
@@ -4857,11 +4992,6 @@ async function endTurn(){
       log(`⏱️ Time! The leg is over.`);
       endClassic(); return;
     }
-    if (game.nightTwistId && game.round >= game.nightTwistRound && !game.over){
-      game.busy = true; refreshHUD();
-      await twistNightBegin();
-      game.busy = false;
-    }
     if (game.popupRounds && game.popupRounds.length && game.round >= game.popupRounds[0] && !game.over){
       game.popupRounds.shift();                    // pop-ups ride the round wrap, one at most per round
       game.busy = true; refreshHUD();
@@ -4878,6 +5008,17 @@ async function endTurn(){
     if (rm && rm.onRoundStart){ game.busy = true; refreshHUD(); await rm.onRoundStart(); game.busy = false; }
     if (isMayhem() && !game.over){ game.busy = true; refreshHUD(); await mayhemSurge(); game.busy = false; }
     if (game.over) return;
+  }
+  if (game.kongBarrels && game.kongBarrels.length && !game.over){   // the barrels creep one tile per turn
+    game.busy = true; refreshHUD();
+    await moveKongBarrels();
+    game.busy = false;
+  }
+  // the board twist rides individual turns, not rounds — it can wake on any hand-off
+  if (game.nightTwistId && twistNightDue() && !game.over){
+    game.busy = true; refreshHUD();
+    await twistNightBegin();
+    game.busy = false;
   }
   grantSniperIfDue();
   game.busy = false; refreshHUD();
@@ -6422,7 +6563,7 @@ async function shuffleAllPositions(){
 let tpResolve = null;
 function teleportChoice(p){
   return new Promise(res => {
-    showSpotlight(p.pos);
+    showSpotlight(p);
     document.getElementById("tpText").innerHTML =
       `<b style="color:${p.color}">${p.name}</b> stepped onto a teleporter!`;
     document.getElementById("tpchoice").classList.add("show");
@@ -6714,7 +6855,13 @@ function applyWarp(){
   const fit = (a === 90 || a === 270) ? ` scale(${(940/1040).toFixed(3)})` : "";
   svg.style.transition = `transform ${ffms(WARP.SPIN_MS)}ms ease, filter ${ffms(WARP.SPIN_MS)}ms ease`;
   svg.style.transform = a ? `rotate(${a}deg)${fit}` : "";
-  svg.style.filter = a ? "invert(1)" : "";
+  paintBoardFilter();
+}
+// The board's CSS filter is shared: a running board twist tints it, the warp
+// square inverts it. Both compose here so neither wipes the other.
+function paintBoardFilter(){
+  const fx = twistFx();
+  svg.style.filter = [WARP.active ? "invert(1)" : "", (fx && fx.tint) || ""].filter(Boolean).join(" ");
 }
 // Big centred countdown digit (one per tick of the gray square's fuse).
 function warpTick(n){
@@ -6922,7 +7069,7 @@ async function advancePlayer(pl, n){
   let at = pl.pos;
   for (let k = 0; k < path.length; k++){
     const c = path[k];
-    pl.pos = c; SFX.play("step");
+    pl.pos = c; stepSfx();
     if (at >= 1) await hopToken(idx, at, c, ANIM.STEP*0.7);
     else { moveTokenTo(idx, c); await sleep(ANIM.STEP*0.7); }
     at = c;
@@ -6936,7 +7083,7 @@ async function advancePlayer(pl, n){
 let orangeResolve = null;
 function orangeChoice(p){
   return new Promise(res => {
-    showSpotlight(p.pos);
+    showSpotlight(p);
     document.getElementById("optGun").style.display = game.family ? "none" : "";
     document.getElementById("orangeText").innerHTML =
       `<b style="color:${p.color}">${p.name}</b> — ${game.family ? "Wheel or Support?" : "Wheel, Support or Gun?"}`;
@@ -7472,18 +7619,61 @@ async function goldRain(p){
    tile power, coins won and lost — each entry aimed at one target player.
    Both 🎲 slices draw from this same pool: the orange slice fires it at a
    RANDOM player, the magenta slice ALWAYS at the spinner. */
-// Wheel 🦍: KONG scales the top of the board, beats his chest and bowls
-// barrels DOWN the numbered path — and a barrel that reaches a ladder's top
-// rides the ladder down. Anyone standing in the way is flattened
-// (shield/mirror get their say). The barrels burst at tile 1.
-function kongBarrelPath(start){
-  const path = [start];
-  let t = start;
-  while (t > 1){
-    t = LADDER_BASE_OF[t] !== undefined ? LADDER_BASE_OF[t] : t - 1;
-    path.push(t);
+/* Wheel 🦍: KONG scales the top of the board, beats his chest and hurls his
+   barrels onto the top row. The barrels STAY on the board: each rolls ONE tile
+   down the numbered path per player-turn (not per round), may ride a ladder
+   down (40% — a 2-turn ride that pauses halfway), flattens whoever it reaches
+   (shield/mirror get their say) and bursts at tile 1. */
+function makeBarrelEl(){
+  const s = KONG.SIZE;
+  const g = el("g",{"class":"kongbarrel"});
+  g.appendChild(el("rect",{x:-16*s,y:-20*s,width:32*s,height:40*s,rx:10*s,fill:"#8a5a2b",stroke:"#4c2f13","stroke-width":"2"}));
+  [-8,0,8].forEach(dx => g.appendChild(el("line",{x1:dx*s,y1:-18*s,x2:dx*s,y2:18*s,stroke:"#6d4520","stroke-width":"1.6"})));
+  [-11,11].forEach(dy => g.appendChild(el("rect",{x:-16.5*s,y:(dy-2.5)*s,width:33*s,height:5*s,rx:2*s,fill:"#4b4b52",stroke:"#26262b","stroke-width":"1"})));
+  g.style.pointerEvents = "none";
+  return g;
+}
+function slideBarrel(b, to, ms){
+  ms = ffms(ms);
+  b.rot = (b.rot||0) - 180;
+  b.el.style.transition = `transform ${ms}ms linear`;
+  b.el.style.transform = `translate(${to.x}px, ${to.y}px) rotate(${b.rot}deg)`;
+  return sleep(ms);
+}
+function kongBarrelHits(b){
+  game.players.forEach(q => {
+    if (q.finished || q.downed || q.frozen || q.pos !== b.pos) return;
+    downPlayer(q);
+    log(`🛢 ${q.name} is bowled over by a barrel!`);
+  });
+}
+async function moveKongBarrels(){
+  const list = game.kongBarrels;
+  if (!list || !list.length) return;
+  for (const b of [...list]){
+    if (b.mid){                                      // second turn of a ladder ride: halfway -> the base
+      b.pos = b.mid; b.mid = 0;
+      await slideBarrel(b, cellCenter(b.pos), KONG.STEP_MS);
+      SFX.play("chute");
+    } else {
+      const down = LADDER_BASE_OF[b.pos];
+      if (down !== undefined && Math.random() < KONG.LADDER_CHANCE){
+        b.mid = down;                                // first turn of the ride: stop halfway down the ladder
+        const a = cellCenter(b.pos), z = cellCenter(down);
+        await slideBarrel(b, { x:(a.x+z.x)/2, y:(a.y+z.y)/2 }, KONG.STEP_MS);
+        SFX.play("chute");
+        continue;
+      }
+      b.pos -= 1;
+      await slideBarrel(b, cellCenter(Math.max(1, b.pos)), KONG.STEP_MS);
+    }
+    kongBarrelHits(b);
+    if (b.pos <= 1){
+      explode(1); SFX.play("crack");
+      b.el.remove(); list.splice(list.indexOf(b), 1);
+    }
   }
-  return path;
+  layoutTokens(); renderScoreboard();
 }
 async function kongRampage(){
   await revealRuleOnce("kong");
@@ -7501,39 +7691,23 @@ async function kongRampage(){
     ape.style.transform = "";
     await sleep(KONG.BEAT_MS / 2);
   }
-  const rollOne = async () => {
-    const start = 90 - ((Math.random()*9)|0);                      // somewhere on the top row
-    const path = kongBarrelPath(start);
-    const barrel = el("text",{"text-anchor":"middle", "font-size":"38"});
-    barrel.textContent = "🛢";
-    svg.appendChild(barrel);
-    const hit = new Set();
-    for (let k = 0; k < path.length; k++){
-      const t = path[k], c = cellCenter(t);
-      const ladder = k > 0 && LADDER_BASE_OF[path[k-1]] === t;
-      barrel.setAttribute("x", c.x); barrel.setAttribute("y", c.y + 12);
-      if (ladder) SFX.play("chute");
-      await sleep(ladder ? KONG.LADDER_MS : KONG.STEP_MS);
-      game.players.forEach(q => {
-        if (q.finished || q.pos !== t || q.downed || q.frozen || hit.has(q)) return;
-        hit.add(q);
-        downPlayer(q);
-        log(`🛢 ${q.name} is bowled over by a barrel!`);
-      });
-    }
-    explode(1);
-    barrel.remove();
-  };
-  const runs = [];
-  for (let k = 0; k < KONG.BARRELS; k++)
-    runs.push((async ()=>{ await sleep(k * KONG.SPAWN_MS); await rollOne(); })());
-  await Promise.all(runs);
+  game.kongBarrels = game.kongBarrels || [];
+  for (let k = 0; k < KONG.BARRELS; k++){
+    const start = BOARD.COUNT - ((Math.random()*BOARD.COLS)|0);    // somewhere on the top row
+    const b = { pos:start, mid:0, rot:0, el:makeBarrelEl() };
+    b.el.style.transform = `translate(${perch.x}px, ${perch.y - 60}px)`;
+    if (tokenEls.length) svg.insertBefore(b.el, tokenEls[0]); else svg.appendChild(b.el);
+    game.kongBarrels.push(b);
+    SFX.play("boom");
+    await slideBarrel(b, cellCenter(start), KONG.SPAWN_MS);
+    kongBarrelHits(b);
+  }
   ape.style.transition = "transform .5s ease, opacity .5s ease";
   ape.style.transform = "translate(0,-80px)"; ape.style.opacity = "0";
   await sleep(550);
   ape.remove();
   layoutTokens(); renderScoreboard();
-  log(`🦍 Satisfied, KONG lumbers off.`);
+  log(`🦍 KONG lumbers off — but his barrels keep rolling!`);
 }
 
 async function castRandomItem(t){
@@ -7660,19 +7834,53 @@ async function mayhemSurge(){
 
 /* Leg-twist overlays: Forever Night's fog and the Rising Flood's water.
    Both are pointer-transparent SVG groups appended above the board art. */
-let fogG = null, floodG = null;
-function buildFog(){ clearFog(); fogG = el("g", {"pointer-events":"none"}); svg.appendChild(fogG); }
-function clearFog(){ if (fogG){ fogG.remove(); fogG = null; } }
+let fogG = null, floodG = null, nightHoles = null, nightRaf = 0;
+function buildFog(){
+  clearFog();
+  const C = BOARD.CELL, M = BOARD.MARGIN, r = NIGHT_MOD.LIGHT_TILES / 2 * C;
+  fogG = el("g", {"pointer-events":"none"});
+  const mask = el("mask", {id:"nightmask"});
+  mask.appendChild(el("rect",{x:VIEW.X,y:VIEW.Y,width:VIEW.W,height:VIEW.H,fill:"#fff"}));
+  nightHoles = game.players.map(() => {
+    const h = el("circle",{cx:-999,cy:-999,r,fill:"#000"});
+    mask.appendChild(h); return h;
+  });
+  fogG.appendChild(mask);
+  fogG.appendChild(el("rect",{x:VIEW.X,y:VIEW.Y,width:VIEW.W,height:VIEW.H,
+    fill:NIGHT_MOD.DARK,opacity:NIGHT_MOD.DARK_OPACITY,mask:"url(#nightmask)"}));
+  const lines = el("g",{stroke:NIGHT_MOD.GRID,"stroke-width":NIGHT_MOD.GRID_W,
+    opacity:NIGHT_MOD.GRID_OPACITY,fill:"none",mask:"url(#nightmask)"});
+  for (let k = 0; k <= BOARD.COLS; k++) lines.appendChild(el("line",{x1:M+k*C,y1:M,x2:M+k*C,y2:M+BOARD.ROWS*C}));
+  for (let k = 0; k <= BOARD.ROWS; k++) lines.appendChild(el("line",{x1:M,y1:M+k*C,x2:M+BOARD.COLS*C,y2:M+k*C}));
+  const link = (a,b) => lines.appendChild(el("line",{x1:a.x,y1:a.y,x2:b.x,y2:b.y,"stroke-width":NIGHT_MOD.LINK_W}));
+  for (const s in LADDERS) link(cellCenter(+s), cellCenter(LADDERS[s]));
+  for (const s in SLIDES)  link(cellCenter(+s), cellCenter(SLIDES[s]));
+  fogG.appendChild(lines);
+  svg.appendChild(fogG);
+  updateFog();
+  if (!nightRaf) nightRaf = requestAnimationFrame(nightTick);
+}
+function nightTick(){
+  if (!fogG){ nightRaf = 0; return; }
+  updateFog();
+  nightRaf = requestAnimationFrame(nightTick);
+}
+// Every pawn carries its light — read the LIVE transform so the circle rides
+// along mid-hop, mid-slide, mid-anything.
 function updateFog(){
-  if (!fogG || !game) return;
-  const reveal = Math.max(1, ...game.players.map(q => q.pos)) + NIGHT_MOD.AHEAD;
-  fogG.innerHTML = "";
-  const C = BOARD.CELL;
-  for (let cell = reveal + 1; cell <= BOARD.COUNT; cell++){
-    const c = cellCenter(cell);
-    fogG.appendChild(el("rect",{x:c.x-C/2+1,y:c.y-C/2+1,width:C-2,height:C-2,rx:3,
-      fill:"#12162a",opacity:".94"}));
-  }
+  if (!fogG || !nightHoles || !game) return;
+  game.players.forEach((q,i) => {
+    const h = nightHoles[i], g = tokenEls[i];
+    if (!h || !g) return;
+    const tr = getComputedStyle(g).transform;
+    const m = tr && tr !== "none" ? new DOMMatrixReadOnly(tr) : { e:0, f:0 };
+    h.setAttribute("cx", m.e); h.setAttribute("cy", m.f);
+  });
+}
+function clearFog(){
+  if (fogG){ fogG.remove(); fogG = null; }
+  nightHoles = null;
+  if (nightRaf){ cancelAnimationFrame(nightRaf); nightRaf = 0; }
 }
 function paintFlood(){
   if (!floodG){ floodG = el("g", {"pointer-events":"none"}); svg.appendChild(floodG); }
@@ -7888,7 +8096,7 @@ function openMysteryBox(p){
 function snowballTargets(p){
   if (p.pos < 1) return [];
   return game.players.filter(q => q !== p && !q.finished && !q.frozen && q.pos > 0
-    && Math.abs(q.pos - p.pos) <= SNOWBALL.RANGE);
+    && gridNear(q.pos, p.pos, SNOWBALL.RANGE));
 }
 function snowballFx(p, target){
   return new Promise(res => {
@@ -7907,7 +8115,7 @@ function snowballFx(p, target){
 }
 async function throwSnowball(p, idx){
   const targets = snowballTargets(p);
-  if (!targets.length){ log(`❄️ No one is within ${SNOWBALL.RANGE} tiles to hit.`); return; }
+  if (!targets.length){ log(`❄️ No one is close enough to hit.`); return; }
   const target = p.bot
     ? targets.reduce((a,q)=> q.pos > a.pos ? q : a)          // bots aim at whoever is furthest ahead
     : await pickPlayerOnBoard(`${p.name}: click a player to hit with the snowball`, targets, null, true);
@@ -7922,16 +8130,12 @@ async function throwSnowball(p, idx){
   await sleep(500);
 }
 
-// Banana Peel: plant a trap on a plain tile ahead; the first RIVAL to land there slips.
-function bananaSpots(p){
-  const from = Math.max(1, p.pos), spots = [];
-  for (let t = from + 1; t <= Math.min(BOARD.WIN - 1, from + BANANA.RANGE); t++){
-    if (!isPlainTile(t)) continue;
-    if (game.traps.some(tr => tr.tile === t)) continue;
-    if (game.players.some(q => q.pos === t && !q.finished)) continue;
-    spots.push(t);
-  }
-  return spots;
+// Banana Peel: the peel drops on the tile right behind the player; the first RIVAL to land there slips.
+function bananaSpot(p){
+  const t = Math.max(1, p.pos) - 1;
+  if (t < 1) return 0;
+  if (game.traps.some(tr => tr.tile === t)) return 0;
+  return t;
 }
 function drawTrap(tr){
   const c = cellCenter(tr.tile);
@@ -7941,18 +8145,8 @@ function drawTrap(tr){
   tr.el = t;
 }
 async function placeBanana(p, idx){
-  const spots = bananaSpots(p);
-  if (!spots.length){ log(`🍌 Nowhere ahead to drop a peel.`); return; }
-  let tile;
-  if (p.bot){
-    // most catchable spot: the tile the most rivals could reach on their next roll
-    const catchScore = t => game.players.filter(q => q !== p && !q.finished && !q.downed
-      && q.pos < t && t - q.pos <= RULES.DICE_SIDES).length;
-    tile = spots.reduce((a,t)=> catchScore(t) > catchScore(a) ? t : a);
-  } else {
-    tile = await pickTileOnBoard(`${p.name}: click a tile to drop the banana peel on`, spots, true);
-    if (!tile || tile === "back") return;
-  }
+  const tile = bananaSpot(p);
+  if (!tile){ log(`🍌 No spot behind you for a peel.`); return; }
   p.items.splice(idx, 1);
   await itemFlourish(p, "🍌");
   const tr = { tile, owner: p };
@@ -8049,10 +8243,8 @@ function pickDiceFace(p){
 // guards automatically — so only Coffee and the Clover do anything here.
 /* ---- Bomb: lob it at a tile, flatten everyone on and around it ------ */
 function bombSpots(p){
-  const spots = [], base = Math.max(1, p.pos);
-  const lo = Math.max(1, base - BOMB.RANGE), hi = Math.min(BOARD.WIN - 1, base + BOMB.RANGE);
-  for (let t = lo; t <= hi; t++) if (t !== p.pos) spots.push(t);
-  return spots;
+  const base = Math.max(1, p.pos);
+  return neighborCells(base, BOMB.RANGE).filter(t => t !== p.pos && t < BOARD.WIN);
 }
 function bombVictims(p, tile){
   return game.players.filter(q => q !== p && !q.finished && !q.downed && q.pos > 0
@@ -8083,7 +8275,7 @@ async function throwBomb(p, idx){
       if (s > bs){ bs = s; tile = t; }
     }
   } else {
-    tile = await pickTileOnBoard(`${p.name}: lob the 💣 at a tile (within ${BOMB.RANGE})`, spots, true);
+    tile = await pickTileOnBoard(`${p.name}: lob the 💣 at a nearby tile (${BOMB.RANGE} squares, any direction)`, spots, true);
     if (!tile || tile === "back") return;
   }
   p.items.splice(idx, 1);
@@ -8103,11 +8295,11 @@ async function throwBomb(p, idx){
 function fireEggTargets(p){
   if (p.pos < 1) return [];
   return game.players.filter(q => q !== p && !q.finished && q.pos > 0
-    && Math.abs(q.pos - p.pos) <= FIRE_EGG.RANGE);
+    && gridNear(q.pos, p.pos, FIRE_EGG.RANGE));
 }
 async function throwFireEgg(p, idx){
   const targets = fireEggTargets(p);
-  if (!targets.length){ log(`🔥 No one is within ${FIRE_EGG.RANGE} tiles to singe.`); return; }
+  if (!targets.length){ log(`🔥 No one is close enough to singe.`); return; }
   const target = p.bot
     ? targets.reduce((a,q)=> q.pos > a.pos ? q : a)
     : await pickPlayerOnBoard(`${p.name}: click who to hit with the Fire Egg`, targets, null, true);
@@ -8372,7 +8564,7 @@ async function useItem(p, idx){
     }
   } else if (id === "sleepdart"){
     const targets = game.players.filter(q => q !== p && !q.finished && !q.downed && q.pos > 0
-      && Math.abs(q.pos - p.pos) <= SLEEPDART.RANGE);
+      && p.pos > 0 && gridNear(q.pos, p.pos, SLEEPDART.RANGE));
     if (!targets.length){ log(`💤 No one in range to tuck in.`); return; }
     const t = p.bot ? targets.sort((x,y) => y.pos - x.pos)[0]
                     : await pickPlayerOnBoard(`${p.name}: click who takes a nap`, targets, null, true);
@@ -8552,9 +8744,10 @@ async function botMaybeUseItem(p){
     } else if (id === "snowball"){
       if (bagFull || snowballTargets(p).some(q => q.pos > p.pos && !q.downed && !q.shieldOn)) await useItem(p, k);
     } else if (id === "banana"){
-      const chaser = game.players.some(q => q !== p && !q.finished && q.pos < p.pos
-        && p.pos - q.pos <= BANANA.RANGE + RULES.DICE_SIDES);
-      if (bananaSpots(p).length && (bagFull || chaser)) await useItem(p, k);
+      const spot = bananaSpot(p);
+      const chaser = spot && game.players.some(q => q !== p && !q.finished && q.pos < spot
+        && spot - q.pos <= RULES.DICE_SIDES);
+      if (spot && (bagFull || chaser)) await useItem(p, k);
     } else if (id === "monkeypaw"){
       if (bagFull) await useItem(p, k);                      // the wish lands randomly — only gamble when the bag is full
     } else if (id === "loadeddice"){
@@ -8583,8 +8776,8 @@ async function botMaybeUseItem(p){
       const top = Math.max(...game.players.filter(q => q !== p && !q.finished).map(q => q.pos), 0);
       if ((bagFull || top - p.pos >= 10) && p.pos < BOT.COFFEE_MAX_POS) await useItem(p, k);
     } else if (id === "sleepdart"){
-      if (bagFull || game.players.some(q => q !== p && !q.finished && !q.downed && q.pos > p.pos
-        && Math.abs(q.pos - p.pos) <= SLEEPDART.RANGE)) await useItem(p, k);
+      if (bagFull || (p.pos > 0 && game.players.some(q => q !== p && !q.finished && !q.downed && q.pos > p.pos
+        && gridNear(q.pos, p.pos, SLEEPDART.RANGE)))) await useItem(p, k);
     } else if (id === "extinguisher"){
       if (p.radSick || (p.singeRolls||0) > 0 || p.dizzy || bagFull) await useItem(p, k);
     } else if (id === "map"){
@@ -8958,6 +9151,7 @@ function tourDress(){
   if (m){
     log(`${m.ico} Leg twist — ${m.name}: ${m.desc}`);
     if (m.apply) m.apply();
+    applyTwistFx(m.id);
     BGM.twist(m.id);
   }
   renderScoreboard(); refreshHUD();
@@ -9056,7 +9250,7 @@ function tonightsBoardHtml(){
     return it ? `<span class="chip${out ? " out" : ""}" title="${it.name}">${it.ico}</span>` : ""; };
   let h = `<div class="drawcard"><div class="lbtitle">🎴 Tonight's board</div>`;
   const twist = !game.tour ? activeLegMod() : null;
-  if (twist) h += `<div class="drawrow"><span class="rowlab">Twist of the night:</span><span class="chip">${twist.ico} ${twist.name}</span></div>`;
+  if (twist) h += `<div class="drawrow"><span class="rowlab">Board twist:</span><span class="chip">${twist.ico} ${twist.name}</span></div>`;
   if (pops.length) h += `<div class="drawrow"><span class="rowlab">Popped up:</span>` +
     pops.map(t => `<span class="chip">${t}</span>`).join("") + `</div>`;
   if (game.draw){
@@ -9098,16 +9292,22 @@ function showStandings(){
   });
   let lb = '<div class="lbtitle">Leaderboard</div><div class="lb">';
   s.forEach((p,idx) => {
-    const stats = marks.map(m => {
-      const v = m.c.stat(p);
-      const mark = m.flat ? "" : v === m.star ? "⭐" : v === m.dot ? "⚫" : "";
-      return `<span class="stat" title="${m.c.name}">${m.c.ico}${v}${mark}</span>`;
-    }).join("");
     lb += `<div class="lbrow"><span class="place">${idx+1}. ${MEDALS[idx]||""}</span>` +
-          `<b style="color:${p.color}">${p.name}</b>${trophies(p)}` +
-          `<span class="lbstats">${stats}</span></div>`;
+          `<b style="color:${p.color}">${p.name}</b>${trophies(p)}</div>`;
   });
   lb += '</div>';
+  // the per-player stats as one proper table: bare numbers, only ⭐ best / ⚫ worst marks
+  lb += '<table class="statstable"><tr><th></th>' +
+        marks.map(m => `<th title="${m.c.name}">${m.c.ico}</th>`).join("") + '</tr>';
+  s.forEach(p => {
+    lb += `<tr><td><b style="color:${p.color}">${p.name}</b></td>` +
+          marks.map(m => {
+            const v = m.c.stat(p);
+            const mark = m.flat ? "" : v === m.star ? "⭐" : v === m.dot ? "⚫" : "";
+            return `<td>${v}${mark}</td>`;
+          }).join("") + '</tr>';
+  });
+  lb += '</table>';
   let seriesHtml = "";
   if (series){
     const line = game.players.map((q,i)=>`<b style="color:${q.color}">${q.name}</b> ${series.wins[i]}`).join(" · ");
@@ -9516,6 +9716,7 @@ function saveSettings(){
       finishNeed: FINISH.NEED,
       variants: { family: VARIANTS.family, dualDice: VARIANTS.dualDice, dualPreview: VARIANTS.dualPreview, manual: VARIANTS.manual },
       match: { mode: MATCH.mode, len: MATCH.len },
+      visual: { tileNumbers: VISUAL.tileNumbers },
       items: Object.fromEntries([...SHOP_CATALOG, ...EXOTICS, ...CURSED].map(i => [i.id, i.enabled])),
       board: Object.fromEntries(BOARD_OPTIONS.map(b => [b.key, b.enabled])),
     }));
@@ -9542,6 +9743,7 @@ function loadSettings(){
       if (["off","bestof","firstto"].includes(s.match.mode)) MATCH.mode = s.match.mode;
       if (typeof s.match.len === "number") MATCH.len = Math.max(MATCH.FT_MIN, Math.min(MATCH.LEN_MAX, s.match.len));
     }
+    if (s.visual && typeof s.visual.tileNumbers === "boolean") VISUAL.tileNumbers = s.visual.tileNumbers;
     const ti = THEMES.findIndex(t => t.id === s.theme);
     if (ti >= 0) THEME.current = ti;
     [...SHOP_CATALOG, ...EXOTICS, ...CURSED].forEach(i => { if (s.items && typeof s.items[i.id] === "boolean") i.enabled = s.items[i.id]; });
@@ -9639,6 +9841,7 @@ document.getElementById("settingsBtn").addEventListener("click", ()=>{
   document.getElementById("optFull").checked = UNLOCKS.full;
   document.getElementById("optVolume").value = Math.round(SOUND.VOLUME * 100);
   document.getElementById("optMusicVol").value = Math.round(MUSIC.VOLUME * 100);
+  document.getElementById("optTileNums").checked = VISUAL.tileNumbers;
   showScreen("settings");
 });
 document.getElementById("optFamily").addEventListener("change", e=>{ VARIANTS.family = e.target.checked; saveSettings(); });
@@ -9678,6 +9881,21 @@ document.getElementById("gameMusicVol").addEventListener("input", e=>{
   MUSIC.VOLUME = Math.min(1, Math.max(0, (+e.target.value)/100));
   BGM.refreshVol(); saveSettings();
 });
+// mid-game visual panel: the same knobs as Settings, live under the 👁️ Visuals button
+document.getElementById("visualBtn").addEventListener("click", ()=>{
+  const panel = document.getElementById("visualPanel");
+  const open = panel.style.display === "none";
+  document.getElementById("gameTileNums").checked = VISUAL.tileNumbers;
+  panel.style.display = open ? "" : "none";
+});
+function setTileNumbers(on){
+  VISUAL.tileNumbers = on;
+  document.getElementById("optTileNums").checked = on;
+  document.getElementById("gameTileNums").checked = on;
+  applyTileNumbers(); saveSettings();
+}
+document.getElementById("gameTileNums").addEventListener("change", e=>setTileNumbers(e.target.checked));
+document.getElementById("optTileNums").addEventListener("change", e=>setTileNumbers(e.target.checked));
 document.getElementById("toSetup").addEventListener("click", openPlay);
 document.getElementById("backBtn").addEventListener("click", ()=>{ if (UNLOCKS.full) showScreen("mode"); else showScreen("title"); });
 document.getElementById("seatMinus").addEventListener("click", ()=>{ chosenSeats=Math.max(2,chosenSeats-1); buildSetup(); });

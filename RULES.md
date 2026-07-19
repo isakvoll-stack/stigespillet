@@ -136,8 +136,12 @@ live in the `GAME_MODES` DATA table):
 Ten twists live in the `LEG_MODS` registry; each modifier leg draws one at
 random. They're built to bend what you take for granted:
 
-- **🌙 Forever Night** — the board ahead of the pack is pitch dark; ladders,
-  snakes and specials only reveal as someone approaches.
+- **🌙 Forever Night** — the lights go out. The board is black except a **circle
+  of light (3½ tiles across) that follows every pawn** as it moves; outside the
+  light you see only a **white line grid** showing where the squares are, plus
+  **white lines tracing the ladders and snakes** — those lines vanish inside the
+  light, where the real board shows through. Colours, numbers and specials are
+  yours only where someone is standing. *(Tunables in `NIGHT_MOD`.)*
 - **🪞 Mirror World** — the drawn ladders/snakes are lies: their FAR ends do
   the carrying. Ladder tops drop you to the bottom, snake tails lift you to
   the head; the usual trigger squares do nothing.
@@ -204,8 +208,8 @@ random. They're built to bend what you take for granted:
 
 - **🖐️ Manual moves** *(Settings screen, under the title menu)* — you roll,
   then **move your own piece**: click a square (a **ghost pawn** previews it),
-  press **Confirm** (or **Enter**), and the pawn walks there tile by tile as
-  usual. The honest squares are where your walk really ends — bonuses included —
+  then **click that same square again** — or press **Confirm** / **Enter** — and
+  the pawn walks there tile by tile as usual. The honest squares are where your walk really ends — bonuses included —
   and if a ladder/chute waits there, **its foot or its far end are both legal**.
   With two dice, either die's landing is fine. In this mode **Space never
   rolls** (Enter, ↓ or the dice do) — Space is reserved: press it **any time
@@ -223,19 +227,30 @@ random. They're built to bend what you take for granted:
   and can't be called out). The manual walk skips shop pass-by browsing.
   The walk itself plays along with a cheat: a placement one row up may **hop up
   the wrong side of the switchback** when that route's step count matches the
-  rolled amount better than the honest way round (ties — and clear mismatches —
-  walk the honest way), so a well-measured miscount doesn't give itself away.
-  *(All numbers in `CHEAT`; the route pick is `manualHopPath`.)*
+  rolled amount **clearly** better than the honest way round — the honest route is
+  **favoured** and only loses when the wrong side beats it by a real margin
+  (`CHEAT.WRONG_SIDE_BIAS`), so the board doesn't casually walk you the long way.
+  *(All numbers in `CHEAT`; the route pick is `manualHopPath`.)* Pieces also
+  **move noticeably quicker** in manual mode, since you're doing the deciding
+  (`PACE`).
 
-- **🃏 Twist of the night** *(Advanced settings → 🗺️ Board — ON by default)* —
+- **🃏 Board twist** *(Advanced settings → 🗺️ Board — ON by default)* —
   some Classic games (about **1 in 3**) secretly carry **one** of the Grand Tour
   **leg twists** (the full list lives under *The leg twists* above). Nothing shows
-  at the start — the twist announces itself on a full-screen suspense card at the
-  start of a **random early round**, then bends the rest of the game. The HUD names
-  the running twist. Twists the table has seen recently **sit out** until the whole
-  pool has cycled (remembered like the settings), so game nights keep drawing fresh
+  at the start, and it stays asleep for a long time: the twist only wakes **late in
+  the race** — once roughly **50 (±20) individual turns** have been played *and* the
+  pack's **average position is at least tile 40** (turns, not rounds, so it lands at
+  the same point in the race whether you're 2 players or 6). Plenty of games end
+  before it ever wakes — that's intended. When it does, it announces itself on a
+  full-screen suspense card and bends the rest of the game; the HUD names it.
+  **Every twist visibly dresses the board** while it runs — Black Ice frosts
+  everything faintly blue, Musical Squares turns each hop into a note with music
+  notes drifting down, Gold Rush gilds the room, Forever Night kills the lights,
+  and so on. Twists the table has seen recently **sit out** until the whole pool
+  has cycled (remembered like the settings), so game nights keep drawing fresh
   ones. Classic mode only (the Grand Tour keeps its own leg twists; other modes are
-  untouched). *(Tunables in `TWIST_NIGHT`: chance, announce-round window, exclusions.)*
+  untouched). *(Tunables in `TWIST_NIGHT` — chance, turn window, minimum average
+  position, exclusions; the board dressing is one entry per twist in `TWIST_FX`.)*
 
 - **🥇 Match play** *(Advanced settings → 🏁 Game)* — play a **series**:
   *best of N* (3/5/7/9) or *first to N
@@ -254,8 +269,9 @@ on **silver**, 3rd 🥉 on **bronze** — each pillar blending into the player's
 at the very top), with **4th and 5th listed beside the podium** on the left, followed by
 a full **leaderboard**. *(In King of the Hill the same podium ranks by trophies instead.)*
 
-**Every leaderboard row shows the player's game stats**, with a **⭐ beside the best**
-and a **⚫ beside the worst** in each category (ties mark everyone tied; a category
+**Under the leaderboard sits a stats table** — one row per player, one column per
+category, plain numbers for easy scanning — with a **⭐ beside the best** and a
+**⚫ beside the worst** in each category (ties mark everyone tied; a category
 where everyone is equal marks no one): 👣 steps taken (⭐ most) · 🪙 coins earned
 (⭐ most) · 🎒 items used (⭐ most) · 💫 times immobilised — knocked down or frozen
 (⭐ fewest) · 🪜 times climbed — ladders, stars, teleports, any jump of 2+ tiles up
@@ -391,9 +407,11 @@ again (`p.bonusRoll`, handed out in `settleLanding`).
 It's tricky even the first time, and **every catch in a row makes YOUR next one
 harder** — the difficulty lives in the **fish itself**: each straight catch makes
 it **swim faster and dart more erratically** (`FISH_SPEED_STREAK`,
-`RETARGET_STREAK`), while the reel meter itself fills and drains **slowly and
-almost streak-independently** (~1.5× the old ride, `DRAIN`/`FILL`, near-zero
-`DRAIN_STREAK`). A miss resets the streak. The pond keeps score **per angler** —
+`RETARGET_STREAK`) **and shrinks the green catch zone a little** (`ZONE_SHRINK`),
+while the reel meter itself fills and drains **slowly and almost
+streak-independently** (`DRAIN`/`FILL`, near-zero `DRAIN_STREAK`). The reel is
+deliberately **long** — landing a fish takes a properly drawn-out fight, not a
+flick. A miss resets the streak. The pond keeps score **per angler** —
 someone else's hot streak doesn't sour your fishing. *Controls: only the **↑ Up arrow** — no mouse /
 space / enter.*
 
@@ -539,10 +557,14 @@ Land on an **orange square** and pick one of three:
   fire where you land. On the **bottom row** there's nowhere to fall — you're simply
   **knocked flat** where you stand. Amounts in `GOLD_RAIN`), or **🦍 KONG**
   (an enormous ape climbs onto the **top of the board**, beats his chest and
-  bowls **3 barrels down the numbered path** — and a barrel reaching a
-  **ladder's top rides the ladder down**, exactly like the arcade. Anyone a
-  barrel rolls over is **knocked flat** — Shields block, Mirrors deflect; the
-  barrels burst at tile 1. Tunables in `KONG`).
+  hurls **3 barrels** onto the top row — then leaves. **The barrels stay.**
+  Each one creeps **one square down the numbered path every time anyone takes a
+  turn** (a turn, not a round — so they keep pressing at any player count), and
+  they hang around for a long, nervous while. A barrel that reaches a **ladder's
+  top** has a **40% chance to ride it down** (60% it rolls straight past); the
+  ride takes **two turns** — it stops **halfway down the ladder** after the
+  first. Anyone a barrel reaches is **knocked flat** — Shields block, Mirrors
+  deflect; a barrel bursts when it reaches tile 1. Tunables in `KONG`).
 
   The two **🎲 Random** slices share one **chaos pool of EVERYTHING the game can
   do** (the `WHEEL_CHAOS` registry): every classic strike (lightning, lucky star,
@@ -749,29 +771,32 @@ novelty. Clearing browser data resets the memory.
 - **📦 Mystery Box** — **5 coins.** Pops open into a **random enabled consumable**
   from the catalog (never another box). A cheap gamble — most of what's inside costs
   more than the box. *(Fallback payout `MYSTERY.FALLBACK_COINS` if nothing can pop.)*
-- **❄️ Snowball** — **6 coins.** Throw it at a rival within **8 tiles** (either
-  direction): they **freeze solid on the spot** — normal thaw rules (roll
-  `FREEZE.GETUP_MIN`+ to break free), an armed Shield blocks it. Humans pick the
-  target by clicking their pawn; there must be someone in range or the ball is kept.
-  *(Range = `SNOWBALL.RANGE`.)*
-- **🍌 Banana Peel** — **5 coins.** Drop it on a **plain tile up to 6 ahead** of you
-  (click the tile). The **first RIVAL to land there slips 5 tiles back** — the peel
-  shows on the board, but people land where they land. You never slip on your own
-  peel. A slip below tile 1 uncovers the secret square, like any knock-back.
-  *(Tunables in `BANANA`; one peel per tile.)*
+- **❄️ Snowball** — **6 coins.** Throw it at a rival **up to 3 squares away in any
+  direction** — measured **on the grid**, not by tile number, so it reaches the rows
+  above and below you as well as your own: they **freeze solid on the spot** —
+  normal thaw rules (roll `FREEZE.GETUP_MIN`+ to break free), an armed Shield blocks
+  it. Humans pick the target by clicking their pawn; there must be someone in range
+  or the ball is kept. *(Range = `SNOWBALL.RANGE`.)*
+- **🍌 Banana Peel** — **5 coins.** Drops automatically on the **square directly
+  behind you** — no aiming. The **first RIVAL to land there slips 5 tiles back** —
+  the peel shows on the board, but people land where they land. You never slip on
+  your own peel. A slip below tile 1 uncovers the secret square, like any knock-back.
+  *(Tunables in `BANANA`; one peel per tile — a peel already on that square means
+  you keep yours.)*
 - **🪞 Mirror** — **7 coins.** *Use it* to raise a mirror (🪞 shows in the
   scoreboard): the **next hit or freeze aimed at you deflects onto the nearest
   standing rival** instead — sniper shots, the gun, a War Horn blast, a snowball,
   lightning's knockdown, anything that goes through a knockdown/freeze. The new
   victim's own Shield can still block it, and *their* Mirror can bounce it onward
   (every bounce burns a mirror, so it always lands somewhere).
-- **💣 Bomb** — **6 coins.** Lob it at **any tile within 8** (either direction, never
-  your own square): the blast **floors everyone standing on it or beside it** (the 8
-  surrounding grid squares). Shields block, Mirrors deflect; the thrower ducks their
-  own blast. *(Tunables in `BOMB`.)*
-- **🔥 Fire Egg** — **5 coins.** Hurl it at a **rival within 8**: they're **singed**
-  — their **next roll burns 2 steps shorter** (`FIRE_EGG.SINGE`; a low roll can shrink
-  to nothing, or even drag them backwards like radiation).
+- **💣 Bomb** — **6 coins.** Lob it at any tile **up to 2 squares away on the grid,
+  in any direction** (never your own square): the blast **floors everyone standing on
+  it or beside it** (the 8 surrounding grid squares). Shields block, Mirrors deflect;
+  the thrower ducks their own blast. *(Tunables in `BOMB`.)*
+- **🔥 Fire Egg** — **5 coins.** Hurl it at a rival **up to 2 squares away on the
+  grid, in any direction**: they're **singed** — their **next roll burns 2 steps
+  shorter** (`FIRE_EGG.SINGE`; a low roll can shrink to nothing, or even drag them
+  backwards like radiation), and a **🔥 flickers on their pawn** until it wears off.
 - **🪃 Boomerang** — **6 coins.** Whirls at the **nearest rival ahead of you**
   (any distance) and knocks them **3 tiles back** (`BOOMERANG.KNOCK`). No one
   ahead = the boomerang stays in the bag.
@@ -782,9 +807,9 @@ novelty. Clearing browser data resets the memory.
   start lane.
 - **🚀 Pocket Rocket** — **8 coins.** Strap in: flies you **7–12 tiles
   forward** — but **1 in 4** misfires and blasts you **5 back** (`ROCKET`).
-- **💤 Sleep Dart** — **7 coins.** A rival within **8 tiles** takes a sudden
-  nap — knocked flat, normal get-up rules (Shields block, Mirrors deflect;
-  `SLEEPDART.RANGE`).
+- **💤 Sleep Dart** — **7 coins.** A rival **up to 3 squares away on the grid, in
+  any direction** takes a sudden nap — knocked flat, normal get-up rules (Shields
+  block, Mirrors deflect; `SLEEPDART.RANGE`).
 - **🧯 Extinguisher** — **4 coins.** Hoses YOU down: radiation sickness,
   Fire-Egg singes and dizziness all wash away (it doesn't grant the mutant's
   hardening — you just stop being sick).
@@ -870,15 +895,20 @@ decision popups** toggle, **⏩ Fast-forward bot turns** (bot turns run at 3× �
 *Players & bots*), the **👨‍👩‍👧 Family mode** and **🖐️ Manual moves** toggles (see
 *Game variants* — both apply to new games), a **🔊 master volume slider** (0 = mute; covers all effects
 and the kill-announcer voice, `SOUND.VOLUME`) and a **🎵 music volume slider**
-(`MUSIC.VOLUME`, times the master). **Mid-game**, the 🔊 Sound button in the side
-panel opens the same two sliders — both are live immediately.
+(`MUSIC.VOLUME`, times the master), and **🔢 Display tile numbers** (the little
+number plaque on every square — turn it off for a cleaner board). **Mid-game**, the
+🔊 Sound button in the side panel opens the same two sliders and the 👁️ Visuals
+button opens the tile-number toggle — all live immediately, and all remembered
+between sessions (`VISUAL`).
 
 **🎵 Background music** (all synthesized — still one file, no audio assets): the
 board picks its soundtrack. Classic/KOTH play the standard track; **Mayhem** runs
 it faster; **each boss gets its own variation** (key + tempo, chosen when the giant
 die lands — the Joker included); **every leg twist** swaps in its own variation,
 and **🌙 Forever Night** replaces music with night ambience — crickets, the odd
-owl hoot, a low eerie drone. Tunables/patterns in the `MUSIC` DATA block; the
+owl hoot, a low eerie drone. **The chosen theme also colours the music**: every
+track is shifted in key and tempo to suit it (Christmas brighter and slower,
+World Cup faster, Sakura wistful, Minecraft low and plodding — `THEMES[].music`). Tunables/patterns in the `MUSIC` DATA block; the
 full direction lives in `Next/MUSIC.md`. All settings — including the Advanced
 item/exotic/board/finish-line toggles on the setup screen, the RGB toggle and the
 chosen theme — are **remembered between sessions** (browser `localStorage`; still one

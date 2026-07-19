@@ -55,6 +55,22 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
+Recently shipped (2026-07-18/19): **Isak's raw-notes batch** — new `RAW_NOTES.md`
+scratchpad for raw phone dumps (`IDEAS.md` stays the structured inbox). The
+**"Twist of the night" is now the "Board twist"** and wakes **much later** (after
+~50±20 individual turns AND the pack past halfway — often never), and **every
+twist now visibly dresses the board** (Black Ice frosts it blue, Musical Squares
+turns each hop into a note with notes falling, etc.). **Evernight rebuilt** to a
+circle of light following every pawn over a white line-grid. **Sky added above the
+board** so clouds/prompts stop covering the top rows. **Kong's barrels now persist**,
+creeping one square per turn with a 40% two-turn ladder ride, and are properly
+drawn. **Ranged items use coordinate range** (Snowball/Dart 3, Bomb/Fire Egg 2) and
+the **banana drops behind you**. Plus: the big spotlight lights the whole square,
+per-theme music, 👑 crown + 🔥 burning on tokens, a 2× longer fishing reel, a new
+**👁️ Visual settings** panel (tile numbers on/off, live mid-game), ~15% faster
+tokens (+20% in manual), click-again-to-confirm in manual, and the end-screen stats
+as a proper table.
+
 Recently shipped (2026-07-18, night): **fishing tune-up + music & ambience v1** —
 fishing card is now "It's a nice day for fishing, ain't it?", a catch earns
 another roll, and difficulty moved into the fish (faster/more erratic per streak;

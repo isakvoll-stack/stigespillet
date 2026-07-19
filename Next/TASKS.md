@@ -287,6 +287,76 @@ See `LOG.md` for the running session history.
 ---
 
 ## Done
+### 2026-07-18/19 — Isak's raw-notes batch (autonomous) — see `RAW_NOTES.md` Processed
+- [x] **New `RAW_NOTES.md`** — Isak's free-form scratchpad (raw text, no format).
+      `IDEAS.md` stays the structured one-entry-per-idea inbox and now points at
+      it; the whole 2026-07-18 raw dump was moved over and worked in below.
+- [x] **"Twist of the night" → "Board twist"**, and it now wakes **WAY later**:
+      gated on **individual turns** (`TURNS_MID 50 ± TURNS_SPREAD 20`, so it
+      scales with seat count) **AND** the pack's average position ≥ tile 40
+      (`MIN_AVG_POS`). Many games end before it ever wakes — intended. Moved out
+      of the round-wrap block in `endTurn` so it can fire on any hand-off.
+- [x] **Every twist now dresses the board** (`TWIST_FX` — one entry per twist):
+      a board-face tint, a room colour wash and its own falling particles.
+      Black Ice = faint blue frost, Musical Squares = every hop plays a
+      pentatonic note (`SFX.mnote` via the new `stepSfx`) + music notes falling,
+      Gold Rush gilds, etc. New `paintBoardFilter()` composes the twist tint with
+      the warp square's invert (the warp used to clobber it).
+- [x] **Evernight rebuilt to Isak's vision**: board goes black except a **3.5-tile
+      circle of light following EVERY pawn live** (rAF-driven, reads the token's
+      real transform so it rides mid-hop); outside the light a **white line grid**
+      + **white ladder/snake overlays**, all masked away inside the light.
+- [x] **Sky above the board** (`VIEW.SKY 130`) — lightning clouds, prompt boxes
+      and pop-ups no longer cover the top rows. viewBox is now derived from `VIEW`.
+- [x] **Kong barrels reworked**: barrels **persist** and creep **one square per
+      player-turn** (not per round, and not a whole lap in one go); **40%** chance
+      to ride a ladder down, and the ride **takes two turns** (pauses halfway);
+      **drawn properly** (staved barrel with steel hoops, `KONG.SIZE 1.5`) instead
+      of the 🛢 emoji. Rides in `endTurn` via `moveKongBarrels`.
+- [x] **Ranged items use COORDINATE range, not tile-number range** (all via
+      `gridNear`, ranges cut to match): ❄️ Snowball 3 · 💤 Sleep Dart 3 · 💣 Bomb 2
+      · 🔥 Fire Egg 2. Descriptions, logs, prompts and bot checks all follow.
+- [x] **🍌 Banana Peel** now drops automatically on the square **behind** you
+      (no aiming, no range); bot timing follows the new spot.
+- [x] **Big spotlight fixed** — it was a fixed-radius circle in the wrong place for
+      everything except support. `showSpotlight(p)` now takes the PLAYER and lights
+      the **whole square** (boss-ring aware). Targeting picks keep their round holes.
+- [x] **Themes have their own music** — `THEMES[].music` shifts key/tempo of every
+      track per theme (composes with boss/twist/mode variants).
+- [x] **CHEATER! shout layered behind the modals** (z-index 60 → 5) so the
+      "who is the accuser" picker is readable.
+- [x] **Manual: click the same square again to confirm** (Confirm/Enter still work).
+- [x] **Manual: the wrong-side switchback is now disfavoured** —
+      `CHEAT.WRONG_SIDE_BIAS 2`, so the honest route wins unless the wrong side is
+      clearly the better match.
+- [x] **👑 Crown on the leader's token** in Grand Tour (`updateCrown`).
+- [x] **🔥 Burning shows on the pawn** (`updateBurn`, flickering badge) for Fire-Egg
+      singes and the Dragon's scorch. Both ride `refreshBadges`, now called from
+      `renderScoreboard` so badges track state everywhere.
+- [x] **Fishing**: reel is **~2× longer** (`DRAIN`/`FILL` halved) and the catch zone
+      **shrinks a little per catch** (`ZONE_SHRINK`, already wired — now it matters).
+- [x] **👁️ Visual settings** — new `VISUAL` DATA + **🔢 Display tile numbers**
+      toggle, on the Settings screen AND live mid-game under a new 👁️ Visuals
+      side-panel button (mirrors the 🔊 Sound panel); persisted.
+- [x] **Tokens move ~15% faster**, and a further ~20% in manual mode (`PACE`).
+- [x] **End-screen stats are a proper table** — one row per player, one column per
+      category, bare numbers, only ⭐/⚫ marks (emoji moved to the header row).
+- [x] RULES.md synced (board twist, Evernight look, Kong, coordinate ranges,
+      banana, manual confirm/switchback, fishing, visuals, theme music, stats table).
+- [x] **Verified headless Edge 48/48 + 0 JS errors** (statics, viewBox, spotlight
+      geometry, coordinate-range targeting incl. the boustrophedon trap, banana
+      spot, twist gating on turns AND average position, twist FX apply/clear,
+      Evernight mask + grid/link line counts, crown/burn badges, barrel spawn +
+      one-tile-per-turn + 40% ladder ride pausing halfway + 60% pass, stats table)
+      plus a full 31-round 4-bot game. Second pass (twist waking late in a real
+      game, barrels rolling across a live game, manual-mode game) — see LOG.md.
+      **Bug caught by the run and fixed**: the warp square's `svg.style.filter`
+      reset was wiping a running twist's tint.
+- [ ] **3 AM raw-notes routine** — Isak asked for a scheduled agent that reads
+      `RAW_NOTES.md` nightly and works it in. Not created this session (needs
+      Isak's cloud/GitHub-connected routine setup); the file's header already
+      documents the protocol so any session can run it. See QUESTIONS.md.
+
 ### 2026-07-16/17 — Isak's 9-point batch + mid-session extras (autonomous)
 - [x] **1. 🎁 Bonus points on a stage**: full-screen suspense card for every
       bonus category — category shown first, drumroll dots, THEN the winners

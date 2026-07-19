@@ -3,6 +3,47 @@
 Newest first. One entry per working session; note what shipped and what's next.
 
 ---
+## 2026-07-18/19 — Isak's raw-notes batch (autonomous)
+
+Isak dumped ~18 raw notes at the top of `IDEAS.md` and asked for a dedicated
+raw-text file. Built all of it. Full checklist in `Next/TASKS.md` (Done,
+2026-07-18/19); the raw text itself is preserved in `RAW_NOTES.md` → Processed.
+
+- **New `RAW_NOTES.md`** = free-form scratchpad (protocol in its header);
+  `IDEAS.md` stays the structured inbox and points at it.
+- **"Twist of the night" → "Board twist"**, and it now wakes **late**: gated on
+  **individual turns** (50 ± 20, so it scales with seat count) **AND** average
+  position ≥ tile 40. Moved out of the round-wrap block so it can fire on any
+  hand-off. Many games end before it wakes — intended.
+- **`TWIST_FX`** — every twist dresses the board (tint + room wash + its own
+  particles); Musical Squares makes every hop a pentatonic note (`stepSfx`).
+  New `paintBoardFilter()` composes the twist tint with the warp invert.
+- **Evernight rebuilt**: 3.5-tile light circle following every pawn live (rAF,
+  reads the token's real transform), white grid + white ladder/snake lines
+  outside the light, masked away inside it.
+- **`VIEW.SKY`** — 130 units of sky above the board so clouds/prompts stop
+  covering the top rows; the viewBox is derived from `VIEW` now.
+- **Kong barrels persist**: one square per player-turn, 40% ladder ride taking
+  two turns (pauses halfway), properly drawn barrel instead of the 🛢 emoji.
+- **Coordinate ranges** via `gridNear` (Snowball 3, Sleep Dart 3, Bomb 2, Fire
+  Egg 2); **banana** drops behind you automatically.
+- **Spotlight fixed** — `showSpotlight(p)` lights the player's whole square
+  (boss-aware); targeting picks keep their round holes.
+- **Theme music** (`THEMES[].music` key/tempo per theme), **CHEATER! layered
+  behind the modals**, **click-again to confirm** in manual, **wrong-side
+  switchback disfavoured** (`CHEAT.WRONG_SIDE_BIAS`), **👑 crown** and **🔥
+  burning** on the tokens, **fishing reel 2× longer**, **👁️ Visual settings**
+  with a live tile-number toggle, **tokens ~15% faster** (+20% manual), and the
+  end-screen stats are now a **proper table**.
+- **Verified headless Edge: 48/48 then 15/15, 0 JS errors, 5 full bot games** —
+  incl. the twist waking at turn 45 / avg 44 in a real game, barrels rolling
+  across 57 turns and bursting, and a manual+Evernight game. The run caught a
+  real bug: the warp square's `svg.style.filter` reset wiped a running twist's
+  tint (fixed with `paintBoardFilter`).
+- **Not done**: the 3 AM raw-notes routine (needs Isak's cloud/routine setup —
+  logged in QUESTIONS.md; the protocol is documented in `RAW_NOTES.md`).
+
+---
 ## 2026-07-18 (night) — fishing tune-up + music/ambience v1 + item FX slice
 
 - **Fishing**: card = "It's a nice day for fishing, ain't it?"; a catch grants
