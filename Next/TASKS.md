@@ -352,10 +352,14 @@ See `LOG.md` for the running session history.
       game, barrels rolling across a live game, manual-mode game) — see LOG.md.
       **Bug caught by the run and fixed**: the warp square's `svg.style.filter`
       reset was wiping a running twist's tint.
-- [ ] **3 AM raw-notes routine** — Isak asked for a scheduled agent that reads
-      `RAW_NOTES.md` nightly and works it in. Not created this session (needs
-      Isak's cloud/GitHub-connected routine setup); the file's header already
-      documents the protocol so any session can run it. See QUESTIONS.md.
+- [x] **3 AM raw-notes routine CREATED** — cloud routine *"Stigespillet — 3 AM
+      raw notes"* (`trig_01WxgwvaJNZXvzt5HzdZiiKp`), daily `0 1 * * *` UTC =
+      **03:00 Oslo in summer** (drifts to 02:00 local in winter — cron is UTC).
+      It clones the repo, reads `RAW_NOTES.md`, and if `## New` is non-empty
+      builds every note in, verifies headlessly, syncs the docs, moves the raw
+      text to a dated Processed section and pushes. Empty inbox = it exits
+      without committing. Manage/disable at
+      https://claude.ai/code/routines/trig_01WxgwvaJNZXvzt5HzdZiiKp
 
 ### 2026-07-16/17 — Isak's 9-point batch + mid-session extras (autonomous)
 - [x] **1. 🎁 Bonus points on a stage**: full-screen suspense card for every

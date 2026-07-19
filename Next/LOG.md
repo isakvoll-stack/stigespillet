@@ -40,8 +40,10 @@ raw-text file. Built all of it. Full checklist in `Next/TASKS.md` (Done,
   across 57 turns and bursting, and a manual+Evernight game. The run caught a
   real bug: the warp square's `svg.style.filter` reset wiped a running twist's
   tint (fixed with `paintBoardFilter`).
-- **Not done**: the 3 AM raw-notes routine (needs Isak's cloud/routine setup —
-  logged in QUESTIONS.md; the protocol is documented in `RAW_NOTES.md`).
+- **3 AM routine created**: cloud routine *"Stigespillet — 3 AM raw notes"*
+  (`trig_01WxgwvaJNZXvzt5HzdZiiKp`, `0 1 * * *` UTC = 03:00 Oslo in summer)
+  reads `RAW_NOTES.md` nightly, builds anything under `## New`, verifies, syncs
+  the docs, files the raw text under Processed and pushes. Empty inbox = no-op.
 
 ---
 ## 2026-07-18 (night) — fishing tune-up + music/ambience v1 + item FX slice

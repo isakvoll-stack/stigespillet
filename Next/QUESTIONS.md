@@ -29,10 +29,13 @@ Answer whenever — each answer gets folded in and the question checked off.
   colours are invisible in the dark — deliberate. Too dark to play?
 - [ ] **Sky above the board**: added 130 board-units of headroom. If clouds/boxes
   still clip anything, say what and I'll raise it.
-- [ ] **3 AM raw-notes routine** — NOT created yet. Setting up a scheduled cloud
-  agent needs your account side (the HH routines are the model). Want me to create
-  it next session, or will you set it up? Meanwhile any session can run it: the
-  protocol is written at the top of `RAW_NOTES.md`.
+- [ ] **3 AM raw-notes routine is LIVE** — daily cloud routine, cron `0 1 * * *`
+  UTC. Note that cron is UTC, so it fires **03:00 Oslo in summer and 02:00 in
+  winter**; say the word if you want it pinned to 03:00 year-round (I'd change
+  the cron each DST switch). It runs on `claude-sonnet-5` — say if you want a
+  stronger model. It pushes straight to `main` when it builds something, so
+  you'll see its commits in the morning. Empty `## New` = it does nothing.
+  Manage/disable: https://claude.ai/code/routines/trig_01WxgwvaJNZXvzt5HzdZiiKp
 
 ## 2026-07-18 — music/ambience + nightfall defaults
 

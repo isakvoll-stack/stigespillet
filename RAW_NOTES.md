@@ -3,11 +3,16 @@
 Isak's free-form scratchpad. Jot anything here in raw text — ideas, edits, bug
 reports, half-thoughts — no format required. Write at the top, under **New**.
 
-**For any Claude session:** when asked to work the raw notes (or the 3 AM routine
-runs), read everything under **New**, build it into the game properly (autonomous
-batch rules apply — sensible defaults, questions to `Next/QUESTIONS.md`), then move
-the processed text down into a dated **Processed** section so New stays empty.
-Structured one-line ideas still go to `IDEAS.md`; this file is for raw dumps.
+**For any Claude session:** when asked to work the raw notes, read everything under
+**New**, build it into the game properly (autonomous batch rules apply — sensible
+defaults, questions to `Next/QUESTIONS.md`), then move the processed text down into
+a dated **Processed** section so New stays empty. Structured one-line ideas still go
+to `IDEAS.md`; this file is for raw dumps.
+
+**A nightly routine does this automatically at ~03:00 Oslo** (cloud routine
+*"Stigespillet — 3 AM raw notes"*, `trig_01WxgwvaJNZXvzt5HzdZiiKp`). Anything you
+leave under **New** before bed is built, verified and pushed by morning; an empty
+**New** section means it does nothing at all.
 
 ---
 
