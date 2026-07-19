@@ -55,6 +55,12 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
+Recently shipped (2026-07-19, later): **nothing to keep in your head** — whatever
+is currently true of the player to move is now spelled out in words under their
+name ("😵‍💫 Dizzy — your next move walks BACKWARDS"), and clicking a badge reopens
+that rule's card if you've met it. Both the badges and the scoreboard's emoji
+ribbon come from one new `STATUSES` registry.
+
 Recently shipped (2026-07-19, later): **every mode now introduces itself** — the
 first King of the Hill, Mayhem or Grand Tour game of a sitting opens with a card
 saying what you're playing for, how you score and how it ends (KOTH needed it most

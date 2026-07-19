@@ -27,8 +27,17 @@
 > permanent telegraph key under the boss HP bar — *🟥 strikes next turn ·
 > 🟨 charging something big*.
 >
+> **2026-07-19 — C2 + G2 BUILT.** New **`STATUSES` DATA registry**: one entry per
+> thing that can be true of a player (`when` / `mark` / optional `label` / optional
+> `card`). It now drives BOTH the scoreboard's emoji ribbon — the 12-term
+> hand-concatenated expression in `renderScoreboard` is gone — and a new worded
+> badge strip under the turn line (`renderStatusBar`) for the player to move.
+> Badges whose rule is already discovered are clickable and reopen that Rule+ card
+> via the new `showRuleCard` (an unmet rule never opens — no spoilers). Adding a
+> status is one line in one place.
+>
 > Everything else below is still open — pick by number as before.
-> Next in the suggested order: **C2 + G2** (status badges on a STATUS registry).
+> Next in the suggested order: **A2 + A3** (remembered discoveries + toast tier).
 
 Isak's brief: the joy of the game is discovering arbitrary rules ONE AT A
 TIME — that surprise must not drown in confusion. This is a written audit of

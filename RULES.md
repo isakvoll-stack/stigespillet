@@ -334,6 +334,16 @@ the leftover steps (e.g. on 88, a roll of 5 goes 89 → 90 → 89 → 88).
 
 ## Optional rules (each can be toggled in code)
 
+### Nothing to keep in your head
+Anything currently true of the player whose turn it is gets **spelled out in words**
+under their name — *"😵‍💫 Dizzy — your next move walks BACKWARDS"*, *"🔗 Handcuffed —
+roll a 6 to snap them (2 turns left)"*, *"☢️ Radiation sickness — −3 off every roll
+until it burns out"*. If the table has already discovered the rule behind a badge,
+**clicking it reopens that Rule+ card**; if they haven't, it stays a plain badge and
+gives nothing away. The same list, as bare emoji, is the ribbon beside every name in
+the scoreboard, so you can read the whole table at a glance.
+*(Both come from one `STATUSES` DATA registry — a new status is one entry.)*
+
 ### Discovering rules — and remembering them
 Most rules below are **hidden**: you meet them by tripping them, and a **Rule+ card**
 explains what just happened in vague, atmospheric terms. Nothing is ever explained

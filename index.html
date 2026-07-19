@@ -479,6 +479,14 @@
   .colorpop .copt.taken{opacity:.25;cursor:not-allowed}
   .colorpop .copt.sel{outline:3px solid #fff}
 
+  /* worded status badges for the player to move (nothing you must remember) */
+  .statusbar{display:flex;flex-direction:column;gap:4px;margin:6px 0 2px}
+  .sbadge{font-size:12px;line-height:1.3;color:var(--cream);text-align:left;
+    background:rgba(212,166,86,.14);border:1px solid rgba(212,166,86,.35);
+    border-radius:8px;padding:3px 7px}
+  .sbadge.known{cursor:pointer}
+  .sbadge.known:hover{background:rgba(212,166,86,.28)}
+
   /* players scoreboard */
   .score{display:flex;flex-direction:column;gap:6px}
   .score .row{display:flex;align-items:center;gap:9px;font-size:14px;padding:4px 6px;border-radius:8px}
@@ -511,6 +519,7 @@
           <span id="turnName">—</span>
         </div>
         <div class="turn-sub" id="turnSub"></div>
+        <div class="statusbar" id="statusBar" style="display:none"></div>
         <div class="turn-sub" id="roundLine" style="display:none"></div>
         <div class="turn-sub" id="matchLine" style="display:none"></div>
         <div class="dice-row">
@@ -1060,6 +1069,55 @@ const PODIUM = {
   METALS: { 1:"#ffd257", 2:"#c9ced6", 3:"#cd7f32" },   // gold / silver / bronze pillar bases
   KEEP: 55,                          // % of the pillar that stays metal before blending to the player's colour
 };
+/* ---- DATA: the STATUS registry (IMPROVEMENTS G2 + C2) ----------------
+   One entry per thing that can be TRUE of a player. It drives both the
+   scoreboard's emoji ribbon and the worded badges under the turn line, so
+   a new status is one entry instead of two hand-edited expressions.
+     when(p)  — is it true right now
+     mark(p)  — the scoreboard chunk (icons only; order here = order there)
+     label(p) — the worded badge for the player to move; omit for things
+                that need no explaining (points, medals, bag contents)
+     card     — a RULE_INFO key: clicking the badge re-opens that card,
+                but only once the table has actually discovered the rule */
+const STATUSES = [
+  { id:"trophies", when:p=>isKoth() && (p.trophies||0) > 0, mark:p=>`🏆${p.trophies}` },
+  { id:"crown",    when:p=>game.tour && p.crowned,          mark:()=>"👑",
+    label:()=>"👑 Tour leader — a lighter purse each leg" },
+  { id:"tourpts",  when:()=>game.tour,                      mark:p=>`⭐${p.tourPts||0}` },
+  { id:"place",    when:p=>p.finished,                      mark:p=>MEDALS[p.place-1] || ("#"+p.place) },
+  { id:"frozen",   when:p=>p.downed && p.frozen,            mark:()=>"🧊",
+    label:p=>`🧊 Frozen solid — roll ${getupNeed(p)}+ to break out`, card:"freeze" },
+  { id:"downed",   when:p=>p.downed && !p.frozen,           mark:()=>"🤕",
+    label:p=>`🤕 Knocked flat — roll ${getupNeed(p)}+ to get up` },
+  { id:"sniper",   when:p=>!!p.sniper,                      mark:()=>"🎯",
+    label:()=>"🎯 You have the rifle — one shot, this turn", card:"sniper" },
+  { id:"shame",    when:p=>p.shame > 0,                     mark:()=>"😳",
+    label:p=>`😳 Shamed — in ${p.shame} turn${p.shame === 1 ? "" : "s"} it catches up with you`, card:"kickdown" },
+  { id:"cuffs",    when:p=>p.cuffs > 0,                     mark:p=>`🔗${p.cuffs}`,
+    label:p=>`🔗 Handcuffed — roll ${game.dualDice ? "doubles" : "a 6"} to snap them (${p.cuffs} turns left)`, card:"manual" },
+  { id:"fish",     when:p=>(p.fish||0) > 0,                 mark:p=>`🐟${p.fish > 1 ? p.fish : ""}`,
+    label:p=>`🐟 Carrying ${p.fish} fish — they change what the board does to you`, card:"fishing" },
+  { id:"bag",      when:p=>(p.items||[]).length > 0,        mark:p=>p.items.map(id=>itemDef(id).ico).join("") },
+  { id:"passives", when:p=>passivesOf(p).length > 0,        mark:p=>passivesOf(p).map(id=>itemDef(id).ico).join("") },
+  { id:"pacts",    when:p=>(p.curses||[]).length > 0,       mark:p=>"⛓️" + p.curses.map(id=>itemDef(id).ico).join(""),
+    label:p=>`⛓️ Bound by ${p.curses.length} pact${p.curses.length === 1 ? "" : "s"} — a gift each, and a price`, card:"gate" },
+  { id:"shield",   when:p=>!!p.shieldOn,                    mark:()=>"🛡️",
+    label:()=>"🛡️ Guard up — the next hit aimed at you is blocked" },
+  { id:"mirror",   when:p=>!!p.mirrorOn,                    mark:()=>"🪞",
+    label:()=>"🪞 Mirror raised — the next hit bounces onto someone else" },
+  { id:"dizzy",    when:p=>!!p.dizzy,                       mark:()=>"😵‍💫",
+    label:()=>"😵‍💫 Dizzy — your next move walks BACKWARDS", card:"dizzy" },
+  { id:"singed",   when:p=>(p.singeRolls||0) > 0 || (p.bossSinge||0) > 0, mark:()=>"🔥",
+    label:()=>`🔥 Singed — your next roll burns ${FIRE_EGG.SINGE} steps shorter` },
+  { id:"loaded",   when:p=>(p.forceRoll||0) > 0,            mark:p=>`🎲${p.forceRoll}`,
+    label:p=>`🎲 The dice are loaded — your next roll is a ${p.forceRoll}` },
+  { id:"cursedice",when:p=>(p.curseRolls||0) > 0,           mark:p=>`🎲💀${p.curseRolls}`,
+    label:p=>`🎲💀 The dice remember — your next ${p.curseRolls} roll${p.curseRolls === 1 ? " is a 1" : "s are 1s"}` },
+  { id:"rad",      when:p=>!!p.radSick,                     mark:p=>`☢️${p.radLevel||""}`,
+    label:p=>`☢️ Radiation sickness — ${p.radLevel} off every roll until it burns out`, card:"radioactive" },
+  { id:"radimmune",when:p=>!p.radSick && !!p.radImmune,     mark:()=>`☢️+${RAD.IMMUNE_BONUS}`,
+    label:()=>`☢️ Survived the fallout — +${RAD.IMMUNE_BONUS} to every roll, forever`, card:"mutation" },
+];
 const CELL_PALETTE  = ["#f6d55c","#f6d55c","#f6d55c","#f6d55c","#6fa8dc",
                        "#f6d55c","#f6d55c","#f6d55c"]; // plain tiles: yellow, with the blue tiles kept
 // Tile colours by the link role a tile plays (overrides the festive palette).
@@ -3577,6 +3635,22 @@ function refreshHUD(){
   renderScoreboard();
 }
 
+const activeStatuses = p => STATUSES.filter(s => { try { return s.when(p); } catch(e){ return false; } });
+
+// Worded badges for the player to move: no hidden state you have to remember.
+// A badge whose rule the table has already discovered is clickable — it reopens
+// that Rule+ card (an unmet rule stays a mystery, so it just doesn't click).
+function renderStatusBar(){
+  const bar = document.getElementById("statusBar");
+  if (!bar) return;
+  const p = game && !game.winner ? game.players[game.current] : null;
+  const list = p ? activeStatuses(p).filter(s => s.label) : [];
+  bar.innerHTML = list.map(s => {
+    const open = s.card && rulesSeen[s.card] && RULE_INFO[s.card];
+    return `<span class="sbadge${open ? " known" : ""}"${open ? ` data-card="${s.card}"` : ""}>${s.label(p)}</span>`;
+  }).join("");
+  bar.style.display = list.length ? "" : "none";
+}
 function renderScoreboard(){
   const box = document.getElementById("score");
   box.innerHTML = "";
@@ -3584,18 +3658,7 @@ function renderScoreboard(){
     const row = document.createElement("div");
     const isTurn = i === game.current && !game.winner;
     row.className = "row" + (isTurn ? " active" : "");
-    const medal = p.finished ? (MEDALS[p.place-1] || ("#"+p.place)) : "";
-    const bagMark  = (p.items||[]).map(id=>itemDef(id).ico).join("");
-    const passMark = passivesOf(p).map(id=>itemDef(id).ico).join("");
-    const shopMark = (bagMark || passMark) ? " " + bagMark + passMark : "";
-    const pactMark = (p.curses||[]).length ? " ⛓️" + p.curses.map(id=>itemDef(id).ico).join("") : "";
-    const mark = (isKoth() && (p.trophies||0) > 0 ? " 🏆"+p.trophies : "")
-               + (game.tour ? (p.crowned ? " 👑" : "") + " ⭐" + (p.tourPts||0) : "")
-               + (p.finished ? " "+medal : "") + (p.downed ? (p.frozen ? " 🧊" : " 🤕") : "")
-               + (p.sniper ? " 🎯" : "") + (p.shame>0 ? " 😳" : "") + (p.cuffs>0 ? " 🔗"+p.cuffs : "")
-               + (p.fish>0 ? " 🐟"+(p.fish>1?p.fish:"") : "") + shopMark + pactMark
-               + (p.mirrorOn ? " 🪞" : "") + (p.dizzy ? " 😵‍💫" : "")
-               + (p.radSick ? " ☢️"+(p.radLevel||"") : (p.radImmune ? " ☢️+"+RAD.IMMUNE_BONUS : ""));
+    const mark = activeStatuses(p).map(s => " " + s.mark(p)).join("");
     const cellTxt = p.finished ? "done" : (p.onSecret ? "secret 🚪" : (p.pos === 0 ? "—" : "tile " + p.pos));
     row.innerHTML =
       swatchHtml(p) +
@@ -3603,6 +3666,7 @@ function renderScoreboard(){
       `<span class="cell">${cellTxt}</span>`;
     box.appendChild(row);
   });
+  renderStatusBar();        // the same registry, worded, for the player to move
   refreshBadges();          // token badges (crown, burns, shame…) track the same state
 }
 
@@ -4629,6 +4693,23 @@ function openJournal(){
   document.getElementById("journal").classList.add("show");
 }
 function closeJournal(){ document.getElementById("journal").classList.remove("show"); }
+// Re-open an ALREADY discovered rule's card (a status badge asking "what is
+// this?"). Never opens an unmet rule — that would spoil the discovery.
+function showRuleCard(key){
+  const info = RULE_INFO[key];
+  if (!info || !rulesSeen[key] || !game || game.busy || revealResolve) return;
+  SFX.play("rule");
+  document.getElementById("revealIco").textContent = info.ico;
+  document.getElementById("revealTitle").textContent = "Discovered rule";
+  document.getElementById("revealName").textContent = info.name;
+  document.getElementById("revealText").textContent =
+    typeof info.text === "function" ? info.text("someone") : info.text;
+  document.getElementById("reveal").classList.add("show");
+  revealResolve = () => {
+    document.getElementById("reveal").classList.remove("show");
+    revealResolve = null;
+  };
+}
 function revealRuleOnce(key, arg){
   return new Promise(res => {
     if (rulesSeen[key]){ res(); return; }
@@ -10051,6 +10132,10 @@ document.getElementById("optSupport").addEventListener("click", ()=>{ if (orange
 document.getElementById("optGun").addEventListener("click", ()=>{ if (orangeResolve) orangeResolve("gun"); });
 ["pointerdown","keydown"].forEach(ev => document.addEventListener(ev, ()=>SFX.play("click"), { once:true }));
 
+document.getElementById("statusBar").addEventListener("click", e=>{
+  const b = e.target.closest(".sbadge[data-card]");
+  if (b) showRuleCard(b.getAttribute("data-card"));
+});
 document.getElementById("invBtn").addEventListener("click", openInventory);
 document.getElementById("journalBtn").addEventListener("click", openJournal);
 document.getElementById("journalOk").addEventListener("click", closeJournal);

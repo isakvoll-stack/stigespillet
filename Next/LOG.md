@@ -25,6 +25,14 @@ Picked up the two open items on the Next tab that weren't gated on Isak.
   debounced `queueTileMarks` hooked into `repaintCell`/`renderLegend`/
   `buildBoard` so every tile-set change stays in sync; skipped in the arena.
   B4 is now an explicit `noMark:true` on the trap89 registry entry.
+- **C2 + G2 from IMPROVEMENTS.md** — `STATUSES` DATA registry (one entry per
+  thing that can be true of a player: `when`/`mark`/`label`/`card`). It replaces
+  the 12-term hand-concatenated ribbon expression in `renderScoreboard` AND
+  drives a new worded badge strip under the turn line (`renderStatusBar`), so
+  nobody has to remember why their piece walks backwards. A badge whose rule is
+  already discovered is clickable and reopens that card (`showRuleCard`);
+  unmet rules never open. Verified 16/16, 0 errors — incl. an audit that every
+  `card` key in the registry actually exists in `RULE_INFO`.
 - **F1 + F2 from IMPROVEMENTS.md** — `MODE_INTRO` DATA table + `maybeModeIntro`,
   driven from a new `beginGame()` start path that replaces the bare
   `startTurn()` at all three entry points (fresh game, "Play again", every tour
