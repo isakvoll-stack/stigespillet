@@ -3,6 +3,36 @@
 Newest first. One entry per working session; note what shipped and what's next.
 
 ---
+## 2026-07-19 (later) — item FX audit finished + B1/B4 tile marks
+
+Picked up the two open items on the Next tab that weren't gated on Isak.
+
+- **`ITEM_FX` DATA table + generic `itemFx(p, id)`** — closes the "better
+  animations and sound for every item" task. Entries declare any of `sfx`,
+  `burst` (an FX particle recipe), `ring` (a guard ring that snaps onto or
+  swells off the pawn) and `rise` (glyphs drifting up). New helpers
+  `pawnRing` / `pawnRise` / `pawnScreen` (the last reads the token's real
+  screen position, so the FX work on the classic board AND in the boss ring).
+  8 new SFX voices: sip, chime, clang, glass, boxopen, dicetumble, wish,
+  support.
+- Items covered: ☕ Coffee, 🍀 Clover, 🛡️ Shield, 🪞 Mirror, 📦 Mystery Box
+  (now async — bursts open, a beat, then the prize icon rises out), 🎲 Loaded
+  Dice (`rollLoadedDieFx` tumbles the HUD die and settles it on the palmed
+  face), 🐒 Monkey's Paw, and **all 10 boss support items** through one shared
+  `supportFx` so help always reads as help.
+- **B1 + B4 from IMPROVEMENTS.md** — discovered rules mark their squares with a
+  small faint corner glyph (`paintTileMarks`, `TILE_MARK`), repainted via a
+  debounced `queueTileMarks` hooked into `repaintCell`/`renderLegend`/
+  `buildBoard` so every tile-set change stays in sync; skipped in the arena.
+  B4 is now an explicit `noMark:true` on the trap89 registry entry.
+- **Verified headless Edge 19/19, 0 JS errors** — statics, every FX path,
+  tile marks hidden-before/shown-after discovery, the B4 exemption, mystery-box
+  payout, the loaded die settling, a full classic game and a full boss game
+  with the bots spending the support kit. The run caught the B4 gap (the
+  trapdoor *would* have marked itself if its card were ever seen while the tile
+  still existed) — fixed with the explicit flag rather than relying on ordering.
+
+---
 ## 2026-07-18/19 — Isak's raw-notes batch (autonomous)
 
 Isak dumped ~18 raw notes at the top of `IDEAS.md` and asked for a dedicated

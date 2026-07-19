@@ -1216,10 +1216,11 @@ const PIGGY_MULT = 2;                            // Piggy Bank: blue-tile multip
 const TOPHAT_SIX = 3;                            // Top Hat: coins per rolled 6
 const SNOWBALL = { RANGE:3 };                    // hits a rival within this many GRID-tiles, any direction
 const BANANA   = { SLIP:5 };                     // the peel drops on the tile right behind the player; victims slip SLIP back
-const MYSTERY  = { FALLBACK_COINS:3 };           // if no item can pop out, the box pays coins instead
+const MYSTERY  = { FALLBACK_COINS:3, REVEAL_MS:420 };   // if no item can pop out, the box pays coins instead; REVEAL_MS = the beat before the prize rises out
 const HELMET_GETUP = 1;                          // Helmet wearers rise on any roll
 const CROWN_COINS  = 5;                          // paid each time the holder ends their turn in the lead
-const LOADED   = { CHARGES:3, CURSE_ROLLS:3 };   // picked faces per purchase; forced 1s once the charges run dry
+const LOADED   = { CHARGES:3, CURSE_ROLLS:3,     // picked faces per purchase; forced 1s once the charges run dry
+                   TUMBLES:6, TUMBLE_MS:70, SETTLE_MS:420 };   // the die visibly tumbles, then settles on the palmed face
 const CANDLE   = { BONUS:2, LIGHTNING_MULT:2 };  // the Soul Candle's permanent stride; lightning hurls a candle holder this many times further back
 const BOMB     = { RANGE:2, NEAR:1 };            // lob range in GRID-tiles (any direction); the blast floors the target tile + NEAR grid-rings around it
 const FIRE_EGG = { RANGE:2, SINGE:2 };           // throw range in GRID-tiles; singe: the victim's next roll loses SINGE steps
@@ -2193,6 +2194,35 @@ const FX = {
   SIX:    { count:15, colors:["#ffd23e","#fff3b0","#ff9500"], speed:[120,300], up:60,
             life:.75, size:[3,6], shape:"star" },           // star burst off the die
 };
+/* ---- DATA: per-item use FX (one entry = one item's moment) ------------
+   Read by the generic `itemFx(p, id)`. Every field is optional:
+     sfx    — SFX voice played as the item goes off
+     burst  — an FX recipe fired at the pawn (see fxBurst)
+     rise   — glyphs that drift up off the pawn
+     ring   — { color, grow } a ring that snaps onto (grow:false) or
+              swells off (grow:true) the pawn
+   Items with a full bespoke cutscene (bomb, horn, singularity…) aren't
+   listed — they run their own thing. */
+const ITEM_FX = {
+  coffee:     { sfx:"sip",     rise:{ glyphs:["♨","☁"], count:5, ms:900, drift:16 },
+                burst:{ count:10, colors:["#c9a227","#f2e2c4","#8a5a2b"], speed:[40,120], up:70, life:.7, size:[2,4] } },
+  clover:     { sfx:"chime",   ring:{ color:"#3fd07a", grow:true },
+                burst:{ count:18, colors:["#3fd07a","#a8f0c0","#ffd23e"], speed:[80,220], up:40, life:.9, size:[3,6], shape:"star", twinkle:true } },
+  shield:     { sfx:"clang",   ring:{ color:"#7fb6ff", grow:false },
+                burst:{ count:12, colors:["#7fb6ff","#dbeaff","#ffffff"], speed:[60,170], life:.55, size:[2,5] } },
+  mirror:     { sfx:"glass",   ring:{ color:"#dfe9ff", grow:false },
+                burst:{ count:16, colors:["#ffffff","#dfe9ff","#b9c8ff"], speed:[90,240], life:.7, size:[2,5], shape:"star", twinkle:true } },
+  mysterybox: { sfx:"boxopen", ring:{ color:"#ffd23e", grow:true },
+                burst:{ count:22, colors:["#ffd23e","#fff3b0","#e67e22","#ffffff"], speed:[110,280], up:90, life:1, size:[3,7], shape:"star" } },
+  loadeddice: { sfx:"dicetumble",
+                burst:{ count:14, colors:["#e84393","#ffffff","#8e44ad"], speed:[70,200], up:50, life:.8, size:[3,6] } },
+  monkeypaw:  { sfx:"wish",    rise:{ glyphs:["🐒","✦"], count:3, ms:1100, drift:24 },
+                ring:{ color:"#8e44ad", grow:true },
+                burst:{ count:16, colors:["#8e44ad","#4b2a63","#c39bd3"], speed:[60,190], life:1, size:[3,6], twinkle:true } },
+  bossSupport:{ sfx:"support", ring:{ color:"#7ce0a3", grow:false },
+                burst:{ count:12, colors:["#7ce0a3","#dff7e8","#ffd23e"], speed:[60,160], up:50, life:.7, size:[2,5], shape:"star" } },
+};
+const ITEM_FX_MS = { RING:520, RISE_STAGGER:90 };
 /* ---- DATA: the full-experience unlock (Settings screen) --------------
    OFF by default: the game presents as a plain classic ladder game — Play
    skips the mode picker and goes straight to Classic, and Advanced settings
@@ -2637,9 +2667,48 @@ function buildBoard(){
                          fill:"#f6ecd9","font-family":"Georgia, serif"});
   lab.textContent = "START";
   svg.appendChild(lab);
+  tileMarksG = null;                // the wipe took the marks with it
+  queueTileMarks();
 }
 
-function repaintCell(n){ const r = svg.querySelector(`[data-cell="${n}"]`); if (r) r.setAttribute("fill", cellColor(n)); }
+function repaintCell(n){
+  const r = svg.querySelector(`[data-cell="${n}"]`);
+  if (r) r.setAttribute("fill", cellColor(n));
+  queueTileMarks();
+}
+
+/* Mystery before discovery, clarity after: once a rule's card has been
+   revealed, ITS tiles wear a small faint glyph so nobody has to re-guess
+   which square was which. Unmet rules stay pure mystery colour. Generic —
+   one pass over TILE_RULES, so a new rule is marked automatically.
+   (Tile 89's trapdoor is exempt by construction: it only becomes "seen" at
+   the moment it springs, and springing empties its tile list.) */
+const TILE_MARK = { SIZE:17, INSET:7, OPACITY:.5 };
+let tileMarksG = null, marksPending = 0;
+function queueTileMarks(){
+  if (marksPending) return;
+  marksPending = requestAnimationFrame(()=>{ marksPending = 0; paintTileMarks(); });
+}
+function paintTileMarks(){
+  if (tileMarksG){ tileMarksG.remove(); tileMarksG = null; }
+  if (!game || isBoss()) return;
+  const g = el("g", {"pointer-events":"none"});
+  for (const id in TILE_RULES){
+    const r = TILE_RULES[id], info = RULE_INFO[r.feature];
+    if (!info || r.noMark || !FEATURES[r.feature] || !rulesSeen[r.feature]) continue;
+    r.tiles.forEach(cell => {
+      const c = cellCenter(cell);
+      const t = el("text",{x:c.x + BOARD.CELL/2 - TILE_MARK.INSET, y:c.y + BOARD.CELL/2 - TILE_MARK.INSET,
+        "text-anchor":"end", "font-size":TILE_MARK.SIZE, opacity:TILE_MARK.OPACITY});
+      t.textContent = info.ico;
+      g.appendChild(t);
+    });
+  }
+  if (!g.childNodes.length) return;
+  if (tokenEls.length && tokenEls[0].parentNode === svg) svg.insertBefore(g, tokenEls[0]);
+  else svg.appendChild(g);
+  tileMarksG = g;
+}
 
 function applyTileNumbers(){
   svg.querySelectorAll(".tilenum").forEach(n => { n.style.display = VISUAL.tileNumbers ? "" : "none"; });
@@ -2883,8 +2952,8 @@ const TILE_RULES = {
   dizzy: { feature:"dizzy", tiles:DIZZY_TILES, color:DIZZY_COLOR,
     onLand: makeDizzy, offLand: makeDizzy },
 
-  trap89: { feature:"trapdoor", tiles:TRAP89_TILES, color:TRAP89_COLOR,
-    onLand: springTrapdoor, offLand: springTrapdoor },
+  trap89: { feature:"trapdoor", tiles:TRAP89_TILES, color:TRAP89_COLOR, noMark:true,
+    onLand: springTrapdoor, offLand: springTrapdoor },   // noMark: the disguise is the rule — tile 89 never wears a glyph
 
   freeze: { feature:"freeze", tiles:FREEZE_TILES, color:FREEZE_COLOR,
     matches(){ return true; },      // the frost check lives in tryFreeze (icy tile OR next to a frozen player)
@@ -3208,6 +3277,26 @@ const SFX = (() => {
     rocketup: ()=> { for (let i=0;i<10;i++) tone(140+i*95, 0.06, "sawtooth", 0.09, i*0.045); },
     mnote: k => { const s = [0,2,4,7,9,12,9,7,4,2];               // Musical Squares: hops sing a pentatonic run
       tone(523 * Math.pow(2, s[(k||0) % s.length]/12), 0.2, "triangle", 0.16); },
+    sip: ()=> { const c=ac(); if(!c) return; const t=c.currentTime, o=c.createOscillator(), g=c.createGain();   // a slurp: a rising gurgle, then a satisfied hum
+      o.type="sawtooth"; o.frequency.setValueAtTime(180,t); o.frequency.linearRampToValueAtTime(340,t+0.35);
+      g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.07,t+0.08);
+      g.gain.exponentialRampToValueAtTime(0.0001,t+0.42);
+      o.connect(g); g.connect(master); o.start(t); o.stop(t+0.45);
+      tone(220, 0.3, "sine", 0.06, 0.4); },
+    chime: ()=> seq([784,1047,1319,1568,2093], "sine", 0.13, 0.06),
+    clang: ()=> { tone(320, 0.35, "square", 0.16); tone(640, 0.3, "triangle", 0.09, 0.01);
+      tone(190, 0.5, "sawtooth", 0.11, 0.02); },
+    glass: ()=> { tone(2400, 0.5, "sine", 0.09); tone(3200, 0.45, "sine", 0.05, 0.02);
+      tone(1600, 0.6, "triangle", 0.05, 0.04); },
+    boxopen: ()=> { tone(140, 0.12, "square", 0.14); seq([659,880,1175,1568], "triangle", 0.15, 0.07); },
+    dicetumble: ()=> { for (let i=0;i<7;i++) tone(150+Math.random()*260, 0.045, "square", 0.09, i*0.055);
+      tone(520, 0.16, "triangle", 0.13, 0.4); },
+    wish: ()=> { const c=ac(); if(!c) return; const t=c.currentTime, o=c.createOscillator(), g=c.createGain();  // the paw: an eerie descending moan
+      o.type="triangle"; o.frequency.setValueAtTime(520,t); o.frequency.exponentialRampToValueAtTime(120,t+1.1);
+      g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.12,t+0.15);
+      g.gain.exponentialRampToValueAtTime(0.0001,t+1.2);
+      o.connect(g); g.connect(master); o.start(t); o.stop(t+1.25); },
+    support: ()=> seq([523,659,784], "sine", 0.15, 0.08),
   };
   return { play: (n, arg) => { if (!FEATURES.sound || SOUND.VOLUME <= 0) return; try { (table[n]||(()=>{}))(arg); } catch(e){} } };
 })();
@@ -4477,6 +4566,7 @@ function renderLegend(){
     h += `<span><span class="lgsw" style="background:${r.color}"></span><b>${info.name}</b></span>`;
   }
   lg.innerHTML = h;
+  queueTileMarks();                                  // discovered rules also mark their squares
 }
 function openJournal(){
   const keys = Object.keys(rulesSeen).filter(k => RULE_INFO[k]);
@@ -4907,6 +4997,60 @@ function itemFlourish(p, ico){
     requestAnimationFrame(()=>{ grp.style.transform = "translateY(-10px)"; grp.style.opacity = "0"; });
     setTimeout(()=>{ grp.remove(); res(); }, ITEM.FLOURISH_MS + 100);
   });
+}
+
+// A ring that snaps onto a pawn (grow:false — a guard going up) or swells off
+// it (grow:true — power radiating out).
+function pawnRing(p, color, grow){
+  const g = tokenEls[idxOf(p)]; if (!g) return;
+  const r0 = 19 * TOKEN.SCALE;
+  const ring = el("circle",{cx:0, cy:-2, r:r0, fill:"none", stroke:color, "stroke-width":"3", opacity:"0"});
+  ring.style.transformBox = "fill-box"; ring.style.transformOrigin = "center";
+  ring.style.transition = `transform ${ffms(ITEM_FX_MS.RING)}ms ease-out, opacity ${ffms(ITEM_FX_MS.RING)}ms ease-out`;
+  ring.style.transform = `scale(${grow ? 0.3 : 2.6})`;
+  ring.style.opacity = "0.95";
+  g.appendChild(ring);
+  requestAnimationFrame(()=>{ ring.style.transform = `scale(${grow ? 2.6 : 1})`; ring.style.opacity = grow ? "0" : "0.2"; });
+  setTimeout(()=> ring.remove(), ffms(ITEM_FX_MS.RING) + 120);
+}
+// Glyphs drifting up off a pawn (coffee steam, the paw's smoke).
+function pawnRise(p, o){
+  const g = tokenEls[idxOf(p)]; if (!g) return;
+  for (let k = 0; k < o.count; k++){
+    setTimeout(()=>{
+      if (!g.isConnected) return;
+      const t = el("text",{x:(Math.random()*2-1)*o.drift, y:-40,"text-anchor":"middle",
+        "font-size":13*TOKEN.SCALE, opacity:".9"});
+      t.textContent = o.glyphs[k % o.glyphs.length];
+      t.style.transition = `transform ${ffms(o.ms)}ms ease-out, opacity ${ffms(o.ms)}ms ease-out`;
+      g.appendChild(t);
+      requestAnimationFrame(()=>{
+        t.style.transform = `translate(${(Math.random()*2-1)*o.drift}px, -${34 + Math.random()*20}px)`;
+        t.style.opacity = "0";
+      });
+      setTimeout(()=> t.remove(), ffms(o.ms) + 120);
+    }, ffms(k * ITEM_FX_MS.RISE_STAGGER));
+  }
+}
+// Where a pawn currently sits on SCREEN — reads the token itself, so it works
+// on the classic board and inside the boss ring alike.
+function pawnScreen(p){
+  const i = idxOf(p);
+  if (i < 0 || !tokenEls[i]) return null;
+  const xy = tokenXY(i);
+  const pt = new DOMPoint(xy.x, xy.y).matrixTransform(svg.getScreenCTM());
+  return { x: pt.x, y: pt.y };
+}
+// The generic item moment: whatever the item's ITEM_FX entry declares.
+function itemFx(p, id){
+  const fx = ITEM_FX[id]; if (!fx) return;
+  if (fx.sfx) SFX.play(fx.sfx);
+  if (fx.ring) pawnRing(p, fx.ring.color, fx.ring.grow);
+  if (fx.rise) pawnRise(p, fx.rise);
+  if (fx.burst){
+    const s = pawnScreen(p);
+    if (s) fxBurst(s.x, s.y, fx.burst);
+  }
 }
 
 // Shooter-style multi-kill callout: big screen text + a gruff (pitched-down) voice.
@@ -8080,16 +8224,20 @@ async function hornBlast(p){
 }
 
 // Mystery Box: pops open into a random enabled consumable (never another box).
-function openMysteryBox(p){
+async function openMysteryBox(p){
   const pool = SHOP_CATALOG.filter(i => i.enabled && !i.craftOnly && i.kind === "consumable" && i.id !== "mysterybox" && itemInPlay(i));
+  itemFx(p, "mysterybox");
   if (!pool.length){
     awardCoin(p, "📦 The box held nothing but loose change", MYSTERY.FALLBACK_COINS, "blue");
     return;
   }
   const prize = pool[(Math.random()*pool.length)|0];
   giveItem(p, prize.id);
+  await sleep(MYSTERY.REVEAL_MS);
+  iconPopup(p, prize.ico, 1, TOKEN.ICON_SCALE);       // the prize rises out of the box
   SFX.play("sparkle");
   log(`📦 ${p.name}'s Mystery Box pops open — ${prize.ico} ${prize.name}!`);
+  await sleep(MYSTERY.REVEAL_MS);
 }
 
 // Snowball: freeze a standing rival within SNOWBALL.RANGE tiles, right where they are.
@@ -8185,6 +8333,8 @@ async function wishMonkeyPaw(p, idx){
   const tile = tiles[Math.floor(Math.random()*tiles.length)];
   p.items.splice(idx, 1);
   await itemFlourish(p, "🐒");
+  itemFx(p, "monkeypaw");                          // the paw curls: an eerie moan, purple smoke off the pawn
+  await sleep(ITEM_FX_MS.RING);
   SFX.play("teleport"); flashScreen();
   noteSkip(p, p.pos, tile);
   p.pos = tile; p.onSecret = false; p.marketDue = false;
@@ -8193,6 +8343,18 @@ async function wishMonkeyPaw(p, idx){
   await sleep(600);
   await shuffleTiles(`🌀 The wish has a price — the whole board twists into a new shape!`);
   await resolveLanding(p);
+}
+
+// The Loaded Dice tumble on the HUD die and settle on the face the player palmed.
+async function rollLoadedDieFx(face){
+  for (let k = 0; k < LOADED.TUMBLES; k++){
+    setDie(1 + ((Math.random()*RULES.DICE_SIDES)|0));
+    await sleep(LOADED.TUMBLE_MS);
+  }
+  setDie(face);
+  die.classList.remove("six"); void die.offsetWidth; die.classList.add("six");
+  setTimeout(()=> die.classList.remove("six"), 600);
+  await sleep(LOADED.SETTLE_MS);
 }
 
 // Loaded Dice: choose the next roll's exact face; spending the last charge curses the dice.
@@ -8209,9 +8371,10 @@ async function useLoadedDice(p, idx){
     if (!face) return;
   }
   await itemFlourish(p, "🎲");
+  itemFx(p, "loadeddice");
+  await rollLoadedDieFx(face);                     // the die tumbles and settles on the palmed face
   p.forceRoll = face;
   p.diceCharges--;
-  SFX.play("sparkle");
   log(`🎲 ${p.name} palms the Loaded Dice — the next roll is a ${face}. (${p.diceCharges} charge${p.diceCharges === 1 ? "" : "s"} left)`);
   if (p.diceCharges <= 0){
     p.items.splice(idx, 1);
@@ -8461,19 +8624,19 @@ async function useItem(p, idx){
   if (id === "coffee"){
     p.rollBonus = (p.rollBonus || 0) + ITEM.COFFEE_BONUS;
     p.items.splice(idx, 1);
+    itemFx(p, id);
     log(`☕ ${p.name} drank Coffee — +${ITEM.COFFEE_BONUS} to this roll!`);
-    SFX.play("sparkle");
   } else if (id === "clover"){
     p.forceSix = true;
     p.items.splice(idx, 1);
+    itemFx(p, id);
     log(`🍀 ${p.name} used a Four-leaf Clover — the next roll is a 6!`);
-    SFX.play("sparkle");
   } else if (id === "shield"){
     p.shieldOn = true;
     p.items.splice(idx, 1);
     updateShield(idxOf(p));
+    itemFx(p, id);
     log(`🛡️ ${p.name} raises the Shield — the next hit is blocked!`);
-    SFX.play("sparkle");
   } else if (id === "warhorn"){
     p.items.splice(idx, 1);
     await hornBlast(p);
@@ -8481,12 +8644,12 @@ async function useItem(p, idx){
     await itemFlourish(p, "🪞");
     p.mirrorOn = true;
     p.items.splice(idx, 1);
+    itemFx(p, id);
     log(`🪞 ${p.name} raises the Mirror — the next hit bounces onto someone else!`);
-    SFX.play("sparkle");
   } else if (id === "mysterybox"){
     await itemFlourish(p, "📦");
     p.items.splice(idx, 1);
-    openMysteryBox(p);
+    await openMysteryBox(p);
   } else if (id === "snowball"){
     await throwSnowball(p, idx);
   } else if (id === "banana"){
@@ -8607,6 +8770,16 @@ async function useBossItem(p, idx, id){
     if (!candidates.length) return null;
     return p.bot ? candidates[0] : await pickPlayer(title, candidates, "Cancel");
   };
+  // Every kit piece gets the same recognisable "help arrives" beat: the item's
+  // icon over whoever it helps, a green guard ring and a rising chime. Team-wide
+  // pieces pulse on everyone.
+  const supportFx = (targets, ico) => {
+    (Array.isArray(targets) ? targets : [targets]).forEach(q => {
+      if (!q) return;
+      itemFx(q, "bossSupport");
+      iconPopup(q, ico, 1);
+    });
+  };
   if (id === "bandage"){
     const hurt = game.players.filter(q => q !== p && ((q.bossSkip||0) > 0 || q.downed || q.frozen));
     if (!hurt.length){ log(`🩹 No teammate needs patching up.`); return; }
@@ -8615,17 +8788,18 @@ async function useBossItem(p, idx, id){
     p.items.splice(idx, 1);
     t.bossSkip = 0; t.downed = false; t.frozen = false;
     updateDowned(idxOf(t)); updateFrozen(idxOf(t));
-    SFX.play("sparkle"); iconPopup(t, "🩹", 1);
+    supportFx(t, "🩹");
     log(`🩹 ${p.name} patches ${t.name} up — back in the fight!`);
   } else if (id === "banner"){
     p.items.splice(idx, 1);
     b.banner++;
-    SFX.play("rule"); iconPopup(p, "🚩", 1);
+    supportFx(game.players, "🚩");
     log(`🚩 ${p.name} plants the Guard Banner — the next strike on ANY teammate is absorbed!`);
   } else if (id === "rally"){
     p.items.splice(idx, 1);
     game.players.forEach(q => { q.bossRollPlus = (q.bossRollPlus||0) + 1; });
     SFX.play("horn");
+    supportFx(game.players, "📣");
     log(`📣 ${p.name} sounds the Rally Cry — the whole team gets +1 on their next roll!`);
   } else if (id === "grapple"){
     const cands = game.players.filter(q => q !== p).sort((x,y) =>
@@ -8634,6 +8808,7 @@ async function useBossItem(p, idx, id){
     if (!t) return;
     p.items.splice(idx, 1);
     SFX.play("teleport");
+    supportFx(t, "🪝");
     log(`🪝 ${p.name} grapples ${t.name} 3 tiles onward!`);
     const i = idxOf(t);
     let at = t.pos;
@@ -8653,30 +8828,32 @@ async function useBossItem(p, idx, id){
       if (Math.min(d, BOSS_MODE.RING_COUNT - d) < Math.min(best, BOSS_MODE.RING_COUNT - best)) ni = k;
     });
     b.weakpoints[ni] = dest;
-    SFX.play("sparkle");
+    supportFx(t, "🧿");
     log(`🧿 The Seeker Charm hums — a weakpoint slides right in front of ${t.name}!`);
     paintBossTiles();
   } else if (id === "flare"){
     p.items.splice(idx, 1);
     b.charges.forEach(c => c.turnsLeft++);
-    SFX.play("sparkle"); flashScreen();
+    flashScreen();
+    supportFx(p, "🔦");
     log(`🔦 ${p.name}'s flare blinds ${b.def.name} — every charging attack is a turn slower!`);
     paintBossTiles();
   } else if (id === "warpaint"){
     p.items.splice(idx, 1);
     b.paint++;
-    SFX.play("rule"); iconPopup(p, "🎯", 1);
+    supportFx(p, "🎯");
     log(`🎯 ${p.name} marks the beast — the next weakpoint hit lands DOUBLE!`);
   } else if (id === "decoy"){
     if (!b.charges.length){ log(`🕊️ Nothing is charging — the dove circles, unbothered.`); return; }
     p.items.splice(idx, 1);
     b.charges.shift();
-    SFX.play("sparkle");
+    supportFx(p, "🕊️");
     log(`🕊️ The Decoy Dove flutters past — ${b.def.name} forgets its oldest attack!`);
     paintBossTiles();
   } else if (id === "gust"){
     p.items.splice(idx, 1);
     SFX.play("horn");
+    supportFx(game.players, "💨");
     log(`💨 ${p.name}'s Gust Feather — a tailwind carries the whole team 2 tiles onward!`);
     for (const q of game.players){
       const i = idxOf(q);
@@ -8693,7 +8870,7 @@ async function useBossItem(p, idx, id){
     else if (L.type === "hits"){ b.teamHits = Math.max(0, b.teamHits - 2); log(`🧪 The Team Elixir shakes off 2 of the team's hits!`); }
     else if (L.type === "light"){ b.light += 2; log(`🧪 The Team Elixir feeds the emberlight — +2!`); }
     else { b.banner++; log(`🧪 The Team Elixir steels the line — the next strike on the team is absorbed!`); }
-    SFX.play("sparkle");
+    supportFx(game.players, "🧪");
     paintBossLose();
   }
 }

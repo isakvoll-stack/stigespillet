@@ -325,6 +325,22 @@ the leftover steps (e.g. on 88, a roll of 5 goes 89 → 90 → 89 → 88).
 
 ## Optional rules (each can be toggled in code)
 
+### Discovering rules — and remembering them
+Most rules below are **hidden**: you meet them by tripping them, and a **Rule+ card**
+explains what just happened in vague, atmospheric terms. Nothing is ever explained
+before you've met it. Once you HAVE met it, the game never makes you re-guess:
+
+- the **📖 Discovered rules** journal (button in the side panel) replays every card
+  you've found this game, in discovery order;
+- the **legend** under the dice grows a colour swatch + name per discovered tile rule;
+- and the rule's **squares wear a small faint glyph** in the corner (its card's emoji),
+  so "which square was the gray one again?" answers itself at a glance.
+
+All three are gated on the same discovery memory, so an unmet rule leaks nothing.
+One exception, on purpose: **tile 89's trapdoor never wears a glyph** — being
+indistinguishable from a plain square *is* that rule (`noMark` in its registry entry).
+*(Glyph tunables in `TILE_MARK`.)*
+
 ### Roll a 6 → roll again
 Rolling a 6 lets the same player roll again (with a little celebration effect).
 Chains if you keep rolling 6s.
@@ -627,13 +643,15 @@ deals are exactly what they say.
 
 **The exotics** — every one is powerful, and every one has a hook:
 
-- **🐒 Monkey's Paw** — **8 coins**, consumable. When used: make a wish — the paw
+- **🐒 Monkey's Paw** — **8 coins**, consumable. When used: the paw curls a finger
+  with a low eerie moan and purple smoke off your pawn, then the wish lands — it
   **teleports you to a RANDOM tile** (except the finish; you don't choose). The
   moment you land, **the whole board scrambles** — every special tile jumps to a
   new random spot, and only THEN does your landing tile resolve. Wishes are
   never quite what you hoped.
 - **🎲 Loaded Dice** — **12 coins**, consumable with **3 charges**. Each use lets you
-  **choose your exact next roll** (1–6; a chosen 6 still rolls again). When the last
+  **choose your exact next roll** (1–6; a chosen 6 still rolls again) — the die
+  visibly tumbles and settles on the face you palmed. When the last
   charge is spent the dice crumble — and the real dice remember: your **next 3 rolls
   are all 1s** (yes, including get-up rolls). One set at a time.
 - **🕯️ Soul Candle** — **9 coins**, passive. **+2 to every roll, forever** — and it
@@ -768,9 +786,10 @@ novelty. Clearing browser data resets the memory.
   it). Rivals already down or frozen, on the start lane or on the secret square are
   untouched. Flattening 3+ rivals with one blast triggers the multi-kill announcer.
   *(Tunables in `HORN`.)*
-- **📦 Mystery Box** — **5 coins.** Pops open into a **random enabled consumable**
-  from the catalog (never another box). A cheap gamble — most of what's inside costs
-  more than the box. *(Fallback payout `MYSTERY.FALLBACK_COINS` if nothing can pop.)*
+- **📦 Mystery Box** — **5 coins.** The lid bursts, a shower of gold goes up and the
+  prize rises out: a **random enabled consumable** from the catalog (never another
+  box). A cheap gamble — most of what's inside costs more than the box.
+  *(Fallback payout `MYSTERY.FALLBACK_COINS` if nothing can pop.)*
 - **❄️ Snowball** — **6 coins.** Throw it at a rival **up to 3 squares away in any
   direction** — measured **on the grid**, not by tile number, so it reaches the rows
   above and below you as well as your own: they **freeze solid on the spot** —
@@ -888,6 +907,16 @@ bounce/kick, sniper, fishing, teleporter, wins …) — no audio files, so it st
 self-contained page. Toggle with `FEATURES.sound`. On the big dramatic moments
 (nukes, the gun, lightning, the leviathan, sniper hits, pile-ups) you also get
 **explosions, screen flashes and shakes**, and **confetti** rains down on the win.
+
+**Every item has its own moment.** Using one is never just a log line: the Coffee
+steams, the Clover throws green sparks, the Shield's guard ring snaps shut around
+the pawn, the Mirror shimmers like glass, the Mystery Box bursts open and the prize
+rises out, the Loaded Dice tumble and settle on the face you palmed, the Monkey's
+Paw moans as purple smoke curls off you — and in the boss arena every support-kit
+piece lands on whoever it helps with the same green guard ring and rising chime, so
+help always *reads* as help. Thrown items fly, land and burst on their target. Each
+item's recipe (sound, particles, ring, drifting glyphs) is one entry in the
+**`ITEM_FX`** DATA table, so a new item's moment is one line of data.
 
 **The Settings screen** (button under *Play* on the title menu) holds: the **🤖 bot
 decision popups** toggle, **⏩ Fast-forward bot turns** (bot turns run at 3× —

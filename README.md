@@ -55,6 +55,15 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
+Recently shipped (2026-07-19, later): **every item has its own moment** — a new
+`ITEM_FX` data table gives Coffee steam, Clover sparks, the Shield's guard ring,
+the Mirror's glass shimmer, a Mystery Box that bursts open and lifts the prize out,
+Loaded Dice that tumble and settle on the face you palmed, the Monkey's Paw's eerie
+moan, and one shared support flourish for all 10 boss-arena kit pieces (8 new
+sounds). Also **discovered rules now mark their squares** with a small faint corner
+glyph, so you never have to re-guess which square was which — except tile 89, which
+stays disguised on purpose.
+
 Recently shipped (2026-07-18/19): **Isak's raw-notes batch** — new `RAW_NOTES.md`
 scratchpad for raw phone dumps (`IDEAS.md` stays the structured inbox). The
 **"Twist of the night" is now the "Board twist"** and wakes **much later** (after

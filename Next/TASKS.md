@@ -29,13 +29,20 @@ See `LOG.md` for the running session history.
       (real bell ring + shockwave rings), 🚀 Pocket Rocket (launch whoosh +
       🔥), 🧲 Magnet (hum + 🧲 popup), 🗺️ Treasure Map (dig thuds + ⛏️),
       🧯 Extinguisher (spray hiss + 💨).
-- [ ] Audit remainder — still on the generic flourish+sparkle only: ☕ Coffee,
-      🍀 Clover, 🛡️ Shield, 🪞 Mirror, 📦 Mystery Box (open animation?),
-      🎲 Loaded Dice, 🐒 Monkey's Paw (board scramble has FX; the wish
-      itself doesn't), and the 10 boss support items (bandage/banner/rally/
-      grapple/seeker/flare/warpaint/decoy/gust/elixir — all iconPopup+stock
-      SFX). Passives have no use-moment (nothing to do). Big items (bomb,
-      fire egg, horn, snowball, banana, singularity) already have bespoke FX.
+- [x] **Audit remainder DONE 2026-07-19** — new **`ITEM_FX` DATA table** (one
+      entry per item: `sfx` · `burst` particle recipe · `ring` · `rise` glyphs)
+      read by a generic `itemFx(p, id)`, plus `pawnRing`/`pawnRise`/`pawnScreen`
+      helpers and 8 new SFX voices (sip, chime, clang, glass, boxopen,
+      dicetumble, wish, support). Covered: ☕ Coffee (steam + slurp), 🍀 Clover
+      (green star burst + chime), 🛡️ Shield (guard ring snaps shut + clang),
+      🪞 Mirror (glass shimmer), 📦 Mystery Box (bursts open, beat, prize icon
+      rises out — `MYSTERY.REVEAL_MS`), 🎲 Loaded Dice (the HUD die tumbles and
+      settles on the palmed face — `rollLoadedDieFx`, `LOADED.TUMBLES`),
+      🐒 Monkey's Paw (eerie moan + purple smoke before the wish), and **all 10
+      boss support items** via one shared `supportFx` (green guard ring + rising
+      chime + the item's icon on whoever it helps; team-wide pieces pulse on
+      everyone). `pawnScreen` reads the token itself, so the FX work in the boss
+      ring too. Passives still have no use-moment (nothing to do).
 - [ ] New-rule sounds worth adding: chest-drop thud exists; consider tile-rule
       stingers (orange choice, warp flip already has FX/siren).
 

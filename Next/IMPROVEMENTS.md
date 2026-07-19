@@ -5,7 +5,19 @@
 > order, vague text; title-screen version waits for A2 persistence) + **B2**
 > growing legend (a colour swatch + name per discovered tile rule, gated on
 > `rulesSeen` — B4 respected automatically: trap 89 only shows once sprung).
+>
+> **2026-07-19 — B1 + B4 BUILT.** Discovered rules now also mark their squares:
+> a small faint corner glyph (the card's emoji) on every tile of a rule whose
+> card you've seen, from one generic pass over `TILE_RULES` (`paintTileMarks`,
+> tunables in `TILE_MARK`). It's repainted through a debounced `queueTileMarks`
+> hooked into `repaintCell`/`renderLegend`/`buildBoard`, so scrambles, pop-up
+> tiles growing in, nuke fallout and fresh discoveries all stay in sync, and it
+> skips the boss arena. **B4 is now an explicit `noMark:true` on the trap89
+> registry entry** rather than an accident of ordering — tile 89 never wears a
+> glyph, because being indistinguishable IS that rule.
+>
 > Everything else below is still open — pick by number as before.
+> Next in the suggested order: **F1** (mode intro cards, KOTH first).
 
 Isak's brief: the joy of the game is discovering arbitrary rules ONE AT A
 TIME — that surprise must not drown in confusion. This is a written audit of
