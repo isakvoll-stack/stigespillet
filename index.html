@@ -1288,6 +1288,56 @@ const THEME = { current:0 };
    original race; King of the Hill is a trophy hunt over a set number of
    rounds. The chosen mode lives on `game.mode`; every trophy tunable is
    in KOTH. */
+/* ---- DATA: mode intro cards (IMPROVEMENTS F1) ------------------------
+   Every mode explains itself once per session, in the same card voice as
+   the Boss Battle intro: what you're playing for, how you score, how it
+   ends. Classic needs none (it IS the plain race) and Boss Battle has its
+   own richer per-boss card. A future mode = one entry. */
+const MODE_INTRO = {
+  koth: { ico:"🏆", name:"King of the Hill",
+    intro:"Forget the finish line. The hill is the prize, and it changes hands all night.",
+    how:"<b>Trophies</b> 🏆 win this, not distance. You take one for every turn you START alone in front, one for every 🐟 you land, and <b>ten</b> for reaching the top — which sends you back to the start lane for another lap.",
+    ends:"When the rounds run out, whoever holds the most trophies is King. A last round of bonus trophies is handed out first, so nothing is safe until the whistle." },
+  mayhem: { ico:"🎆", name:"Mayhem",
+    intro:"The same race, with the safety rails torn off and thrown in the fire.",
+    how:"Every yellow square hides something. Something random fires <b>every single round</b>, the wheel can spin several slices at once, and you may carry <b>two</b> passives instead of one.",
+    ends:"First one home still wins — if the board lets anyone get there." },
+  grandtour: { ico:"🗺️", name:"The Grand Tour",
+    intro:"Five legs, one champion. What you win today, you carry into tomorrow.",
+    how:"Each leg pays <b>points</b> by finishing place, plus bonus points between legs. Coins and your bag carry across, and the leader wears a crown — and a lighter purse.",
+    ends:"After the final leg the most points takes the tour. Leg one is a gentle classic; the last is always Mayhem." },
+};
+const MODE_INTRO_MS = 5200;                 // how long the card holds in an all-bot game
+const modeIntroSeen = new Set();            // once per session — a new table gets told, a rematch doesn't
+async function maybeModeIntro(id){
+  const m = MODE_INTRO[id];
+  if (!m || modeIntroSeen.has(id)) return;
+  modeIntroSeen.add(id);
+  await new Promise(res => {
+    SFX.play("rule");
+    document.getElementById("revealIco").textContent = m.ico;
+    document.getElementById("revealTitle").textContent = "Game mode";
+    document.getElementById("revealName").textContent = m.name;
+    document.getElementById("revealText").innerHTML = `<i>${m.intro}</i><br><br>${m.how}<br><br>${m.ends}`;
+    document.getElementById("reveal").classList.add("show");
+    revealResolve = () => {
+      document.getElementById("reveal").classList.remove("show");
+      revealResolve = null; res();
+    };
+    if (game && game.players.every(q => q.bot))
+      setTimeout(() => { if (revealResolve) revealResolve(); }, MODE_INTRO_MS);
+  });
+}
+// Start a freshly built game: the mode says its piece, then the first turn.
+// On the tour the tour introduces itself first, then each leg's own base mode
+// the first time that leg type comes up.
+async function beginGame(){
+  game.busy = true; refreshHUD();
+  if (game.tour) await maybeModeIntro("grandtour");
+  await maybeModeIntro(game.mode);
+  game.busy = false;
+  await startTurn();
+}
 const GAME_MODES = [
   { id:"classic", ico:"🏁", name:"Classic",
     desc:"The race: first to reach tile 90 wins." },
@@ -5342,6 +5392,12 @@ function buildBossBoard(){
   bossLoseEl = el("text",{x:470,y:by + bar.H + 24,"text-anchor":"middle","font-size":"16","font-weight":"700",
                           fill:"#f6ecd9","font-family":"Segoe UI, sans-serif"});
   svg.appendChild(bossLoseEl);
+  // the telegraph legend: the intro card explains the colours once, this keeps
+  // them explained for the rest of the fight (IMPROVEMENTS F2)
+  const key = el("text",{x:470,y:by + bar.H + 44,"text-anchor":"middle","font-size":"13",
+                         fill:"#f6ecd9",opacity:".7","font-family":"Segoe UI, sans-serif"});
+  key.textContent = "🟥 strikes next turn · 🟨 charging something big";
+  svg.appendChild(key);
   bossMarksG = el("g", {});
   svg.appendChild(bossMarksG);
 }
@@ -9285,7 +9341,7 @@ function nextTourLeg(){
   chosenRounds = savedRounds;
   tourDress();
   showScreen("game");
-  startTurn();
+  beginGame();
 }
 // Dress the fresh leg game in its tour clothes: carried bags, the stipend,
 // the leader's crown + lean purse, the catch-up shield, and the leg twist.
@@ -9873,7 +9929,7 @@ function startFromSetup(){
   initSeries(roster.length);       // a fresh start begins a fresh match (or none)
   newGame(roster);
   showScreen("game");
-  startTurn();                     // begin (handles a first-turn sniper, then auto if enabled)
+  beginGame();                     // the mode's card, then the first turn (sniper handled inside)
 }
 
 /* ---- remembered settings (localStorage; still one self-contained file) ----
@@ -10089,7 +10145,7 @@ document.getElementById("bannerNew").addEventListener("click", ()=>{
   if (series && !series.done) series.game++;                 // the match rolls on…
   else initSeries(game.players.length);                      // …or a fresh one begins
   newGame(roster);                                           // replay the same roster
-  startTurn();
+  beginGame();
 });
 
 loadSettings();                  // restore remembered toggles BEFORE the checkboxes are built

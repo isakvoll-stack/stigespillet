@@ -25,6 +25,13 @@ Picked up the two open items on the Next tab that weren't gated on Isak.
   debounced `queueTileMarks` hooked into `repaintCell`/`renderLegend`/
   `buildBoard` so every tile-set change stays in sync; skipped in the arena.
   B4 is now an explicit `noMark:true` on the trap89 registry entry.
+- **F1 + F2 from IMPROVEMENTS.md** — `MODE_INTRO` DATA table + `maybeModeIntro`,
+  driven from a new `beginGame()` start path that replaces the bare
+  `startTurn()` at all three entry points (fresh game, "Play again", every tour
+  leg). KOTH / Mayhem / Grand Tour each say what you're playing for, how you
+  score and how it ends, once per sitting (`modeIntroSeen`); the tour introduces
+  itself before a leg's own mode card. F2: a permanent telegraph key under the
+  boss HP bar. Verified 12/12, 0 errors.
 - **Verified headless Edge 19/19, 0 JS errors** — statics, every FX path,
   tile marks hidden-before/shown-after discovery, the B4 exemption, mystery-box
   payout, the loaded die settling, a full classic game and a full boss game

@@ -55,6 +55,12 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
+Recently shipped (2026-07-19, later): **every mode now introduces itself** — the
+first King of the Hill, Mayhem or Grand Tour game of a sitting opens with a card
+saying what you're playing for, how you score and how it ends (KOTH needed it most
+— trophies were invisible until they fired). Boss fights also keep a permanent
+🟥/🟨 telegraph key under the HP bar.
+
 Recently shipped (2026-07-19, later): **every item has its own moment** — a new
 `ITEM_FX` data table gives Coffee steam, Clover sparks, the Shield's guard ring,
 the Mirror's glass shimmer, a Mystery Box that bursts open and lifts the prize out,

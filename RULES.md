@@ -6,6 +6,13 @@ A summer-themed Norwegian *stigespill* (snakes & ladders). Single self-contained
 ---
 
 ## Game modes
+
+**Every mode introduces itself.** The first time a mode comes up in a sitting, a
+card explains it in the same voice as everything else: what you're playing for,
+how you score, and how it ends. Play the same mode again and it stays quiet — it's
+a reminder for the table, not a nag. Classic needs no card (it's the plain race)
+and Boss Battle has its own richer per-boss card instead. *(Text lives in the
+`MODE_INTRO` DATA table — a future mode is one entry.)*
 Pressing **Play** first asks which mode to play (the *Game mode* screen; modes
 live in the `GAME_MODES` DATA table):
 
@@ -50,7 +57,9 @@ live in the `GAME_MODES` DATA table):
   runners**, big ones sweep **whole stretches of the board**. Charging tiles
   wear a **fat red outline, a red wash and a ⚠️ danger sign**; **yellow** (fat
   outline + wash, no sign) is reserved for the **SUPER** each phase change
-  winds up — double size and power, red on its final turn. Strikes land with
+  winds up — double size and power, red on its final turn. A one-line key sits
+  under the HP bar all fight (*🟥 strikes next turn · 🟨 charging something
+  big*) so the colours never need re-learning. Strikes land with
   each boss's own **flash + sound**, and the beast lunges. At **⅔ and ⅓ HP**
   the boss escalates (phases). The roster — each with its own way for the
   TEAM to **lose**:

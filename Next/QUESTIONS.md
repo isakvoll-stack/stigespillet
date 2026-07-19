@@ -3,6 +3,21 @@
 Standing file: autonomous sessions log clarifications here instead of stopping to ask.
 Answer whenever — each answer gets folded in and the question checked off.
 
+## 2026-07-19 (later) — item FX + clarity batch
+
+- [ ] **Mode intro cards** (KOTH / Mayhem / Grand Tour): shown **once per
+  sitting** — the first KOTH game of the evening explains trophies, a rematch
+  doesn't. I picked per-sitting over "once ever" because a party game gets new
+  people at the table who'd otherwise never see it. Want it once-ever (saved
+  like the other memories) or every single game instead?
+- [ ] **Discovered-rule tile glyphs**: once you've seen a rule's card, its
+  squares wear a small faint emoji in the corner. Deliberately faint (50%) so
+  the board still reads as colour first. Too subtle, too busy, or right?
+  Tile 89 is exempt on purpose — the disguise IS that rule.
+- [ ] **Item FX**: every item now has its own sound + flourish. The Mystery Box
+  takes an extra ~0.8s to burst open and lift the prize out, and the Loaded Dice
+  spend ~0.8s tumbling. Fun, or too slow once you've seen them 20 times?
+
 ## 2026-07-19 — raw-notes batch (defaults picked, say if wrong)
 
 - [ ] **Board twist timing**: wakes when **50 ± 20 individual turns** have passed

@@ -16,8 +16,19 @@
 > registry entry** rather than an accident of ordering — tile 89 never wears a
 > glyph, because being indistinguishable IS that rule.
 >
+> **2026-07-19 — F1 + F2 BUILT.** Every mode now introduces itself once per
+> sitting in the same card voice as everything else (`MODE_INTRO` DATA table —
+> goal / how you score / how it ends — shown by `maybeModeIntro` from the new
+> `beginGame` start path, which covers a fresh game, "Play again" and every tour
+> leg). KOTH, Mayhem and the Grand Tour have entries; Classic needs none and
+> Boss Battle keeps its richer per-boss card. Replaying the same mode stays
+> quiet (`modeIntroSeen`, per page load — a reminder for the table, not a nag;
+> see QUESTIONS if you'd rather it were once-ever or every game). **F2**: a
+> permanent telegraph key under the boss HP bar — *🟥 strikes next turn ·
+> 🟨 charging something big*.
+>
 > Everything else below is still open — pick by number as before.
-> Next in the suggested order: **F1** (mode intro cards, KOTH first).
+> Next in the suggested order: **C2 + G2** (status badges on a STATUS registry).
 
 Isak's brief: the joy of the game is discovering arbitrary rules ONE AT A
 TIME — that surprise must not drown in confusion. This is a written audit of
