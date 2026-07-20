@@ -1996,7 +1996,7 @@ const BOSS_MODE = {
   ],
   TELEGRAPH: { NEXT:"#e6402f", LATER:"#f1c40f", WIDTH:10, LATER_WIDTH:8,   // fat outlines so red/yellow read at a glance
                TINT_NEXT:0.30, TINT_LATER:0.20, SIGN:"⚠️", SIGN_SIZE:26 }, // fill tint + the danger sign on red tiles
-  CHARGE_TURNS: 2,                       // boss turns an attack charges before it strikes
+  CHARGE_TURNS: 1,                       // boss turns an attack charges before it strikes: 1 = marked on the boss's turn, lands at the END of that same round (Isak, 2026-07-21)
   KNOCKBACK: 4,                          // placeholder strike effect until real boss attacks are authored
   TILE_COLOR: "#f6d55c", RING_STROKE:"#1f6fb0",
   ARENA_COLOR: "rgba(20,30,15,.45)",
@@ -2014,14 +2014,17 @@ const BOSS_MODE = {
    whole edges of the ring, the Wyrm zaps the tiles right in front of you,
    the Maw tears mirrored rifts, Kong just keeps throwing barrels).
    strike = what a hit does (BOSS_STRIKES). chargeTurns = boss turns an attack
-   cooks before striking. wander = the weakpoints move every boss turn.
+   cooks before striking; 1 (the norm) = marked on the boss's turn, lands at the
+   end of that same round. A charge only paints RED on the turn it lands — a
+   longer cook (the Titan) shows YELLOW until then, so red always means "this
+   round". wander = the weakpoints move every boss turn.
    fx = the strike flash colour + sound. lose = how the TEAM can lose this
    fight (rounds = a time limit, hits = total strikes taken, wipe = everyone
    iced at once, light = a fading meter refilled on the ✨ tiles).
    A SUPER charges at each phase change: yellow telegraph, more tiles,
    doubled power (BOSS_SUPER). */
 const BOSSES = [
-  { id:"dragon", ico:"🐉", name:"Ember Dragon",  hp:14, chargeTurns:2,
+  { id:"dragon", ico:"🐉", name:"Ember Dragon",  hp:14, chargeTurns:1,
     intro:"The old fire of the mountain, woken and furious.",
     gimmick:"Breathes cones of flame that bloom on the tiles ahead of a runner — the lower its health, the wider the fire.",
     fx:{ color:"#ff6b35", sfx:"boom" },
@@ -2030,7 +2033,7 @@ const BOSSES = [
     phases:[ { hpAbove: 2/3, attackTiles: 4, moves:["breath"] },
              { hpAbove: 1/3, attackTiles: 5, moves:["breath","crossfire"] },
              { hpAbove: 0,   attackTiles: 7, moves:["crossfire","inferno"] } ] },
-  { id:"kraken", ico:"🐙", name:"Deep Kraken",   hp:14, chargeTurns:2,
+  { id:"kraken", ico:"🐙", name:"Deep Kraken",   hp:14, chargeTurns:1,
     intro:"Something vast stirs beneath the arena floor.",
     gimmick:"Slams tentacles evenly around the whole ring, and grabs at whoever stands closest — a hit drags you 6 tiles back.",
     fx:{ color:"#17b5a3", sfx:"leviathan" },
@@ -2039,9 +2042,9 @@ const BOSSES = [
     phases:[ { hpAbove: 2/3, attackTiles: 4, moves:["tentacles"] },
              { hpAbove: 1/3, attackTiles: 5, moves:["tentacles","grab"] },
              { hpAbove: 0,   attackTiles: 6, moves:["tentacles","grab"] } ] },
-  { id:"titan",  ico:"🧊", name:"Frost Titan",   hp:12, chargeTurns:3,
+  { id:"titan",  ico:"🧊", name:"Frost Titan",   hp:12, chargeTurns:2,
     intro:"A glacier with a heartbeat — and it has noticed you.",
-    gimmick:"Slow but enormous: it freezes entire walls of the arena at once, and a hit ices you solid for a turn.",
+    gimmick:"Slow but enormous: it freezes entire walls of the arena at once — a full round of yellow warning before the tiles turn red — and a hit ices you solid for a turn.",
     fx:{ color:"#7ec8e3", sfx:"crack" },
     lose:{ type:"wipe" },
     strike:{ type:"freeze", skip:1 },
@@ -2050,14 +2053,14 @@ const BOSSES = [
              { hpAbove: 0,   attackTiles: 11, moves:["twinwalls"] } ] },
   { id:"wyrm",   ico:"⚡", name:"Storm Wyrm",    hp:16, chargeTurns:1,
     intro:"The storm itself, coiled into a serpent.",
-    gimmick:"Strikes FAST — its attacks charge in a single turn and zap the tiles right in front of the runners.",
+    gimmick:"Hunts the runners themselves — small, precise strikes that land on the tiles right in front of whoever is moving.",
     fx:{ color:"#f7dc6f", sfx:"thunder" },
     lose:{ type:"rounds", n:16 },
     strike:{ type:"shock", skip:1 },
     phases:[ { hpAbove: 2/3, attackTiles: 1, moves:["front"] },
              { hpAbove: 1/3, attackTiles: 2, moves:["front","zigzag"] },
              { hpAbove: 0,   attackTiles: 2, moves:["zigzag","front"] } ] },
-  { id:"maw",    ico:"🕳️", name:"Void Maw",      hp:14, chargeTurns:2, wander:true,
+  { id:"maw",    ico:"🕳️", name:"Void Maw",      hp:14, chargeTurns:1, wander:true,
     intro:"A hole in the world that wants the rest of it.",
     gimmick:"Tears mirrored rifts into far sides of the ring, scatters whoever it swallows — and its weakpoints drift every turn.",
     fx:{ color:"#b39ddb", sfx:"teleport" },
@@ -5591,8 +5594,8 @@ function maybeAuto(){
    Its own ENGINE / RENDER / CONTROLLER over the BOSS_MODE + BOSSES DATA:
    a 40-tile ring around a central arena, laps instead of a finish line,
    weakpoint landings chip the boss's HP, and the boss opens every round
-   by striking its red-telegraphed tiles and charging a new attack
-   (yellow = two boss turns out, red = strikes next boss turn).
+   by resolving the strikes it marked last round and charging a new attack
+   (red = lands at the end of THIS round, yellow = still cooking).
    Deliberately NOT built yet (authored later, as DATA): the real bosses
    + the giant-die intro (1-5 = bosses, 6 = the Joker who mimics), boss
    attack decks, obstacles/objectives on the ring, co-op support items,
@@ -5725,7 +5728,7 @@ function buildBossBoard(){
   // them explained for the rest of the fight (IMPROVEMENTS F2)
   const key = el("text",{x:470,y:by + bar.H + 44,"text-anchor":"middle","font-size":"13",
                          fill:"#f6ecd9",opacity:".7","font-family":"Segoe UI, sans-serif"});
-  key.textContent = "🟥 strikes next turn · 🟨 charging something big";
+  key.textContent = "🟥 strikes at the end of this round · 🟨 still charging";
   svg.appendChild(key);
   bossMarksG = el("g", {});
   svg.appendChild(bossMarksG);
@@ -5747,13 +5750,14 @@ function paintBossLose(){
   : "";
 }
 function paintBossTiles(){
-  // Isak's telegraph ruling: normal attacks paint RED for their whole charge;
-  // YELLOW is reserved for supers, which turn red on their final turn.
-  // Red tiles also wear a ⚠️ danger sign, and both warnings get a fat outline
-  // + a colour wash so they read at a glance (Isak, 2026-07-16).
+  // RED means one thing only: this lands at the END of the current round.
+  // Anything still cooking past that (a super winding up, the Titan's slow
+  // walls, an attack the 🔦 flare pushed back) shows YELLOW until the round it
+  // actually falls. Red tiles also wear a ⚠️ danger sign, and both warnings get
+  // a fat outline + a colour wash so they read at a glance (Isak, 2026-07-16/21).
   const b = game.boss, TG = BOSS_MODE.TELEGRAPH, C = BOSS_MODE.CELL;
   const nextT = new Set(), laterT = new Set();
-  b.charges.forEach(ch => ch.tiles.forEach(t => (ch.super && ch.turnsLeft > 1 ? laterT : nextT).add(t)));
+  b.charges.forEach(ch => ch.tiles.forEach(t => (ch.turnsLeft > 1 ? laterT : nextT).add(t)));
   (b.barrels||[]).forEach(br => bossWalkPath(br.tile, -KONG_BOSS.SPEED).forEach(t => {
     if (t !== BOSS_MODE.START_TILE) nextT.add(t);              // a barrel's next roll IS its telegraph
   }));
@@ -6007,9 +6011,12 @@ function bossChargeAttack(superAttack){
   b.charges.push({ tiles, move, super: !!superAttack,
     turnsLeft: (st.chargeTurns || BOSS_MODE.CHARGE_TURNS) + (superAttack ? BOSS_SUPER.CHARGE_EXTRA : 0) });
   paintBossTiles();
+  const slow = b.charges[b.charges.length - 1].turnsLeft > 1;
   log(superAttack
     ? `🟡 ${b.def.name} winds up a SUPER ${BOSS_MOVE_NAMES[move]} — ${tiles.length} tiles marked in yellow!`
-    : `⚡ ${b.def.name} readies ${BOSS_MOVE_NAMES[move]} — ${tiles.length} tiles marked!`);
+    : slow
+    ? `🟡 ${b.def.name} starts winding up ${BOSS_MOVE_NAMES[move]} — ${tiles.length} tiles marked in yellow.`
+    : `🟥 ${b.def.name} readies ${BOSS_MOVE_NAMES[move]} — ${tiles.length} tiles go red; they fall at the end of this round!`);
 }
 /* What a landed strike does to a caught player, per boss style. `mult` is
    the super multiplier. Skips park the player for whole turns (bossRoll). */

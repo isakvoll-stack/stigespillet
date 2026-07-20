@@ -55,7 +55,16 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
-Recently shipped (2026-07-20 evening): **Isak's raw-notes batch #2.** A new
+Recently shipped (2026-07-21): **boss telegraphs tell the truth.** A red tile
+now means exactly one thing — *this strikes at the end of this round* — so
+every player gets one turn to clear out and no more. Red attacks used to sit
+on the board for two full rounds before landing; only the Storm Wyrm was doing
+it right. Yellow now means "still charging" for everything that isn't landing
+yet: the phase-change super, the Frost Titan's slow wall freezes, and any
+attack the 🔦 Blinding Flare pushed back (which finally shows on the board).
+Verified headless (19/19 + last night's suite re-run, 0 JS errors).
+
+Before that (2026-07-20 evening): **Isak's raw-notes batch #2.** A new
 **⚙️ Advanced → 📜 Rules & tiles** group lets you pick exactly which rules and
 special tiles are in play — names only, no spoilers — with one-press presets
 (🎪 Everything / 🎯 Pure classic) and your own hand-mix as custom. Bonus-trophy

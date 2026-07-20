@@ -3,6 +3,39 @@
 Newest first. One entry per working session; note what shipped and what's next.
 
 ---
+## 2026-07-21 — boss telegraph timing fix
+
+Isak: *"boss fight red attacks take two rounds instead of activating at the end
+of the round they were created."* Confirmed and fixed at the root.
+
+**Why it happened.** The boss's turn fires at the round wrap, and inside it the
+order is: resolve charges with `turnsLeft <= 1`, decrement the rest, then charge
+a new attack. A new attack was born with `turnsLeft: 2`, so it survived one boss
+turn (decremented to 1) and only struck on the SECOND — two full rounds of red.
+The Storm Wyrm (`chargeTurns: 1`) was the only boss doing the right thing, which
+is what made the difference visible. Isak's own 2026-07-14 ruling already said
+*marked on the boss's turn → strike next boss turn*, so this was a bug against
+spec, not a design change.
+
+- `BOSS_MODE.CHARGE_TURNS` **2 → 1**; dragon/kraken/maw follow, Wyrm unchanged.
+- **`paintBossTiles` generalised** — it special-cased supers for the yellow
+  telegraph, so any longer normal charge sat red the whole time. Now *any*
+  charge with `turnsLeft > 1` is yellow and only the landing round is red. Red
+  means one thing: **it falls at the end of this round.**
+- **Frost Titan `chargeTurns` 3 → 2** rather than 1 — it freezes 11 of the 40
+  ring tiles at once, and one round of warning for that would have been a
+  brutal spike. It now telegraphs honestly: yellow for a round, then red. Its
+  "slow but enormous" identity survives; the Wyrm's "fast" identity doesn't
+  (everyone is fast now), so its gimmick text leans on the runner-hunting
+  pattern instead. Both logged in QUESTIONS.md.
+- Free win: the 🔦 Blinding Flare (+1 turn to every charge) now visibly flips
+  red tiles back to yellow — the item finally reads on the board.
+
+Verified headless Edge **19/19, 0 JS errors** (colour-of-tile assertions walk
+the actual painted strokes through each boss turn) plus a full 3-bot fight to a
+result; yesterday's 25-check suite re-run as a regression gate.
+
+---
 ## 2026-07-20 (evening) — raw-notes batch #2 (autonomous)
 
 Isak's four raw notes, built with sensible defaults (open picks in

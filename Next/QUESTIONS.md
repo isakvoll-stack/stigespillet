@@ -3,7 +3,26 @@
 Standing file: autonomous sessions log clarifications here instead of stopping to ask.
 Answer whenever — each answer gets folded in and the question checked off.
 
-## 2026-07-20 evening (latest) — raw-notes batch #2
+## 2026-07-21 (latest) — boss telegraph fix
+
+- [ ] **Frost Titan**: red now always means "lands at the end of this round", so
+  I had to decide what happens to the Titan's deliberately slow 3-turn charge.
+  I gave it a **2-turn wind-up: yellow for one round, then red for the round it
+  lands** — going straight to 1 would drop an **11-tile wall freeze** with a
+  single round of warning, which felt like a big difficulty spike. Keep it, or
+  should the Titan be as fast as everyone else?
+- [ ] **Storm Wyrm lost its gimmick**: its whole identity was "charges in a
+  single turn" — which is now what every boss does. I rewrote its card to lean
+  on the runner-hunting pattern (small strikes that land right in front of
+  whoever's moving). Want it to get a NEW speed edge instead — e.g. it strikes
+  **twice** in a round, or its attacks can't be slowed by the 🔦 flare?
+- [ ] **Yellow's meaning widened**: it used to mean "a SUPER is coming"; now it
+  means "still charging" generally (supers, the Titan's walls, and anything the
+  🔦 flare pushed back). The legend under the HP bar says *🟥 strikes at the end
+  of this round · 🟨 still charging*. Fine, or should supers keep a look of
+  their own so a phase-change super still feels special?
+
+## 2026-07-20 evening — raw-notes batch #2
 
 - [ ] **Rules picker presets**: shipped with two — **🎪 Everything** and
   **🎯 Pure classic** (only exact-finish + six-rolls-again stay on). You said

@@ -54,12 +54,15 @@ live in the `GAME_MODES` DATA table):
   The boss acts **at the start of every round**, drawing from its **move
   deck**: each boss only ever attacks in ITS shapes, so the patterns are
   recognisable at a glance — small moves open **right in front of the
-  runners**, big ones sweep **whole stretches of the board**. Charging tiles
-  wear a **fat red outline, a red wash and a ⚠️ danger sign**; **yellow** (fat
-  outline + wash, no sign) is reserved for the **SUPER** each phase change
-  winds up — double size and power, red on its final turn. A one-line key sits
-  under the HP bar all fight (*🟥 strikes next turn · 🟨 charging something
-  big*) so the colours never need re-learning. Strikes land with
+  runners**, big ones sweep **whole stretches of the board**. **Red means
+  NOW**: tiles marked on the boss's turn wear a **fat red outline, a red wash
+  and a ⚠️ danger sign**, and they **strike at the end of that same round** —
+  every player gets exactly one turn to clear out. **Yellow** (fat outline +
+  wash, no sign) means **still cooking**: the **SUPER** each phase change winds
+  up, the Frost Titan's slow walls, or any attack the 🔦 flare pushed back —
+  all of them turn red for the round they actually land. A one-line key sits
+  under the HP bar all fight (*🟥 strikes at the end of this round · 🟨 still
+  charging*) so the colours never need re-learning. Strikes land with
   each boss's own **flash + sound**, and the beast lunges. At **⅔ and ⅓ HP**
   the boss escalates (phases). The roster — each with its own way for the
   TEAM to **lose**:
@@ -69,12 +72,13 @@ live in the `GAME_MODES` DATA table):
   - **🐙 Deep Kraken** — **evenly-spaced tentacle slams** all around the ring,
     later also **grabs right in front of every runner**; a hit **drags you 6
     tiles back**. *Lose: **12 strikes** on the team and the deck goes under.*
-  - **🧊 Frost Titan** — **whole edges of the ring** freeze over (slow, 3-turn
-    charge); a hit **freezes you for a turn**. *Lose: if the WHOLE team is
+  - **🧊 Frost Titan** — **whole edges of the ring** freeze over; the only boss
+    that winds up slowly, so its walls sit **yellow for a round before they go
+    red**. A hit **freezes you for a turn**. *Lose: if the WHOLE team is
     ever iced at once, the arena entombs you.*
-  - **⚡ Storm Wyrm** — fast jolts on the **tiles right in front of you**
-    (1-turn charge), later a **zigzag storm front**; a hit **floors you for a
-    turn**. *Lose: the storm peaks after **16 rounds**.*
+  - **⚡ Storm Wyrm** — small, precise jolts that hunt the runners, landing on
+    the **tiles right in front of them**, later a **zigzag storm front**; a hit
+    **floors you for a turn**. *Lose: the storm peaks after **16 rounds**.*
   - **🕳️ Void Maw** — **mirrored void rifts** (a tile and its far twin); a hit
     hurls you to a **random tile**, and its **weakpoints wander** (the whole
     pattern rotates around the ring each boss turn, symmetry intact). *Lose: the

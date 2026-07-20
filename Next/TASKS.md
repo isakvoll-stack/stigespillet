@@ -294,6 +294,34 @@ See `LOG.md` for the running session history.
 ---
 
 ## Done
+### 2026-07-21 — boss telegraph timing fix (Isak)
+- [x] **Red attacks land at the END of the round they're marked** (was: two
+      full rounds). Root cause: `bossTurn()` runs at the round wrap and a
+      charge was created with `turnsLeft: 2`, so it survived one boss turn
+      before striking on the second. `BOSS_MODE.CHARGE_TURNS` **2 → 1** and the
+      per-boss overrides follow (dragon/kraken/maw 2 → 1; the Wyrm was already
+      1 — it was the only boss behaving to spec). This restores Isak's own
+      2026-07-14 ruling: *marked on the boss's turn → strikes next boss turn*.
+- [x] **RED now means one thing only: "this lands at the end of THIS round."**
+      `paintBossTiles` used to special-case supers (`ch.super && turnsLeft > 1`
+      → yellow), so any multi-turn normal charge sat red for rounds. Generalised
+      to `turnsLeft > 1` → yellow, `<= 1` → red, for every charge. The 🔦 Blinding
+      Flare now visibly knocks a red attack back to yellow.
+- [x] **Frost Titan keeps its slow identity honestly** — `chargeTurns` 3 → **2**:
+      a full round of YELLOW warning, then red for the round it lands. (Straight
+      to 1 would have dropped an 11-tile wall freeze with one round's warning —
+      a big difficulty spike; logged in QUESTIONS.md.)
+- [x] Storm Wyrm's gimmick text rewritten — "charges in a single turn" is the
+      norm now, so its identity is the runner-hunting pattern (also QUESTIONS).
+- [x] Legend + log lines say what's true: *🟥 strikes at the end of this round ·
+      🟨 still charging*, and a charge announces its own colour.
+- [x] RULES.md synced (telegraph section, Titan, Wyrm).
+- [x] **Verified headless Edge 19/19, 0 JS errors**: statics, a normal attack
+      marked red and resolved on the very next boss turn, red never surviving a
+      second round, the Titan's yellow→red→land walk, the super's yellow→red→land
+      walk, flare-pushed red → yellow, full 3-bot boss fight to a result (17
+      rounds). Yesterday's 25-check suite re-run green as a regression gate.
+
 ### 2026-07-20 — Isak's raw-notes batch #2 (autonomous) — see `RAW_NOTES.md` Processed
 - [x] **📜 Rules & tiles picker** — new Advanced settings group (`RULE_PICKS` +
       `RULE_PRESETS` DATA): every optional rule/special tile listed **by name
