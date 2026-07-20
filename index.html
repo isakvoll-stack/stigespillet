@@ -725,21 +725,9 @@
     </div>
   </div>
 
-  <div class="choicebar" id="choice">
+  <div class="choicebar" id="choicebar">
     <span id="choiceText"></span>
-    <button class="btn" id="choiceBounce">🦘 Bounce over</button>
-    <button class="btn ghost" id="choiceKick">🦵 Kick back</button>
-  </div>
-  <div class="choicebar" id="tpchoice">
-    <span id="tpText"></span>
-    <button class="btn" id="tpYes">🌀 Teleport (Y)</button>
-    <button class="btn ghost" id="tpNo">Stay (N)</button>
-  </div>
-  <div class="choicebar" id="orange">
-    <span id="orangeText"></span>
-    <button class="btn" id="optWheel">🎡 Wheel (W)</button>
-    <button class="btn" id="optSupport">🤝 Support (S)</button>
-    <button class="btn ghost" id="optGun">🔫 Gun (G)</button>
+    <div id="choiceOpts" style="display:contents"></div>
   </div>
   <div class="modal" id="picker">
     <div class="box">
@@ -2354,6 +2342,55 @@ const RULE_TOAST = {
   SCALE_WITH_FF: true,                        // shrink the hold while ⏩ fast-forwards a bot turn
 };
 
+/* ---- DATA: the choices the bottom bar can ask (IMPROVEMENTS D1/D3) ---
+   Every "pick one" the game puts in front of a player is one entry here:
+   its options, their icons, their keys. `askChoice` builds the bar from
+   this, so a new choice is a new entry — never new HTML, never a new
+   resolver global. Every button prints its own key, so the keyboard hint
+   can never drift from the key that actually works. */
+const CHOICES = {
+  encounter: [
+    { value:"bounce",  ico:"🦘", label:"Bounce over", key:"KeyB", hint:"B" },
+    { value:"kick",    ico:"🦵", label:"Kick back",   key:"KeyK", hint:"K", ghost:true },
+  ],
+  teleport: [
+    { value:true,      ico:"🌀", label:"Teleport",    key:"KeyY", hint:"Y" },
+    { value:false,     ico:"",   label:"Stay",        key:"KeyN", hint:"N", ghost:true },
+  ],
+  orange: [
+    { value:"wheel",   ico:"🎡", label:"Wheel",       key:"KeyW", hint:"W" },
+    { value:"support", ico:"🤝", label:"Support",     key:"KeyS", hint:"S" },
+    { value:"gun",     ico:"🔫", label:"Gun",         key:"KeyG", hint:"G", ghost:true,
+      when: () => !game.family },
+  ],
+};
+
+/* ---- DATA: the overlay stack (IMPROVEMENTS D2/G3) --------------------
+   Anything that can cover the board is listed here, topmost first. The
+   keydown handler finds the highest one that is showing and hands it the
+   key — nothing below it ever hears about it. An entry with no `on` owns
+   its keys elsewhere (the fishing minigame) or takes none at all (the
+   picker and the wheel are click-only), and swallowing the key is exactly
+   right for both. */
+const OVERLAYS = [
+  { id:"fish" },
+  { id:"inv",       on(e){ if (e.code === "Enter"){ e.preventDefault(); closeInventory(); } } },
+  { id:"journal",   on(e){ if (e.code === "Enter" || e.code === "Escape"){ e.preventDefault(); closeJournal(); } } },
+  { id:"picker" },
+  { id:"wheel" },
+  { id:"reveal",    on(e){ if (e.code === "Enter"){ e.preventDefault(); if (revealResolve) revealResolve(); }
+                           else if (e.code === "Space") e.preventDefault(); } },   // Space must NOT skip a rule reveal
+  { id:"choicebar", on(e){ if (!choiceState) return;
+                           const o = choiceState.options.find(x => x.key === e.code);
+                           if (o) choiceState.pick(o.value); } },
+];
+function topOverlay(){
+  return OVERLAYS.find(o => {
+    const el = document.getElementById(o.id);
+    return el && el.classList.contains("show");
+  }) || null;
+}
+
 /* ---- ANIMATION timing (ms) ----------------------------------------- */
 const ANIM = { STEP:210, SLIDE:600, DICE:560, HANDOFF:350, AUTO:650,
                HOP:26 };   // walking-hop arc height (px); each step is a little jump + landing squash
@@ -3046,7 +3083,6 @@ function buildTokens(count){
 let game = null;
 let rulesSeen = {};               // hidden rules already revealed this game
 let rulesEver = {};               // ...and the ones this browser has ever met (DISCOVERY.KEY)
-let choiceResolve = null;         // pending bounce/kick choice resolver
 let revealResolve = null;         // pending rule-reveal resolver
 let spotDark = null, spotHole = null, beamEl = null, beamFrom = {x:0,y:0};  // spotlight + laser
 let arrowEl = null;               // "whose turn" arrow, re-parented onto the active token
@@ -4738,19 +4774,34 @@ async function glideFrozen(kicker, v){
   if (!v.onSecret) await resolveLanding(v);
 }
 
-function getEncounterChoice(p, others){
+// One bar for every choice the game asks a player to make (CHOICES).
+let choiceState = null;
+function askChoice(id, p, text){
   return new Promise(res => {
-    if (game.autonomous){ botEncounterChoice(p, others).then(res); return; }   // the bot weighs kick vs bounce
+    const options = CHOICES[id].filter(o => !o.when || o.when());
+    const bar = document.getElementById("choicebar"), opts = document.getElementById("choiceOpts");
     showSpotlight(p);                                      // light up the one who must choose
-    const names = others.map(o => o.name).join(", ");
-    document.getElementById("choiceText").innerHTML =
-      `<b style="color:${p.color}">${p.name}</b> landed on ${names}!`;
-    document.getElementById("choice").classList.add("show");
-    choiceResolve = (c) => {
-      document.getElementById("choice").classList.remove("show");
-      hideSpotlight(); choiceResolve = null; res(c);
-    };
+    document.getElementById("choiceText").innerHTML = text;
+    opts.innerHTML = "";
+    options.forEach(o => {
+      const b = document.createElement("button");
+      b.className = "btn" + (o.ghost ? " ghost" : "");
+      b.textContent = `${o.ico ? o.ico + " " : ""}${o.label} (${o.hint})`;
+      b.addEventListener("click", () => { if (choiceState) choiceState.pick(o.value); });
+      opts.appendChild(b);
+    });
+    bar.classList.add("show");
+    choiceState = { options, pick(v){
+      bar.classList.remove("show"); opts.innerHTML = "";
+      hideSpotlight(); choiceState = null; res(v);
+    } };
   });
+}
+
+function getEncounterChoice(p, others){
+  if (game.autonomous) return botEncounterChoice(p, others);   // the bot weighs kick vs bounce
+  const names = others.map(o => o.name).join(", ");
+  return askChoice("encounter", p, `<b style="color:${p.color}">${p.name}</b> landed on ${names}!`);
 }
 
 // A discovered rule is never re-guessed: the legend grows a swatch per
@@ -6989,18 +7040,8 @@ async function shuffleAllPositions(){
   await sleep(750);
 }
 
-let tpResolve = null;
 function teleportChoice(p){
-  return new Promise(res => {
-    showSpotlight(p);
-    document.getElementById("tpText").innerHTML =
-      `<b style="color:${p.color}">${p.name}</b> stepped onto a teleporter!`;
-    document.getElementById("tpchoice").classList.add("show");
-    tpResolve = (yes) => {
-      document.getElementById("tpchoice").classList.remove("show");
-      hideSpotlight(); tpResolve = null; res(yes);
-    };
-  });
+  return askChoice("teleport", p, `<b style="color:${p.color}">${p.name}</b> stepped onto a teleporter!`);
 }
 
 async function runTeleporter(p){
@@ -7510,19 +7551,9 @@ async function advancePlayer(pl, n){
   return game.over;                     // resolveLanding finishes + flags over on a win
 }
 
-let orangeResolve = null;
 function orangeChoice(p){
-  return new Promise(res => {
-    showSpotlight(p);
-    document.getElementById("optGun").style.display = game.family ? "none" : "";
-    document.getElementById("orangeText").innerHTML =
-      `<b style="color:${p.color}">${p.name}</b> — ${game.family ? "Wheel or Support?" : "Wheel, Support or Gun?"}`;
-    document.getElementById("orange").classList.add("show");
-    orangeResolve = (c) => {
-      document.getElementById("orange").classList.remove("show");
-      hideSpotlight(); orangeResolve = null; res(c);
-    };
-  });
+  return askChoice("orange", p,
+    `<b style="color:${p.color}">${p.name}</b> — ${game.family ? "Wheel or Support?" : "Wheel, Support or Gun?"}`);
 }
 
 let pickResolve = null;
@@ -10232,38 +10263,8 @@ document.addEventListener("keydown", e=>{
     else if (e.code === "Space" && game && game.manual){ e.preventDefault(); fireCheatCall(); }
     return;
   }
-  if (document.getElementById("fish").classList.contains("show")) return;   // minigame owns its keys
-  if (document.getElementById("inv").classList.contains("show")){
-    if (e.code === "Enter"){ e.preventDefault(); closeInventory(); }
-    return;                                                                 // inventory uses buttons
-  }
-  if (document.getElementById("journal").classList.contains("show")){
-    if (e.code === "Enter" || e.code === "Escape"){ e.preventDefault(); closeJournal(); }
-    return;
-  }
-  if (document.getElementById("picker").classList.contains("show")) return; // pick via buttons
-  if (document.getElementById("wheel").classList.contains("show")) return;  // wheel is spinning
-  if (document.getElementById("orange").classList.contains("show")){
-    if (e.code === "KeyW"){ if (orangeResolve) orangeResolve("wheel"); }
-    else if (e.code === "KeyS"){ if (orangeResolve) orangeResolve("support"); }
-    else if (e.code === "KeyG" && !game.family){ if (orangeResolve) orangeResolve("gun"); }
-    return;
-  }
-  if (document.getElementById("reveal").classList.contains("show")){
-    if (e.code === "Enter"){ e.preventDefault(); if (revealResolve) revealResolve(); }
-    else if (e.code === "Space"){ e.preventDefault(); }   // Space must NOT skip a rule reveal
-    return;
-  }
-  if (document.getElementById("choice").classList.contains("show")){
-    if (e.code === "KeyB"){ if (choiceResolve) choiceResolve("bounce"); }
-    else if (e.code === "KeyK"){ if (choiceResolve) choiceResolve("kick"); }
-    return;
-  }
-  if (document.getElementById("tpchoice").classList.contains("show")){
-    if (e.code === "KeyY"){ if (tpResolve) tpResolve(true); }
-    else if (e.code === "KeyN"){ if (tpResolve) tpResolve(false); }
-    return;
-  }
+  const top = topOverlay();                  // whatever is covering the board owns the keyboard
+  if (top){ if (top.on) top.on(e); return; }
   if (document.querySelector(".screen.show")) return;       // not while a menu is open
   if (e.target && e.target.tagName === "INPUT") return;     // not while typing a name
   // in manual mode Space belongs to the call-out alone — Enter, ↓ or the dice roll
@@ -10275,13 +10276,6 @@ document.addEventListener("keydown", e=>{
 });
 
 document.getElementById("revealOk").addEventListener("click", ()=>{ if (revealResolve) revealResolve(); });
-document.getElementById("choiceBounce").addEventListener("click", ()=>{ if (choiceResolve) choiceResolve("bounce"); });
-document.getElementById("choiceKick").addEventListener("click", ()=>{ if (choiceResolve) choiceResolve("kick"); });
-document.getElementById("tpYes").addEventListener("click", ()=>{ if (tpResolve) tpResolve(true); });
-document.getElementById("tpNo").addEventListener("click", ()=>{ if (tpResolve) tpResolve(false); });
-document.getElementById("optWheel").addEventListener("click", ()=>{ if (orangeResolve) orangeResolve("wheel"); });
-document.getElementById("optSupport").addEventListener("click", ()=>{ if (orangeResolve) orangeResolve("support"); });
-document.getElementById("optGun").addEventListener("click", ()=>{ if (orangeResolve) orangeResolve("gun"); });
 ["pointerdown","keydown"].forEach(ev => document.addEventListener(ev, ()=>SFX.play("click"), { once:true }));
 
 document.getElementById("statusBar").addEventListener("click", e=>{

@@ -55,7 +55,15 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
-Recently shipped (2026-07-19, night): **the game remembers what you've met.** A
+Recently shipped (2026-07-20): **one choice bar, one overlay stack.** Every
+"pick one" the game puts in front of you — bounce/kick, teleport or stay,
+wheel/support/gun — is now the same bar built from one `CHOICES` table, and
+every button prints the key that works it, so the hint can never drift from
+the key. Underneath, an `OVERLAYS` table lists everything that can cover the
+board, topmost first; whatever is on top owns the keyboard and nothing below
+it hears the key. Adding a choice is one entry; adding an overlay is one line.
+
+Before that (2026-07-19, night): **the game remembers what you've met.** A
 rule you've never seen still stops everything with its Rule+ card; one this
 browser already knows just gets a small corner pill with its name, so a
 twentieth night isn't interrupted to re-explain the teleporter. A fresh game

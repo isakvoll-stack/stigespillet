@@ -3,7 +3,19 @@
 Standing file: autonomous sessions log clarifications here instead of stopping to ask.
 Answer whenever — each answer gets folded in and the question checked off.
 
-## 2026-07-19 (latest) — remembered discoveries + log batch
+## 2026-07-20 (latest) — one choice bar + overlay stack
+
+- [ ] **Every choice button now shows its key** — "🦘 Bounce over (B)",
+  "🦵 Kick back (K)", "🌀 Teleport (Y)", "Stay (N)". Teleport and the orange
+  square already did; bounce/kick had hidden keys nobody could know about. Fine
+  as a permanent style, or would you rather the keys were a smaller grey hint?
+- [ ] **Small behaviour fix worth flagging**: in family mode the 🔫 Gun button
+  was hidden, but pressing **G** still chose it. It can't any more — the option
+  isn't built at all in family games. Assumed that was always the intent.
+- [ ] **Nothing else changed for the player.** Same three questions, same
+  wording, same bar position — it's one bar underneath instead of three.
+
+## 2026-07-19 — remembered discoveries + log batch
 
 - [ ] **Discoveries are now remembered between games** (per browser). A rule
   you've met before no longer stops the game with a card — it gets a small

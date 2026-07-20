@@ -3,6 +3,48 @@
 Newest first. One entry per working session; note what shipped and what's next.
 
 ---
+## 2026-07-20 — one choice bar, one overlay stack (IMPROVEMENTS D1 + D2 + D3)
+
+Next in `IMPROVEMENTS.md`'s own order. Both halves are the same idea applied
+twice: three copies of a thing became one table plus one generic loop.
+
+- **D1 — one choice bar.** The game asked three questions through three
+  hand-written `<div class="choicebar">`s, three resolver globals
+  (`choiceResolve` / `tpResolve` / `orangeResolve`), three keydown branches and
+  eight click listeners. Now: one bar in the DOM, one `CHOICES` DATA table, one
+  `askChoice(id, p, text)` returning a promise. `askChoice` also took over the
+  spotlight, which all three call sites had been raising and lowering
+  identically. `teleportChoice` and `orangeChoice` are one-liners; the encounter
+  version keeps only its bot short-circuit.
+- **Why a `when()` and not a hidden button.** The gun option used to be hidden
+  in family mode with `style.display="none"` — but the keydown branch still
+  answered to G, so a family game could resolve to `"gun"` off a keypress for a
+  button that wasn't on screen. As data (`when: () => !game.family`) the option
+  simply isn't built, so it isn't clickable AND isn't pressable, from one line.
+  That's the layering payoff in miniature: the filter lives where the option
+  lives, instead of in two places that can disagree.
+- **D2 — overlay stack.** The keydown handler opened with eight
+  `getElementById(x).classList.contains("show")` branches in a hand-maintained
+  priority order. That order is now the `OVERLAYS` array (topmost first) and
+  `topOverlay()` finds the winner; the handler hands it the key and returns.
+  Everything below the top layer is deaf by construction rather than by
+  remembering to `return`. Entries with no `on` swallow keys on purpose — the
+  fishing minigame owns its own handler, the picker and wheel are click-only.
+- **D3 — every button prints its key.** Rendered from the same `hint` field the
+  keydown matches, so they cannot drift. B and K (bounce/kick) had never been
+  documented anywhere on screen; they are now.
+- **Verified headless Edge 32/32, 0 JS errors**: one bar in the DOM and the old
+  ids gone, every option carries a key+hint, encounter/teleport/orange resolved
+  by keyboard AND by button (incl. `false` surviving as a value rather than
+  collapsing to undefined), the family filter dropping the option and its key,
+  an unowned key (Enter) swallowed by the bar instead of rolling the die
+  underneath, the stack ordering (fish > reveal > choicebar), Escape still
+  closing the journal through the new path, and two full 4-bot games (26 and 32
+  rounds) with no bar left showing.
+- **Next**: G1 — fold each rule's card text, legend label and B1 glyph into its
+  own registry entry, so a rule is one object instead of five places.
+
+---
 ## 2026-07-19 (night) — discoveries remembered, repeat toasts, log rounds & colours
 
 Continued down `IMPROVEMENTS.md`'s own suggested order (A2+A3, then C1), and

@@ -78,9 +78,32 @@
 > permanent flashing badge.
 > Verified headlessly: 37/37 assertions, 0 JS errors, two full 4-bot games.
 >
+> **2026-07-20 — D1 + D2 + D3 BUILT.**
+> **D1**: the three hand-written choice bars (`#choice` / `#tpchoice` /
+> `#orange`) and their three resolver globals are gone. There is now ONE
+> `.choicebar` in the DOM, one `CHOICES` DATA table (`encounter` / `teleport`
+> / `orange` — each an array of `{value, ico, label, key, hint, ghost, when}`)
+> and one `askChoice(id, p, text)` that builds the buttons, owns the
+> spotlight, and resolves a promise. A new choice is a new entry: no new HTML,
+> no new global, no new keydown branch. `when()` replaced the hand-hidden gun
+> button, so family mode simply doesn't build that option — which is also why
+> pressing G in family mode can no longer resolve a choice that isn't on
+> screen (it used to be reachable by key while the button was `display:none`).
+> **D2**: the keydown if-chain of eight `getElementById(x).contains("show")`
+> branches is one `OVERLAYS` DATA table, topmost first, plus `topOverlay()`.
+> The handler asks who is on top and hands them the key; everything below is
+> deaf by construction, so click-through/keys-through bugs stop being a thing
+> you remember to prevent. An entry with no `on` swallows keys deliberately
+> (the fishing minigame owns its own; the picker and wheel are click-only).
+> **D3**: every choice button now renders its own key from the same `hint`
+> field the keydown reads — "🦵 Kick back (K)" — so B and K, which were
+> undocumented hidden keys, are finally visible.
+> Verified headlessly: 32/32 assertions, 0 JS errors, two full 4-bot games
+> (26 and 32 rounds).
+>
 > Everything else below is still open — pick by number as before.
-> Next in the suggested order: **D1 + D2** (choice/overlay unification), then
-> **G1** (fold card text + legend label + glyph into one registry entry).
+> Next in the suggested order: **G1** (fold card text + legend label + glyph
+> into one registry entry), then **C3**/**C4**/**C5** for feel.
 
 Isak's brief: the joy of the game is discovering arbitrary rules ONE AT A
 TIME — that surprise must not drown in confusion. This is a written audit of
