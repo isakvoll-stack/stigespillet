@@ -3,6 +3,35 @@
 Newest first. One entry per working session; note what shipped and what's next.
 
 ---
+## 2026-07-20 (evening) — raw-notes batch #2 (autonomous)
+
+Isak's four raw notes, built with sensible defaults (open picks in
+`QUESTIONS.md`, 2026-07-20 evening section):
+
+- **📜 Rules & tiles picker** — new Advanced group listing every optional
+  rule/special tile by NAME ONLY (details stay a table secret), with one-press
+  presets 🎪 Everything / 🎯 Pure classic; hand-mixed boxes = custom (no preset
+  lit). `RULE_PICKS`/`RULE_PRESETS` DATA; writes `FEATURE_BASE` so the nightly
+  draw and Family Mode compose on top; persisted with the other settings.
+- **Award taglines + doubled suspense** — bonus-trophy/bonus-point cards now
+  carry a one-line tagline per category (`tag` in `KOTH_BONUS_CATS`, new
+  `bcTag` card line) and the drumroll doubled to 4.8s (board-twist card keeps
+  its own 2.4s pace).
+- **Barrels interact at last** — landing on a parked Kong barrel, or a barrel
+  rolling onto your tile, bowls you over: floored + a 1–2 row straight-down
+  tumble (gold-rain style; bottom row = flattened; shields/mirrors still
+  block). `springBarrel` hooks both landing paths; `barrelBowl` is the shared
+  collision.
+- **Night is pitch black** — `NIGHT_MOD` dark now #000 at full opacity
+  (was translucent); covers the tour night leg, Forever Night and the 🌃
+  Nightfall tile in one line.
+
+Verified headless Edge **25/25, 0 JS errors** — statics, picker UI + settings
+round-trip, measured 6.9s award card with tagline, four barrel unit tests, and
+a full 30-round 4-bot game to a winner. Docs synced (RULES.md, TASKS.md,
+QUESTIONS.md, README Next); raw notes moved to Processed 2026-07-20.
+
+---
 ## 2026-07-20 (later) — integrity check + polish pass
 
 Full health check of the shipped state, per Isak's request. Everything came

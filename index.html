@@ -397,6 +397,8 @@
   .bonuscard.show .bcbox{transform:scale(1)}
   .bonuscard .bctitle{font-size:14px;letter-spacing:4px;opacity:.75;text-transform:uppercase}
   .bonuscard .bccat{font:800 34px/1.2 Georgia,serif;margin:10px 0 14px}
+  .bonuscard .bctag{font-size:15px;font-style:italic;opacity:.7;margin:-8px 0 12px}
+  .bonuscard .bctag:empty{display:none}
   .bonuscard .bcwho{font-size:22px;font-weight:700;min-height:30px}
 
   /* bot decision popup: what the bot is weighing, then its verdict */
@@ -702,6 +704,7 @@
     <div class="bcbox">
       <div class="bctitle" id="bcTitle">🎁 Bonus</div>
       <div class="bccat" id="bcCat"></div>
+      <div class="bctag" id="bcTag"></div>
       <div class="bcwho" id="bcWho"></div>
     </div>
   </div>
@@ -1465,7 +1468,7 @@ const TOUR = {
    of light following EVERY pawn; outside the light a white line-grid shows where
    tiles are, plus white overlays tracing the ladders and snakes. The lines vanish
    inside the light. Shared by the Nightfall square. */
-const NIGHT_MOD = { LIGHT_TILES:3.5, DARK:"#070914", DARK_OPACITY:.965,
+const NIGHT_MOD = { LIGHT_TILES:3.5, DARK:"#000000", DARK_OPACITY:1,   // pitch black, zero see-through (Isak, 2026-07-20)
                     GRID:"#ffffff", GRID_OPACITY:.5, GRID_W:1.5, LINK_W:3 };
 const ICE_MOD   = { SKID: 2 };
 const FLOOD_MOD = { START_ROUND: 3, EVERY: 2, MAX_ROWS: 3 };
@@ -1641,10 +1644,11 @@ async function twistNightReveal(mod){
   const cat = document.getElementById("bcCat"), who = document.getElementById("bcWho");
   cat.innerHTML = `<span style="opacity:.55">…</span>`;
   who.textContent = "";
+  document.getElementById("bcTag").textContent = "";
   card.classList.add("show");
   SFX.play("spin");
   let dots = 1;
-  const ticks = Math.max(1, Math.round(BONUS_CARD.SUSPENSE_MS / BONUS_CARD.DOT_MS));
+  const ticks = Math.max(1, Math.round(BONUS_CARD.TWIST_SUSPENSE_MS / BONUS_CARD.DOT_MS));
   for (let k = 0; k < ticks; k++){
     cat.innerHTML = `<span style="opacity:.55">${"• ".repeat(dots).trim()}</span>`;
     dots = dots % 5 + 1;
@@ -1821,6 +1825,7 @@ async function popupCard(ico, headline, sub){
   const card = document.getElementById("bonuscard");
   document.getElementById("bcTitle").textContent = "🎈 Something pops up!";
   document.getElementById("bcCat").textContent = `${ico} ${headline}`;
+  document.getElementById("bcTag").textContent = "";
   document.getElementById("bcWho").textContent = sub || "";
   card.classList.add("show");
   SFX.play("sparkle");
@@ -2321,6 +2326,50 @@ const RULE_INFO = {
   },
 };
 
+/* ---- DATA: Advanced settings → 📜 Rules & tiles ---------------------
+   The picker shows rule NAMES ONLY (Isak, 2026-07-20) — what a rule does
+   stays a table secret until it fires. Entries with a `card` borrow their
+   ico/name from that RULE_INFO card; the rest name themselves here.
+   Toggles write FEATURE_BASE (the authored defaults), so the nightly draw
+   and Family Mode compose on top of the table's own picks. */
+const RULE_PICKS = [
+  { key:"exactFinish",         ico:"🎯", name:"Exact finish" },
+  { key:"sixRollsAgain",       ico:"🎲", name:"Six rolls again" },
+  { key:"encounter",           card:"encounter" },
+  { key:"kickWhileDown",       card:"kickdown" },
+  { key:"sniper",              card:"sniper" },
+  { key:"fishing",             card:"fishing" },
+  { key:"fishPowers",          card:"fishPowers" },
+  { key:"nightfall",           card:"nightfall" },
+  { key:"teleport",            card:"teleport" },
+  { key:"teleportMalfunction", card:"teleportmalf" },
+  { key:"lightning",           card:"lightning" },
+  { key:"luckyStar",           card:"lucky" },
+  { key:"fateSwap",            card:"fate" },
+  { key:"orange",              card:"orange" },
+  { key:"snakeCollision",      card:"snakehit" },
+  { key:"freeze",              card:"freeze" },
+  { key:"radioactive",         card:"radioactive" },
+  { key:"trapdoor",            card:"trapdoor" },
+  { key:"warp",                card:"warp" },
+  { key:"snakeEyes",           card:"snakeeyes" },
+  { key:"secretSquare",        card:"secret" },
+  { key:"blackMarket",         ico:"🕯️", name:"The black market" },
+  { key:"brokenGate",          card:"gate" },
+  { key:"shop",                card:"shop" },
+  { key:"shopPassby",          ico:"🛒", name:"Shop pass-by" },
+  { key:"coins",               card:"coins" },
+  { key:"setback",             card:"setback" },
+  { key:"dizzy",               card:"dizzy" },
+  { key:"crafting",            card:"crafting" },
+];
+RULE_PICKS.forEach(r => { const c = RULE_INFO[r.card]; if (c){ r.ico = c.ico; r.name = c.name; } });
+// One press applies a whole table setup; `on:null` means every rule.
+const RULE_PRESETS = [
+  { id:"everything", name:"🎪 Everything", on:null },
+  { id:"classic",    name:"🎯 Pure classic", on:["exactFinish","sixRollsAgain"] },
+];
+
 /* ---- DATA: how a rule announces itself -----------------------------
    A rule you have NEVER met stops the game with the full Rule+ card. A rule
    this browser already knows only gets a corner toast — the label, not the
@@ -2584,7 +2633,8 @@ const GOLD_RAIN = { COINS:30, DROP_ROWS:2, POP_WAIT_MS:700, FALL_MS:600 };   // 
 const KONG = { BARRELS:3, STEP_MS:340, SPAWN_MS:520,   // wheel 🦍: barrels PERSIST — each rolls ONE tile per player-turn (not per round)
   PERCH:86, BEATS:3, BEAT_MS:280,                      // where Kong appears above the top row + his chest-beat intro
   LADDER_CHANCE:0.4,                                   // odds a barrel rides a ladder down (60% it rolls past); the ride takes 2 turns — it pauses halfway
-  SIZE:1.5 };                                          // barrel drawing scale
+  SIZE:1.5,                                            // barrel drawing scale
+  KNOCK_ROWS_MIN:1, KNOCK_ROWS_MAX:2, KNOCK_MS:500 };  // a barrel hit bowls you 1–2 rows straight down (Isak, 2026-07-20)
 const CHAOS = { COINS_GAIN:8, COINS_LOSE:8 };   // wheel 🎲 chaos pool: coin windfall / pickpocket amounts
 const GRAZE = { BACK_MIN:1, BACK_MAX:3, DOWN_CHANCE:0.10, RADIUS:40 }; // clipped by a passing slider: 1-3 back, rarely floored; RADIUS = px from the drawn snake curve
 const SLIDE_CURVE = { SEG_PX:26 };         // px per segment when sampling the wavy snake (drawing + graze checks share it)
@@ -4362,6 +4412,9 @@ async function settleLanding(p, i, from, landed, rollsAgain, dual){
     if (game.over) return;
   }
 
+  // a Kong barrel parked on the landing square bowls the arriving player over
+  if (!slipped && await springBarrel(p)){ await endTurn(); return; }
+
   // hand the landing to the tile-rule registry; a rule that fires ends the turn
   if (!rollsAgain && !slipped){
     const fired = await runTileRules(p, {offTurn:false, depth:0});
@@ -4570,13 +4623,14 @@ async function afterKothLap(p, rollsAgain){
 // Mario-Party-style bonus round: when time is up, a few side achievements pay
 // out extra trophies before the winner is crowned. Categories with no activity
 // never pay; ties pay every leader.
-const BONUS_CARD = { SUSPENSE_MS:2400, HOLD_MS:1800, DOT_MS:400 };   // the reveal card: drumroll length, winner linger, dot tick
+const BONUS_CARD = { SUSPENSE_MS:4800, TWIST_SUSPENSE_MS:2400, HOLD_MS:1800, DOT_MS:400 };   // award drumroll (doubled, Isak 2026-07-20), board-twist drumroll, winner linger, dot tick
 // The full-screen reveal: category up first, a drumroll of dots builds the
 // suspense, THEN the winners flash in with the prize.
 async function bonusCardReveal(title, c, winners, best, prize){
   const card = document.getElementById("bonuscard");
   document.getElementById("bcTitle").textContent = title;
   document.getElementById("bcCat").textContent = `${c.ico} ${c.name}`;
+  document.getElementById("bcTag").textContent = c.tag || "";
   const who = document.getElementById("bcWho");
   who.innerHTML = `<span style="opacity:.55">…</span>`;
   card.classList.add("show");
@@ -4598,11 +4652,11 @@ async function bonusCardReveal(title, c, winners, best, prize){
   await sleep(300);
 }
 const KOTH_BONUS_CATS = [
-  { id:"rich",    ico:"🪙", name:"Fattest purse",  stat:p => p.coins||0 },
-  { id:"angler",  ico:"🐟", name:"Master angler",  stat:p => p.fishCaught||0 },
-  { id:"climber", ico:"🏔️", name:"Peak bagger",    stat:p => p.laps||0 },
-  { id:"gadget",  ico:"🎒", name:"Gadget lover",   stat:p => p.itemsUsed||0 },
-  { id:"unlucky", ico:"💀", name:"Hardest knocks", stat:p => p.downs||0 },
+  { id:"rich",    ico:"🪙", name:"Fattest purse",  tag:"most coins in hand at the end",   stat:p => p.coins||0 },
+  { id:"angler",  ico:"🐟", name:"Master angler",  tag:"most fish hauled from the pond",  stat:p => p.fishCaught||0 },
+  { id:"climber", ico:"🏔️", name:"Peak bagger",    tag:"most laps over the summit",       stat:p => p.laps||0 },
+  { id:"gadget",  ico:"🎒", name:"Gadget lover",   tag:"most items used",                 stat:p => p.itemsUsed||0 },
+  { id:"unlucky", ico:"💀", name:"Hardest knocks", tag:"knocked flat more than anyone",   stat:p => p.downs||0 },
 ];
 async function awardKothBonuses(){
   const B = KOTH.BONUS;
@@ -7522,6 +7576,8 @@ async function resolveLanding(pl, depth, skipTeleport){
   }
   // a planted banana peel fires before the tile rules get a say
   if (FEATURES.shop && await springBanana(pl, depth)) return;
+  // a Kong barrel parked here bowls the arriving player over
+  if (await springBarrel(pl)) return;
   // hand the landing to the tile-rule registry (offTurn path); a rule that
   // fires ends the cascade — a frozen player is stuck, a setback is final
   if (await runTileRules(pl, {offTurn:true, depth, skipTeleport})) return;
@@ -8079,8 +8135,10 @@ async function goldRain(p){
 /* Wheel 🦍: KONG scales the top of the board, beats his chest and hurls his
    barrels onto the top row. The barrels STAY on the board: each rolls ONE tile
    down the numbered path per player-turn (not per round), may ride a ladder
-   down (40% — a 2-turn ride that pauses halfway), flattens whoever it reaches
-   (shield/mirror get their say) and bursts at tile 1. */
+   down (40% — a 2-turn ride that pauses halfway), bowls over whoever it
+   reaches — floored and knocked 1–2 rows straight down (shield/mirror get
+   their say) — and bursts at tile 1. Landing ON a parked barrel hurts the
+   same way (springBarrel, hooked into both landing paths). */
 function makeBarrelEl(){
   const s = KONG.SIZE;
   const g = el("g",{"class":"kongbarrel"});
@@ -8097,12 +8155,37 @@ function slideBarrel(b, to, ms){
   b.el.style.transform = `translate(${to.x}px, ${to.y}px) rotate(${b.rot}deg)`;
   return sleep(ms);
 }
-function kongBarrelHits(b){
-  game.players.forEach(q => {
-    if (q.finished || q.downed || q.frozen || q.pos !== b.pos) return;
-    downPlayer(q);
-    log(`🛢 ${q.name} is bowled over by a barrel!`);
-  });
+async function barrelBowl(q){
+  downPlayer(q);
+  if (!q.downed){ layoutTokens(); renderScoreboard(); return; }   // shield/mirror/stonehide had their say
+  const { row, col } = cellRC(q.pos);
+  const rows = KONG.KNOCK_ROWS_MIN + ((Math.random()*(KONG.KNOCK_ROWS_MAX - KONG.KNOCK_ROWS_MIN + 1))|0);
+  let dest = null;
+  for (let d = rows; d >= 1 && dest === null; d--) dest = rcToCell(row + d, col);
+  SFX.play("kick");
+  if (dest === null){
+    log(`🛢 ${q.name} is bowled over by a barrel — nowhere left to fall!`);
+  } else {
+    const from = q.pos, idx = idxOf(q);
+    setBackPos(q, dest);
+    log(`🛢 ${q.name} is bowled over by a barrel and tumbles ${from} → ${dest}!`);
+    SFX.play("chute");
+    await hopToken(idx, from, dest, KONG.KNOCK_MS);
+  }
+  layoutTokens(); renderScoreboard();
+}
+async function kongBarrelHits(b){
+  for (const q of game.players){
+    if (q.finished || q.downed || q.frozen || q.pos !== b.pos) continue;
+    await barrelBowl(q);
+  }
+}
+// Landing on a square a barrel is parked on hurts exactly the same way.
+async function springBarrel(p){
+  if (!game.kongBarrels || p.finished || p.downed || p.frozen) return false;
+  if (!game.kongBarrels.some(b => b.pos === p.pos)) return false;
+  await barrelBowl(p);
+  return true;
 }
 async function moveKongBarrels(){
   const list = game.kongBarrels;
@@ -8124,7 +8207,7 @@ async function moveKongBarrels(){
       b.pos -= 1;
       await slideBarrel(b, cellCenter(Math.max(1, b.pos)), KONG.STEP_MS);
     }
-    kongBarrelHits(b);
+    await kongBarrelHits(b);
     if (b.pos <= 1){
       explode(1); SFX.play("crack");
       b.el.remove(); list.splice(list.indexOf(b), 1);
@@ -8157,7 +8240,7 @@ async function kongRampage(){
     game.kongBarrels.push(b);
     SFX.play("boom");
     await slideBarrel(b, cellCenter(start), KONG.SPAWN_MS);
-    kongBarrelHits(b);
+    await kongBarrelHits(b);
   }
   ape.style.transition = "transform .5s ease, opacity .5s ease";
   ape.style.transform = "translate(0,-80px)"; ape.style.opacity = "0";
@@ -9858,6 +9941,7 @@ function buildRoundsRow(){
    Board = BOARD_OPTIONS (read by newGame via boardOpt). */
 const ADV_SECTIONS = [
   { id:"game", title:"🏁 Game", build: list => { buildFinishRow(list); buildVariantRows(list); buildMatchRow(list); } },
+  { id:"rules", title:"📜 Rules & tiles", build: list => buildRulePicker(list) },
   { id:"items", title:"🛒 Items", entries: SHOP_CATALOG.filter(i => !i.craftOnly) },   // craft-only pieces stay a secret
   { id:"exotics", title:"🕯️ Black market", entries: EXOTICS },
   { id:"cursed", title:"⛓️ Broken Gate", entries: CURSED },
@@ -9873,6 +9957,40 @@ function buildToggleRows(list, entries){
     label.innerHTML = `${item.ico} <b>${item.name}</b> <span class="adv-desc">— ${item.desc}</span>`;
     row.append(box, label); list.appendChild(row);
   });
+}
+// Advanced → 📜 Rules & tiles: preset buttons + name-only rows (no
+// descriptions — the rules keep their secrets). A preset button paints
+// itself selected while the current mix matches it; no match = custom.
+function setRulePick(key, on){ FEATURE_BASE[key] = on; FEATURES[key] = on; }
+function rulePresetOn(pr, key){ return pr.on ? pr.on.includes(key) : true; }
+function buildRulePicker(list){
+  const btns = document.createElement("div"); btns.className = "matchbtns";
+  const boxes = [];
+  const paint = ()=> [...btns.children].forEach(b => {
+    const pr = RULE_PRESETS.find(x => x.id === b.dataset.id);
+    b.classList.toggle("sel", RULE_PICKS.every(r => FEATURE_BASE[r.key] === rulePresetOn(pr, r.key)));
+  });
+  RULE_PRESETS.forEach(pr => {
+    const b = document.createElement("button"); b.type = "button";
+    b.dataset.id = pr.id; b.textContent = pr.name;
+    b.onclick = ()=>{
+      RULE_PICKS.forEach(r => setRulePick(r.key, rulePresetOn(pr, r.key)));
+      boxes.forEach(([box, r]) => box.checked = FEATURE_BASE[r.key]);
+      paint(); saveSettings();
+    };
+    btns.appendChild(b);
+  });
+  list.appendChild(btns);
+  RULE_PICKS.forEach(r => {
+    const row = document.createElement("label"); row.className = "adv-item";
+    const box = document.createElement("input"); box.type = "checkbox";
+    box.checked = FEATURE_BASE[r.key];
+    box.onchange = ()=>{ setRulePick(r.key, box.checked); paint(); saveSettings(); };
+    const label = document.createElement("span");
+    label.innerHTML = `${r.ico} <b>${r.name}</b>`;
+    row.append(box, label); boxes.push([box, r]); list.appendChild(row);
+  });
+  paint();
 }
 // The finishers slider (Classic mode): how many players must reach the top
 // before the game ends. Clamped to the seat count when a game starts.
@@ -10212,6 +10330,7 @@ function saveSettings(){
       visual: { tileNumbers: VISUAL.tileNumbers },
       items: Object.fromEntries([...SHOP_CATALOG, ...EXOTICS, ...CURSED].map(i => [i.id, i.enabled])),
       board: Object.fromEntries(BOARD_OPTIONS.map(b => [b.key, b.enabled])),
+      rules: Object.fromEntries(RULE_PICKS.map(r => [r.key, FEATURE_BASE[r.key]])),
     }));
   } catch(e){}
 }
@@ -10241,6 +10360,7 @@ function loadSettings(){
     if (ti >= 0) THEME.current = ti;
     [...SHOP_CATALOG, ...EXOTICS, ...CURSED].forEach(i => { if (s.items && typeof s.items[i.id] === "boolean") i.enabled = s.items[i.id]; });
     BOARD_OPTIONS.forEach(b => { if (s.board && typeof s.board[b.key] === "boolean") b.enabled = s.board[b.key]; });
+    RULE_PICKS.forEach(r => { if (s.rules && typeof s.rules[r.key] === "boolean") setRulePick(r.key, s.rules[r.key]); });
   } catch(e){}
 }
 

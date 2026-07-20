@@ -294,6 +294,36 @@ See `LOG.md` for the running session history.
 ---
 
 ## Done
+### 2026-07-20 — Isak's raw-notes batch #2 (autonomous) — see `RAW_NOTES.md` Processed
+- [x] **📜 Rules & tiles picker** — new Advanced settings group (`RULE_PICKS` +
+      `RULE_PRESETS` DATA): every optional rule/special tile listed **by name
+      only** (no descriptions — the vague-card law extends to the picker; names
+      borrowed from each rule's `RULE_INFO` card). Preset buttons apply a whole
+      setup in one press: **🎪 Everything** / **🎯 Pure classic** (bare S&L);
+      hand-mixing lights neither (= custom). Toggles write `FEATURE_BASE`, so
+      the nightly draw + Family Mode compose on top; persisted like all settings.
+- [x] **Award taglines + doubled suspense** — every `KOTH_BONUS_CATS` entry has
+      a `tag` shown on the bonus card (new `bcTag` line, cleared by the twist /
+      popup cards that share the element); award drumroll `SUSPENSE_MS` 2400 →
+      **4800** (the board-twist card keeps its own `TWIST_SUSPENSE_MS 2400`).
+      Applies to BOTH KOTH bonus trophies and Grand Tour between-leg bonuses.
+- [x] **Barrels finally fight back** — a Kong barrel now bowls you over BOTH
+      ways: landing on a parked barrel (new `springBarrel`, hooked after the
+      banana check in both landing paths) or a barrel rolling onto your tile
+      (`kongBarrelHits` → `barrelBowl`). A hit = floored (shield/mirror/stonehide
+      still get their say) + tumble **1–2 rows straight down** the board
+      (gold-rain style, same column; bottom row = just flattened).
+      `KONG.KNOCK_ROWS_MIN/MAX/KNOCK_MS`.
+- [x] **Night is pitch black** — `NIGHT_MOD.DARK #000000 / DARK_OPACITY 1`
+      (was translucent .965); covers the tour night leg, the Forever Night
+      twist AND the 🌃 Nightfall tile (all share `buildFog`).
+- [x] RULES.md synced (barrel collisions, rules picker, full-experience note).
+- [x] **Verified headless Edge 25/25, 0 JS errors**: statics, picker UI
+      (name-only rows, preset press/highlight/custom, settings round-trip),
+      award tagline + measured 6.9s card, barrel unit tests (land-on 2-row,
+      rolled-onto 1-row, bottom-row flatten, downed not re-hit), full 30-round
+      4-bot game to a winner.
+
 ### 2026-07-18/19 — Isak's raw-notes batch (autonomous) — see `RAW_NOTES.md` Processed
 - [x] **New `RAW_NOTES.md`** — Isak's free-form scratchpad (raw text, no format).
       `IDEAS.md` stays the structured one-entry-per-idea inbox and now points at

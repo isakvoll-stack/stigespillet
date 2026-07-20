@@ -55,7 +55,18 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
-Recently shipped (2026-07-20): **one choice bar, one overlay stack.** Every
+Recently shipped (2026-07-20 evening): **Isak's raw-notes batch #2.** A new
+**⚙️ Advanced → 📜 Rules & tiles** group lets you pick exactly which rules and
+special tiles are in play — names only, no spoilers — with one-press presets
+(🎪 Everything / 🎯 Pure classic) and your own hand-mix as custom. Bonus-trophy
+cards now say what each award *is* (a small tagline) and hold the drumroll
+twice as long. Kong's barrels finally interact: landing on one, or being
+caught by one, bowls you over and sends you tumbling a row or two straight
+down. And night is now pitch black — no seeing through the dark. Verified
+headless (25/25, 0 JS errors, full bot game); open defaults in
+`Next/QUESTIONS.md`.
+
+Before that (2026-07-20): **one choice bar, one overlay stack.** Every
 "pick one" the game puts in front of you — bounce/kick, teleport or stay,
 wheel/support/gun — is now the same bar built from one `CHOICES` table, and
 every button prints the key that works it, so the hint can never drift from

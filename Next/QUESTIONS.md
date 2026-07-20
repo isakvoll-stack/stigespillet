@@ -3,7 +3,28 @@
 Standing file: autonomous sessions log clarifications here instead of stopping to ask.
 Answer whenever — each answer gets folded in and the question checked off.
 
-## 2026-07-20 (latest) — one choice bar + overlay stack
+## 2026-07-20 evening (latest) — raw-notes batch #2
+
+- [ ] **Rules picker presets**: shipped with two — **🎪 Everything** and
+  **🎯 Pure classic** (only exact-finish + six-rolls-again stay on). You said
+  "future options to run presets and custom with a press of a button" — which
+  presets do you want next (e.g. 🕊️ Calm, 🌪️ Full chaos, 👨‍👩‍👧 Family-ish)?
+  And should there be **saveable custom slots** ("Custom 1/2" that remember
+  your own mix)?
+- [ ] **Picker visibility**: 📜 Rules & tiles sits behind the 🔓 Full
+  experience unlock like the other groups (Items / Black market / Board).
+  Fine, or should rules show even in the plain-classic presentation?
+- [ ] **Barrel hit severity** (defaults picked): a barrel collision floors you
+  AND tumbles you 1–2 rows straight down (same column, like gold rain);
+  shields/mirrors still block; on the bottom row you're just flattened; a
+  downed/frozen player isn't re-hit. Too harsh, too soft, or right?
+- [ ] **Award taglines**: wording picked — "most coins in hand at the end" /
+  "most fish hauled from the pond" / "most laps over the summit" / "most items
+  used" / "knocked flat more than anyone". Reword any?
+- [ ] **Suspense**: doubled ONLY for the award cards (2.4s → 4.8s drumroll).
+  The 🃏 Board-twist reveal kept its old 2.4s pace — double that one too?
+
+## 2026-07-20 — one choice bar + overlay stack
 
 - [ ] **Every choice button now shows its key** — "🦘 Bounce over (B)",
   "🦵 Kick back (K)", "🌀 Teleport (Y)", "Stay (N)". Teleport and the orange

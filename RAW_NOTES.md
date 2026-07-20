@@ -18,7 +18,19 @@ leave under **New** before bed is built, verified and pushed by morning; an empt
 
 ## New
 
-*(nothing yet — jot away)*
+---
+
+## Processed 2026-07-20
+
+> Worked into the game 2026-07-20 (see Next/TASKS.md + LOG.md for what shipped).
+
+1. I want an advanced options where you can select what rules and tiles are in play: also future options to run presets and custom with a press of a button. I just want the rule names and nothing else. 
+
+2. Awards given out on grand tour and KOTH needs a small tagline description of what the award is. also make the suspence pause dubble the lenght. 
+
+3. the barrels aren't interacting with the player. when a player lands on a barrel or a barrel moves onto a player's tile, they should be knocked down a row or two.
+
+4. the "darkness" in night needs to be pitch black and not translucent at all. 
 
 ---
 

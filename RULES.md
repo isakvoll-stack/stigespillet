@@ -174,8 +174,8 @@ random. They're built to bend what you take for granted:
 - **🔓 Full experience** *(Settings screen, under the title menu — OFF by
   default)* — with it off, the game presents as a plain classic ladder game:
   **Play skips the mode picker** and goes straight to a Classic setup, and
-  **⚙️ Advanced settings shows only the 🏁 Game group** (Items, Black market,
-  Broken Gate and Board stay hidden). Tick it to reveal the other game modes
+  **⚙️ Advanced settings shows only the 🏁 Game group** (Rules & tiles, Items,
+  Black market, Broken Gate and Board stay hidden). Tick it to reveal the other game modes
   and every advanced group. Remembered like any setting. *(Flag: `UNLOCKS.full`.)*
 
 - **👨‍👩‍👧 Family mode** *(Settings screen, under the title menu)* — the calmer,
@@ -618,8 +618,11 @@ Land on an **orange square** and pick one of three:
   they hang around for a long, nervous while. A barrel that reaches a **ladder's
   top** has a **40% chance to ride it down** (60% it rolls straight past); the
   ride takes **two turns** — it stops **halfway down the ladder** after the
-  first. Anyone a barrel reaches is **knocked flat** — Shields block, Mirrors
-  deflect; a barrel bursts when it reaches tile 1. Tunables in `KONG`).
+  first. Anyone a barrel reaches is **bowled over**: knocked flat AND sent
+  tumbling **1–2 rows straight down** the board (same column, gold-rain style;
+  on the bottom row there's nowhere to fall — just flattened). **Landing on a
+  square a barrel is parked on hurts exactly the same way.** Shields block,
+  Mirrors deflect; a barrel bursts when it reaches tile 1. Tunables in `KONG`).
 
   The two **🎲 Random** slices share one **chaos pool of EVERYTHING the game can
   do** (the `WHEEL_CHAOS` registry): every classic strike (lightning, lucky star,
@@ -763,6 +766,15 @@ token at the shop door to browse (each pause is a fresh shelf), then the move
 carries on to where your roll was taking you. This fires on *every* pass — your
 own roll, wheel and support moves, even being dragged backwards. *(Toggle:
 `FEATURES.shopPassby`.)*
+
+**Rule toggles:** **⚙️ Advanced settings → 📜 Rules & tiles** lists every optional
+rule and special tile **by name only** — what a rule actually does stays a table
+secret until it fires in play. Two preset buttons apply a whole setup with one
+press: **🎪 Everything** (all rules live) and **🎯 Pure classic** (bare snakes &
+ladders — exact finish and six-rolls-again only). Hand-mix the boxes and neither
+preset stays lit — that's your own custom table. Saved like every other toggle;
+the 🎴 nightly draw and Family Mode compose on top of your picks (`RULE_PICKS` /
+`RULE_PRESETS` DATA).
 
 **Item toggles:** on the *Choose players* screen, open **⚙️ Advanced settings → 🛒
 Items** to enable or disable any item. Disabled items never appear on the shop or
