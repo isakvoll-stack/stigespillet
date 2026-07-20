@@ -55,6 +55,17 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
+Recently shipped (2026-07-19, night): **the game remembers what you've met.** A
+rule you've never seen still stops everything with its Rule+ card; one this
+browser already knows just gets a small corner pill with its name, so a
+twentieth night isn't interrupted to re-explain the teleporter. A fresh game
+still starts with a blank legend, unmarked squares and bots that fall for the
+tile-89 trapdoor — only the card is skipped, never the board's own secrecy.
+Settings → 🗑️ Forget all discoveries resets it for a night with new people.
+The log now separates rounds and tints coins gold, damage red and discoveries
+purple. Three rules that had been firing with no explanation at all (Coins,
+Strange fusions, Fish powers) finally have cards.
+
 Recently shipped (2026-07-19, later): **nothing to keep in your head** — whatever
 is currently true of the player to move is now spelled out in words under their
 name ("😵‍💫 Dizzy — your next move walks BACKWARDS"), and clicking a badge reopens

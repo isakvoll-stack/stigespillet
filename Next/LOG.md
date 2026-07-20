@@ -3,6 +3,60 @@
 Newest first. One entry per working session; note what shipped and what's next.
 
 ---
+## 2026-07-19 (night) — discoveries remembered, repeat toasts, log rounds & colours
+
+Continued down `IMPROVEMENTS.md`'s own suggested order (A2+A3, then C1), and
+took the two audit items that turned out to be real bugs rather than polish.
+
+- **A2 — discoveries persist per browser.** New `rulesEver` map under its own
+  `DISCOVERY.KEY` (mirrors the `FRESH` store pattern; deliberately NOT folded
+  into the settings blob, so "forget" can't disturb volumes or themes). The
+  design decision worth remembering: **persistence gates exactly one thing —
+  whether the full card interrupts.** The legend, tile glyphs, journal and the
+  bots' tile-89 blindness all still read the per-game `rulesSeen`. Persisting
+  those would open a fresh party night with every secret pre-spoiled and leave
+  bots permanently trap-aware against a first-time human guest. The subtle
+  half, which a naive patch gets wrong: the veteran branch still sets
+  `rulesSeen` and calls `renderLegend()`, so the legend swatch, the corner
+  glyph and the journal entry all still fill in as the rule actually fires —
+  only the modal is skipped. Settings gained **🗑️ Forget all discoveries
+  (N known)** with the two-tap arm/confirm the manual placement already uses.
+- **A3 — toast tier.** `.ruletoast` + `ruleToast()`: a corner pill with the
+  rule's icon and name, ~1.5s, no keys. One reused element so a double trigger
+  retargets rather than stacks, and it **never touches `revealResolve`** —
+  which makes the known shared-resolver hang structurally impossible on that
+  path. Tunables in `RULE_TOAST`; both copies of the bare `3800` auto-dismiss
+  became `RULE_CARD.AUTO_MS`.
+- **C1 — log rounds & colours.** `LOG_CLASSES` DATA table + `classifyLog`
+  fallback inside `log()` (an explicit `cls` still wins), plus a once-per-round
+  `— Round N begins —` divider emitted from `log()` itself. Putting the divider
+  in `log()` rather than at a round-increment site is the whole trick: Boss
+  Battle advances `game.round` on its own path and gets one for free, as will
+  any future mode. Dropped the two hand-written "Round N:" stamps.
+- **A4** — the shamefall card now lands *before* the 0.45s collapse it explains
+  (an audit of all 38 `revealRuleOnce` sites found it was the only one firing
+  after its own consequence).
+- **G5** — three rules were firing with **no card at all**: 🪙 Coins,
+  ⚙️ Strange fusions, 🐟 Fish powers. All three now have vague cards.
+- **Two bugs caught by review, in the G5 code above, both worth remembering:**
+  (1) `awardCoin` runs on most landings, so an ungated reveal turned the new
+  toast into a pill flashing every turn — now gated on `!rulesSeen.coins`.
+  (2) firing a card from synchronous code created a card **nobody awaits**,
+  which the next awaited card silently overwrites, so the player never reads
+  it. Fixed properly: `revealRuleSoon` now **queues** into `pendingReveals` and
+  `drainReveals()` shows it at a real seam (top of `startTurn`; `endBossTurn`
+  for the arena). Rule of thumb for future work here: **never open a Rule+ card
+  from a function nobody can await.**
+- Verified headlessly: **37/37 assertions, 0 JS errors, two complete 4-bot
+  games.** Harness note: the unit checks plus two full games need
+  `--virtual-time-budget=1800000`; a smaller budget makes a game trip the
+  watchdog and look like a stall when it is only starved of virtual time.
+
+Next in IMPROVEMENTS' order: **D1 + D2** (one choice bar + an overlay stack —
+the structural enabler), then **G1** (fold card text, legend label and glyph
+into one registry entry per rule).
+
+---
 ## 2026-07-19 (later) — item FX audit finished + B1/B4 tile marks
 
 Picked up the two open items on the Next tab that weren't gated on Isak.

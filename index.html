@@ -15,6 +15,7 @@
     --ink:#2a2018; --shadow:rgba(0,0,0,.35);
     --p1:#d64541; --p2:#2e86c1; --p3:#27ae60; --p4:#f1c40f;
     --sky1:#7cc6ec; --sky2:#a9dca0; --sky3:#5fa84f; --glow:rgba(255,243,170,.95);
+    --log-coin:#e8c05a; --log-dmg:#e8776b; --log-rule:#c9a3e8; --log-round:#9d8a6a;
   }
   *{box-sizing:border-box}
   html,body{margin:0;height:100%}
@@ -131,6 +132,11 @@
   .log{font-size:13px;line-height:1.5;color:#e7d8ba;max-height:150px;overflow-y:auto}
   .log div{padding:2px 0;border-bottom:1px solid rgba(212,166,86,.12)}
   .log .win{color:var(--brass);font-weight:700}
+  .log .coin{color:var(--log-coin)}
+  .log .dmg{color:var(--log-dmg)}
+  .log .rule{color:var(--log-rule);font-weight:700}
+  .log .roundmark{color:var(--log-round);text-align:center;font-size:11px;letter-spacing:2px;
+    text-transform:uppercase;border-bottom:none;opacity:.85;padding:6px 0 4px}
 
   /* title / setup screens */
   .screen{position:fixed;inset:0;z-index:10;display:none;place-items:center;padding:24px;overflow:auto;
@@ -366,6 +372,20 @@
   .killcall.show{transform:translate(-50%,-50%) scale(1);opacity:1}
   .warpnum{top:40%;font-size:96px;color:#d7dbe0;letter-spacing:0;
     text-shadow:0 2px 0 #23262b,0 0 22px rgba(215,219,224,.55)}
+
+  /* a rule the table already knows: the name in the corner, no interruption */
+  .ruletoast{position:fixed;z-index:5;display:flex;align-items:center;gap:8px;
+    padding:10px 16px;border-radius:13px;background:rgba(28,20,12,.95);
+    border:2px solid var(--brass);box-shadow:0 8px 24px rgba(0,0,0,.5);
+    color:var(--cream);font-weight:700;pointer-events:none;
+    opacity:0;transform:translateY(10px) scale(.94);
+    transition:opacity .28s ease,transform .28s cubic-bezier(.2,1.4,.4,1)}
+  .ruletoast.show{opacity:1;transform:translateY(0) scale(1)}
+  .ruletoast .rtico{line-height:1}
+  .ruletoast.br{right:18px;bottom:18px}
+  .ruletoast.bl{left:18px;bottom:18px}
+  .ruletoast.tr{right:18px;top:18px}
+  .ruletoast.tl{left:18px;top:18px}
 
   /* bonus-round card: the category first, drumroll, THEN who takes the points */
   .bonuscard{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:55;
@@ -637,6 +657,7 @@
       <label class="toggle">🔊 Volume <input type="range" id="optVolume" min="0" max="100" value="100" style="width:150px;vertical-align:middle;margin-left:8px"></label>
       <label class="toggle">🎵 Music <input type="range" id="optMusicVol" min="0" max="100" value="40" style="width:150px;vertical-align:middle;margin-left:8px"></label>
       <label class="toggle"><input type="checkbox" id="optTileNums" checked> Display tile numbers 🔢</label>
+      <button class="btn ghost" id="forgetDiscoveries">🗑️ Forget all discoveries</button>
       <button class="btn ghost" id="settingsBack">Back</button>
     </div>
   </div>
@@ -2143,6 +2164,20 @@ const TXT = {
   won: (name)=>`${name} wins! 🎉`,
 };
 
+/* ---- DATA: how the log reads ---------------------------------------
+   An explicit cls passed to log() always wins. Otherwise the first MARK a
+   line starts with decides its colour, so a category is one row here rather
+   than an edit at every call site. Movement stays classless on purpose —
+   it is the log's ordinary voice. */
+const LOG_CLASSES = [
+  { mark: "🪙", cls: "coin" },
+  { mark: "💰", cls: "coin" },
+  { mark: "💥", cls: "dmg" },
+  { mark: "🩸", cls: "dmg" },
+  { mark: "☠️", cls: "dmg" },
+];
+const LOG_ROUND = { LABEL: n => `— Round ${n} begins —`, CLS: "roundmark" };
+
 /* ---- DATA: hidden rules (each revealed once, the first time it fires) */
 const RULE_INFO = {
   manual: {
@@ -2280,11 +2315,43 @@ const RULE_INFO = {
     name: "Very dizzy",
     text: "Stop on the tan square and the world starts to spin — you turn very dizzy, and your next steps can't be trusted to carry you the right way.",
   },
+  coins: {
+    ico: "🪙",
+    name: "Coins",
+    text: "Something bright has started collecting in your pocket. Nobody has said what it buys — only that the ones who gather it seem pleased with themselves.",
+  },
+  crafting: {
+    ico: "⚙️",
+    name: "Strange fusions",
+    text: "Some things refuse to sit quietly in the same bag. Left alone together they find each other, and what comes out is never quite what went in.",
+  },
+  fishPowers: {
+    ico: "🐟",
+    name: "Fish powers",
+    text: "Carry enough of the river and it starts carrying you back. The board bends a little in your favour — though wet hands were never much good at holding on.",
+  },
   gate: {
     ico: "⛓️",
     name: "The Broken Gate",
     text: "Behind the dealer's stall hangs a gate that no longer locks. What's offered through its bars costs no coin — the price is something else, and it is always paid.",
   },
+};
+
+/* ---- DATA: how a rule announces itself -----------------------------
+   A rule you have NEVER met stops the game with the full Rule+ card. A rule
+   this browser already knows only gets a corner toast — the label, not the
+   lesson. DISCOVERY is the remembered half; clearing it makes every card new
+   again (Settings → 🗑️ Forget all discoveries). */
+const DISCOVERY = { KEY: "stigespillet.discoveries.v1" };
+const RULE_CARD = { AUTO_MS: 3800 };          // all-bot games dismiss the full card themselves
+const RULE_TOAST = {
+  HOLD_MS: 1500,
+  FADE_MS: 280,                               // must match the .ruletoast CSS transition
+  CORNER: "br",                               // br | bl | tr | tl
+  FONT_PX: 17,
+  ICON_PX: 22,
+  SOUND: "",                                  // "" = a silent reminder; "rule" reuses the discovery sting
+  SCALE_WITH_FF: true,                        // shrink the hold while ⏩ fast-forwards a bot turn
 };
 
 /* ---- ANIMATION timing (ms) ----------------------------------------- */
@@ -2978,6 +3045,7 @@ function buildTokens(count){
    ===================================================================== */
 let game = null;
 let rulesSeen = {};               // hidden rules already revealed this game
+let rulesEver = {};               // ...and the ones this browser has ever met (DISCOVERY.KEY)
 let choiceResolve = null;         // pending bounce/kick choice resolver
 let revealResolve = null;         // pending rule-reveal resolver
 let spotDark = null, spotHole = null, beamEl = null, beamFrom = {x:0,y:0};  // spotlight + laser
@@ -3566,6 +3634,7 @@ function newGame(roster){
   WARP.active = 0; WARP.owner = -1; applyWarp();   // right the board if a warp was live
   setSpecialTiles((game.draw && DRAW.SCRAMBLE) || boardOpt("scrambledStart") ? scrambledLayout() : DEFAULT_SPECIALS);
   rulesSeen = {};
+  pendingReveals = [];
   renderLegend();
   buildBoard();
   clearTwistFx();                                  // last game's twist dressing comes down
@@ -3575,7 +3644,7 @@ function newGame(roster){
   buildOverlays();                // spotlight + laser layers, sitting above the tokens
   arrowEl = makeArrow();          // fresh "whose turn" arrow for this game
   layoutTokens();                 // line everyone up in the START lane
-  logEl.innerHTML = "";
+  logEl.innerHTML = ""; lastLogRound = 0;
   hideBanner();
   BGM.base("standard", isMayhem() ? MUSIC.MODE_VAR.mayhem : null);
   refreshHUD();
@@ -3646,7 +3715,7 @@ function renderStatusBar(){
   const p = game && !game.winner ? game.players[game.current] : null;
   const list = p ? activeStatuses(p).filter(s => s.label) : [];
   bar.innerHTML = list.map(s => {
-    const open = s.card && rulesSeen[s.card] && RULE_INFO[s.card];
+    const open = s.card && (rulesEver[s.card] || rulesSeen[s.card]) && RULE_INFO[s.card];
     return `<span class="sbadge${open ? " known" : ""}"${open ? ` data-card="${s.card}"` : ""}>${s.label(p)}</span>`;
   }).join("");
   bar.style.display = list.length ? "" : "none";
@@ -3718,9 +3787,25 @@ function applyTheme(){
   document.getElementById("themeBtn").textContent = `🎨 Theme: ${t.ico} ${t.name}`;
 }
 
+// Every mode's round counter passes through here, so the divider is emitted
+// once, generically — Boss Battle advances game.round on its own path and
+// still gets one for free.
+let lastLogRound = 0;
+function classifyLog(msg){
+  const hit = LOG_CLASSES.find(c => msg.startsWith(c.mark));
+  return hit ? hit.cls : "";
+}
 function log(msg, cls){
+  if (game && game.round && game.round !== lastLogRound){
+    lastLogRound = game.round;
+    const r = document.createElement("div");
+    r.className = LOG_ROUND.CLS;
+    r.textContent = LOG_ROUND.LABEL(game.round);
+    logEl.prepend(r);
+  }
   const d = document.createElement("div");
-  if (cls) d.className = cls;
+  const use = cls || classifyLog(msg);
+  if (use) d.className = use;
   d.innerHTML = msg;
   logEl.prepend(d);
 }
@@ -4535,6 +4620,7 @@ async function applyLink(p, idx, depth){       // climb a ladder / slide a chute
   // fish power quirk: a fishy grip slips off a ladder now and then
   if (link.kind === "ladder" && FEATURES.fishPowers && (p.fish||0) >= FISH.SLIP_FISH
       && Math.random() < FISH.SLIP_CHANCE){
+    await revealRuleOnce("fishPowers");        // a ladder refusing you needs its card first
     SFX.play("chute");
     log(`🐟💦 ${p.name}'s slippery hands lost the ladder — slipped right off!`);
     await sleep(220);
@@ -4697,7 +4783,7 @@ function closeJournal(){ document.getElementById("journal").classList.remove("sh
 // this?"). Never opens an unmet rule — that would spoil the discovery.
 function showRuleCard(key){
   const info = RULE_INFO[key];
-  if (!info || !rulesSeen[key] || !game || game.busy || revealResolve) return;
+  if (!info || !(rulesEver[key] || rulesSeen[key]) || !game || game.busy || revealResolve) return;
   SFX.play("rule");
   document.getElementById("revealIco").textContent = info.ico;
   document.getElementById("revealTitle").textContent = "Discovered rule";
@@ -4710,14 +4796,74 @@ function showRuleCard(key){
     revealResolve = null;
   };
 }
+// What this browser has ever discovered. Kept apart from the settings blob so
+// forgetting it can never disturb volumes, themes or item toggles.
+function loadDiscoveries(){
+  let d = null;
+  try { d = JSON.parse(localStorage.getItem(DISCOVERY.KEY) || "null"); } catch(e){}
+  rulesEver = {};
+  Object.keys(d || {}).forEach(k => { if (RULE_INFO[k]) rulesEver[k] = true; });
+}
+function saveDiscoveries(){ try { localStorage.setItem(DISCOVERY.KEY, JSON.stringify(rulesEver)); } catch(e){} }
+function forgetDiscoveries(){ rulesEver = {}; saveDiscoveries(); }
+
+// The repeat tier: one pill, reused, so a double trigger retargets instead of stacking.
+let ruleToastEl = null, ruleToastTimers = [];
+function ruleToast(key){
+  const info = RULE_INFO[key];
+  if (!info || document.getElementById("reveal").classList.contains("show")) return;
+  ruleToastTimers.forEach(clearTimeout); ruleToastTimers = [];
+  if (!ruleToastEl){
+    ruleToastEl = document.createElement("div");
+    ruleToastEl.className = `ruletoast ${RULE_TOAST.CORNER}`;
+    ruleToastEl.style.fontSize = RULE_TOAST.FONT_PX + "px";
+    document.body.appendChild(ruleToastEl);
+  }
+  ruleToastEl.innerHTML =
+    `<span class="rtico" style="font-size:${RULE_TOAST.ICON_PX}px">${info.ico}</span><span>${info.name}</span>`;
+  const el = ruleToastEl;
+  requestAnimationFrame(()=> el.classList.add("show"));
+  if (RULE_TOAST.SOUND) SFX.play(RULE_TOAST.SOUND);
+  const hold = RULE_TOAST.SCALE_WITH_FF ? ffms(RULE_TOAST.HOLD_MS) : RULE_TOAST.HOLD_MS;
+  ruleToastTimers.push(setTimeout(()=> el.classList.remove("show"), hold));
+  ruleToastTimers.push(setTimeout(()=> { el.remove(); if (ruleToastEl === el) ruleToastEl = null; }, hold + RULE_TOAST.FADE_MS));
+}
+
+// For rules that fire from SYNCHRONOUS code, where nothing can await a card.
+// A card nobody awaits is a card the next awaited card silently overwrites, so
+// these queue instead and are shown at the next seam in the turn flow. A rule
+// the table already knows needs no seam — the toast is non-blocking anyway.
+let pendingReveals = [];
+function revealRuleSoon(key){
+  if (!RULE_INFO[key]) return;
+  if (rulesSeen[key]){ ruleToast(key); return; }
+  if (!pendingReveals.includes(key)) pendingReveals.push(key);
+}
+async function drainReveals(){
+  while (pendingReveals.length) await revealRuleOnce(pendingReveals.shift());
+}
+
 function revealRuleOnce(key, arg){
   return new Promise(res => {
-    if (rulesSeen[key]){ res(); return; }
+    const known = RULE_INFO[key];
+    if (!known){ res(); return; }
+    // Met on an earlier night: no card, but the board still learns it tonight,
+    // so the legend, the tile glyphs and the journal fill in as it actually fires.
+    if (rulesEver[key] && !rulesSeen[key]){
+      rulesSeen[key] = true;
+      renderLegend();
+      log(`${known.ico} ${known.name}`, "rule");
+      ruleToast(key);
+      res(); return;
+    }
+    if (rulesSeen[key]){ ruleToast(key); res(); return; }
     rulesSeen[key] = true;
+    rulesEver[key] = true; saveDiscoveries();
     renderLegend();                                  // the legend grows with each discovery
     SFX.play("rule");
     const num = Object.keys(rulesSeen).length;          // discovery order: 1st, 2nd, ...
     const info = RULE_INFO[key];
+    log(`${info.ico} New rule discovered — ${info.name}`, "rule");
     document.getElementById("revealIco").textContent = info.ico;
     document.getElementById("revealTitle").textContent = `Rule+ #${num}`;
     document.getElementById("revealName").textContent = info.name;
@@ -4729,7 +4875,7 @@ function revealRuleOnce(key, arg){
       revealResolve = null; res();
     };
     if (game.autonomous && game.players.every(q => q.bot))
-      setTimeout(() => { if (revealResolve) revealResolve(); }, 3800);
+      setTimeout(() => { if (revealResolve) revealResolve(); }, RULE_CARD.AUTO_MS);
   });
 }
 
@@ -4899,7 +5045,7 @@ function grantSniperIfDue(){
   const lasts = active.filter(p => p.pos === minPos);
   const chosen = lasts[(Math.random()*lasts.length)|0];
   chosen.sniper = true;
-  log(`Round ${game.round}: ${chosen.name} got a sniper rifle! 🎯`, "win");
+  log(`${chosen.name} got a sniper rifle! 🎯`, "win");
   renderScoreboard();
 }
 
@@ -5202,6 +5348,7 @@ function announceKill(n){
 /* ---- turn flow: start (sniper?) / end (next + round + sniper grant) - */
 async function startTurn(){
   if (!game || game.over) return;
+  await drainReveals();            // cards owed by rules that fired from sync code
   const cur = game.players[game.current];
   // radiation sickness ticks at the start of each of the sick player's turns
   if (FEATURES.radioactive && cur.radSick) await progressRadiation(cur);
@@ -5213,9 +5360,9 @@ async function startTurn(){
     cur.shame--;
     refreshBadges();
     if (cur.shame === 0){
+      await revealRuleOnce("shamefall", cur.name);   // the card answers "what was THAT" — it lands first
       cur.downed = true; cur.getupMin = SHAME.GETUP_MIN; updateDowned(game.current);
       SFX.play("fall");
-      await revealRuleOnce("shamefall", cur.name);
       log(`${cur.name}'s shame caught up — they collapse! (needs ${SHAME.GETUP_MIN}+ to rise)`);
       refreshHUD();
     }
@@ -5659,7 +5806,7 @@ function newBossGame(roster){
   paintBossTiles();
   paintBossHp();
   paintBossLose();
-  logEl.innerHTML = "";
+  logEl.innerHTML = ""; lastLogRound = 0;
   hideBanner();
   BGM.base("boss");
   refreshHUD();
@@ -5728,7 +5875,7 @@ function bossIntroCard(def){
       revealResolve = null; res();
     };
     if (game.autonomous && game.players.every(q => q.bot))
-      setTimeout(() => { if (revealResolve) revealResolve(); }, 3800);
+      setTimeout(() => { if (revealResolve) revealResolve(); }, RULE_CARD.AUTO_MS);
   });
 }
 async function bossBegin(){
@@ -6097,11 +6244,11 @@ async function bossDamage(n, striker){
   if (b.paint > 0){                                   // War Paint: the marked beast takes it double
     b.paint--;
     n *= 2;
-    log(`🎯 The War Paint burns — the blow lands DOUBLE!`);
+    log(`🎯 The War Paint burns — the blow lands DOUBLE!`, "dmg");
   }
   b.hp = Math.max(0, b.hp - n);
   striker.bossDamage = (striker.bossDamage||0) + n;   // the Grand Tour scores the boss leg by damage dealt
-  log(`${BOSS_MODE.WEAKPOINT_MARK} ${striker.name} strikes a weakpoint — ${b.def.name} takes ${n} damage!`);
+  log(`${BOSS_MODE.WEAKPOINT_MARK} ${striker.name} strikes a weakpoint — ${b.def.name} takes ${n} damage!`, "dmg");
   paintBossHp();
   bossIcoLunge();
   if (b.hp <= 0) return bossDefeated();
@@ -6159,6 +6306,7 @@ async function bossDefeated(){
 }
 async function endBossTurn(){
   if (game.over) return;
+  await drainReveals();            // the arena has no startTurn seam of its own
   await sleep(ANIM.HANDOFF);
   const n = game.players.length, prev = game.current;
   game.current = (prev + 1) % n;
@@ -7187,6 +7335,7 @@ function awardCoin(p, reason, n, fx){
   if (gm && gm.coinMult) k *= gm.coinMult;     // Gold Rush pays double on everything
   p.coins = (p.coins||0) + k;
   p.coinsEarned = (p.coinsEarned||0) + k;
+  if (!rulesSeen.coins) revealRuleSoon("coins");   // the one discovery, not a pill on every landing
   const f = COIN_FX[fx] || COIN_FX.plain;
   if (f.POPS > 0){
     for (let i = 0; i < f.POPS; i++)
@@ -7208,7 +7357,7 @@ function stealCoin(thief, victim){
   SFX.play("coin"); coinPopup(thief, 1);
   log(hasCurse(thief, "vampirefangs")
     ? `🧛 ${thief.name} sinks the fangs into ${victim.name}'s purse — 🪙${take} drained!`
-    : `🧤 ${thief.name} picked ${victim.name}'s pocket — 🪙1 stolen!`);
+    : `🧤 ${thief.name} picked ${victim.name}'s pocket — 🪙1 stolen!`, "coin");
   renderScoreboard();
 }
 
@@ -8107,7 +8256,7 @@ async function mayhemSurge(){
   const active = game.players.filter(q => !q.finished);
   if (!active.length) return;
   const t = active[(Math.random()*active.length)|0];
-  log(`🌪️ Round ${game.round}: the mayhem surges!`);
+  log(`🌪️ The mayhem surges!`);
   const pool = wheelChaosPool();
   await pool[(Math.random()*pool.length)|0].run(t, t);
   layoutTokens(); renderScoreboard();
@@ -8284,11 +8433,13 @@ function takeItem(p, id){ const k = p.items.indexOf(id); if (k >= 0) p.items.spl
 // The CRAFT recipes fuse by themselves the moment the pieces share a bag.
 function checkCrafting(p){
   if (!FEATURES.crafting) return;
+  let told = false;
   for (const r of CRAFT){
     for (let fused = true; fused;){
       fused = false;
       if (p.items.includes(r.mid)){
         if (p.craftNeed && p.items.includes(p.craftNeed)){
+          if (!told){ told = true; revealRuleSoon("crafting"); }
           takeItem(p, r.mid); takeItem(p, p.craftNeed);
           p.items.push(r.out); p.craftNeed = null;
           const def = itemDef(r.out);
@@ -8299,6 +8450,7 @@ function checkCrafting(p){
       } else if (!p.items.includes(r.out)){
         const have = r.needs.filter(id => p.items.includes(id));
         if (have.length >= 2){
+          if (!told){ told = true; revealRuleSoon("crafting"); }
           takeItem(p, have[0]); takeItem(p, have[1]);
           p.items.push(r.mid);
           p.craftNeed = r.needs.find(id => id !== have[0] && id !== have[1]);
@@ -10160,7 +10312,21 @@ document.getElementById("settingsBtn").addEventListener("click", ()=>{
   document.getElementById("optVolume").value = Math.round(SOUND.VOLUME * 100);
   document.getElementById("optMusicVol").value = Math.round(MUSIC.VOLUME * 100);
   document.getElementById("optTileNums").checked = VISUAL.tileNumbers;
+  forgetArmed = false; paintForget();          // never leave the destructive button half-armed
   showScreen("settings");
+});
+// Destructive, so it arms on the first tap and fires on the second — the same
+// click-again-to-confirm language the manual-move placement uses.
+let forgetArmed = false;
+const forgetBtn = document.getElementById("forgetDiscoveries");
+function paintForget(){
+  const n = Object.keys(rulesEver).length;
+  forgetBtn.textContent = forgetArmed ? "Tap again to forget" : `🗑️ Forget all discoveries (${n} known)`;
+}
+forgetBtn.addEventListener("click", ()=>{
+  SFX.play("click");
+  if (!forgetArmed){ forgetArmed = true; paintForget(); return; }
+  forgetDiscoveries(); forgetArmed = false; paintForget();
 });
 document.getElementById("optFamily").addEventListener("change", e=>{ VARIANTS.family = e.target.checked; saveSettings(); });
 document.getElementById("optManual").addEventListener("change", e=>{ VARIANTS.manual = e.target.checked; saveSettings(); });
@@ -10234,6 +10400,8 @@ document.getElementById("bannerNew").addEventListener("click", ()=>{
 });
 
 loadSettings();                  // restore remembered toggles BEFORE the checkboxes are built
+loadDiscoveries();               // ...and which rules this browser has already met
+paintForget();
 buildFancyDefs();                // animated pawn-skin gradients from the FANCY_COLORS table
 applyTheme();
 buildWheel();

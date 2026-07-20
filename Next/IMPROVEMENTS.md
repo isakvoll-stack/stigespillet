@@ -36,8 +36,51 @@
 > via the new `showRuleCard` (an unmet rule never opens — no spoilers). Adding a
 > status is one line in one place.
 >
+> **2026-07-19 — A2 + A3 + C1 BUILT, plus the A4 and G5 audit fixes.**
+> **A2**: a new persisted `rulesEver` map (`DISCOVERY.KEY` in localStorage, its
+> own store rather than the settings blob, so forgetting it can't disturb
+> volumes or themes) now remembers what this browser has ever met. It gates
+> exactly ONE thing: whether the full-screen card interrupts. The legend, the
+> tile glyphs, the journal and the bots' tile-89 blindness all still read the
+> per-game `rulesSeen` — persisting those would open a fresh party night with
+> every secret pre-spoiled and leave bots permanently trap-aware against a
+> human guest who has never played. The subtle half: when a remembered rule
+> fires, the card is skipped but `rulesSeen` is still set, so the legend swatch,
+> the corner glyph and the journal entry all still appear as the rule actually
+> happens. Settings gained **🗑️ Forget all discoveries (N known)** — two-tap to
+> confirm, the same click-again language manual placement uses.
+> **A3**: a repeat shows `.ruletoast` instead — a corner pill with the rule's
+> icon and name, ~1.5s, no keys, no pause. One reused element, so a double
+> trigger retargets rather than stacking. It never touches `revealResolve`, so
+> the shared-resolver hang class is structurally impossible on that path. Both
+> copies of the bare `3800` auto-dismiss are now `RULE_CARD.AUTO_MS`.
+> **C1**: `log()` is now the single generic hook for both halves — a
+> `LOG_CLASSES` DATA table + `classifyLog` fallback (an explicit `cls` always
+> wins) and a once-per-round `— Round N begins —` divider. Because the divider
+> lives in `log()` rather than at a round-increment site, Boss Battle (which
+> advances `game.round` on its own path) gets one free, as will any future
+> mode. Coins gold, damage red, rule discoveries purple, movement left as the
+> log's ordinary voice. The two hand-written "Round N:" stamps were dropped as
+> redundant.
+> **A4**: the shamefall card now lands *before* the 0.45s collapse it explains
+> (it was the one site out of 38 that fired after the consequence).
+> **G5**: three rules were firing with **no card at all** — 🪙 Coins,
+> ⚙️ Strange fusions and 🐟 Fish powers. All three now have vague cards and
+> triggers. Because crafting and coins fire from **synchronous** code, they go
+> through a new `revealRuleSoon`, which **queues** the card into `pendingReveals`
+> instead of opening one nobody awaits; `drainReveals()` shows it at the next
+> real seam in the turn flow (top of `startTurn`, and `endBossTurn` for the
+> arena, which has no `startTurn` of its own). That matters: an unawaited card
+> is a card the next *awaited* card silently overwrites — the player would never
+> read it. A rule already known this game skips the queue and just toasts.
+> `awardCoin` additionally guards on `!rulesSeen.coins`, because coins are
+> earned on most landings and an ungated call turned the A3 pill into a
+> permanent flashing badge.
+> Verified headlessly: 37/37 assertions, 0 JS errors, two full 4-bot games.
+>
 > Everything else below is still open — pick by number as before.
-> Next in the suggested order: **A2 + A3** (remembered discoveries + toast tier).
+> Next in the suggested order: **D1 + D2** (choice/overlay unification), then
+> **G1** (fold card text + legend label + glyph into one registry entry).
 
 Isak's brief: the joy of the game is discovering arbitrary rules ONE AT A
 TIME — that surprise must not drown in confusion. This is a written audit of

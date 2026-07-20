@@ -3,6 +3,38 @@
 Standing file: autonomous sessions log clarifications here instead of stopping to ask.
 Answer whenever — each answer gets folded in and the question checked off.
 
+## 2026-07-19 (latest) — remembered discoveries + log batch
+
+- [ ] **Discoveries are now remembered between games** (per browser). A rule
+  you've met before no longer stops the game with a card — it gets a small
+  corner pill with its name instead. The reasoning: on game 20 the cards were
+  interrupting things the table already knew. Settings has **🗑️ Forget all
+  discoveries** for a fresh-eyes night with new people. Right call, or would
+  you rather the cards came back every game?
+- [ ] **What persistence deliberately does NOT change**: a new night still
+  starts with a blank legend, unmarked squares, and bots that fall for the
+  tile-89 trapdoor like everyone else. Only the interrupting card is skipped.
+  I picked that so a first-timer at the table never sees a pre-spoiled board.
+  Say if you'd rather veterans kept their legend from the start.
+- [ ] **Toast look**: bottom-right corner, ~1.5s, icon + rule name, silent (the
+  discovery sting is reserved for genuinely new rules). Tunables are all in
+  `RULE_TOAST` — corner, duration, font size, and a `SOUND` switch if you want
+  it to ping. Too quick, too quiet, wrong corner?
+- [ ] **Log dividers**: the log now separates rounds with `— Round 7 begins —`.
+  Since newest sits on top, the divider ends up *below* the round it names
+  (everything above it, up to the next divider, is that round) — hence the
+  "begins" wording. Reads right, or should the log flip to oldest-on-top?
+- [ ] **Log colours**: coins gold, damage red, rule discoveries purple,
+  everything else the normal cream. Driven by a `LOG_CLASSES` table that reads
+  the emoji a line starts with, so new lines get coloured automatically. Want
+  more categories (items, curses, fishing)?
+- [ ] **Three rules had no explanation card at all** and now do: 🪙 Coins,
+  ⚙️ Strange fusions (items merging in your bag) and 🐟 Fish powers. The coins
+  card fires the first time anyone earns one, which is early — if that feels
+  like it interrupts the opening, I can hold it until the first shop instead.
+- [ ] **Log flooding** is still not solved — dividers help you skim, but nothing
+  caps the log's length in a long bot game. Want a max-entry cap as its own step?
+
 ## 2026-07-19 (later) — item FX + clarity batch
 
 - [ ] **Mode intro cards** (KOTH / Mayhem / Grand Tour): shown **once per

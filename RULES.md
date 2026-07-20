@@ -321,6 +321,13 @@ Multiple pawns share a tile **symmetrically** (centred when alone, fanned out in
 a ring when crowded). Each pawn shows the player's name above it (long names are
 clipped).
 
+The **log** in the side panel keeps the history, newest on top. Each round is
+separated by a `— Round N begins —` divider (so everything above a divider, up to
+the next one, belongs to that round), and lines are tinted by what they are:
+**coins gold, damage red, rule discoveries purple**, everything else the ordinary
+cream. *(Colours come from the `LOG_CLASSES` table — a category is one row there,
+not an edit at every message.)*
+
 ---
 
 ## Core rule
@@ -359,6 +366,19 @@ All three are gated on the same discovery memory, so an unmet rule leaks nothing
 One exception, on purpose: **tile 89's trapdoor never wears a glyph** — being
 indistinguishable from a plain square *is* that rule (`noMark` in its registry entry).
 *(Glyph tunables in `TILE_MARK`.)*
+
+**Across games, the browser remembers what you've met.** A rule you have never seen
+before stops the game with the full card. A rule this browser already knows only gets
+a **small corner pill** with its icon and name — the label, not the lesson — so a
+twentieth night isn't interrupted to re-explain the teleporter. What persistence
+deliberately does *not* touch: every new game still starts with a **blank legend,
+unmarked squares and bots that fall for the tile-89 trapdoor**, and the legend, glyphs
+and journal still fill in as rules actually fire tonight. That way a first-timer at
+the table never sits down to a pre-spoiled board.
+
+Settings → **🗑️ Forget all discoveries** wipes the memory (tap twice to confirm) and
+every card is new again. *(Stored under `DISCOVERY.KEY`; pill tunables — corner,
+duration, size, optional sound — in `RULE_TOAST`.)*
 
 ### Roll a 6 → roll again
 Rolling a 6 lets the same player roll again (with a little celebration effect).
