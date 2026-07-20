@@ -3,6 +3,19 @@
 Newest first. One entry per working session; note what shipped and what's next.
 
 ---
+## 2026-07-20 (later) — integrity check + polish pass
+
+Full health check of the shipped state, per Isak's request. Everything came
+back clean: working tree in sync with GitHub, today's 32/32 headless suite
+(0 JS errors, two full bot games) covers the exact committed file, zero
+external `src`/`href` references (still one self-contained file), balanced
+`<script>`/`<style>`/`<div>` tags, `<meta charset="utf-8">` present, no
+encoding corruption, no leftover `console.log` debugging. One fix: removed
+the stale 2026-06-27 TODO about randomised tile placements — the 🌀 Scrambled
+board option (2026-07-05) shipped exactly that. Nothing else needed touching;
+the open backlog items in `TASKS.md` are all gated on Isak's playtests.
+
+---
 ## 2026-07-20 — one choice bar, one overlay stack (IMPROVEMENTS D1 + D2 + D3)
 
 Next in `IMPROVEMENTS.md`'s own order. Both halves are the same idea applied

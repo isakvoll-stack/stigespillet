@@ -1151,10 +1151,6 @@ const SWITCHBACK = { LEN:54, HEAD_W:30, HEAD_H:19, SHAFT_W:9,   // arrow size (p
   FILL:"rgba(255,255,255,.8)", EDGE:"rgba(31,63,90,.55)" };
 /* ---- DATA: token + over-head icon sizing ---------------------------- */
 const TOKEN = { SCALE:1.25, ICON_SCALE:2, FREEZE_ICON_SCALE:3 };  // pawn size ×; icons above the pawn (coin/item/arrow) ×; the ❄️ badge ×
-// TODO: introduce slight RNG to tile placements — rather than every special tile being
-// fully fixed, some (e.g. shop, setback, orange) should spawn at randomly chosen eligible
-// positions each new game (within safe ranges, avoiding snake/ladder tiles). Keeps the
-// board feeling fresh across playthroughs. See also shuffleTiles() for mid-game reshuffling.
 const ITEM = { COFFEE_BONUS: 4, SHOES_BONUS: 1,            // coffee = +4 one-shot; running shoes = +1 every roll
                FLOURISH_MS: 1000 };                        // the used item hovers this long BEFORE its effect applies
 const INV  = { CONSUMABLES: 3, PASSIVES: 1 };             // bag size: 3 consumables + 1 passive at a time
