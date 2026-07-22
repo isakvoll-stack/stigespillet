@@ -3,6 +3,24 @@
 Newest first. One entry per working session; note what shipped and what's next.
 
 ---
+## 2026-07-23 — Reel-out to +70% + tap-to-continue pop-ups
+
+**Fishing reel-out now +70%** (was +40%): `FISH.DRAIN` 0.05 → **0.085**. Reel-in
+(`FILL`) stays +25%. So drifting the green zone off the fish costs progress much
+faster — staying on-target matters more still.
+
+**Pop-up cards wait for a tap.** They used to auto-dismiss after `POPUPS.CARD_MS`
+(~2s) — easy to miss. `popupCard` now shows a **"Tap to continue ▶"** card and blocks
+until you click it (or press Enter/Space); an all-bot autonomous game still auto-
+dismisses so hands-off runs don't stall. Wired via a new `bonusResolve` (mirrors
+`revealResolve`) and a `#bonuscard` entry at the top of the `OVERLAYS` stack, so the
+key is swallowed there and never leaks through to roll the dice. The flavour sub moved
+to the italic `bcTag` line to make room for the tap prompt.
+
+Verified headless (Edge): `DRAIN` 0.085 (+70%); `OVERLAYS[0]` is bonuscard; `popupCard`
+stays shown, resolves only after a simulated click, then hides — no throw.
+
+---
 ## 2026-07-23 — Coinless shops + the Broken Gate freed from coins
 
 The coins layer is now truly optional for shops and the gate.

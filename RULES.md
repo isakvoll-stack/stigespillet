@@ -470,7 +470,7 @@ it **swim faster and dart more erratically** (`FISH_SPEED_STREAK`,
 while the reel meter itself fills and drains **almost streak-independently**
 (`DRAIN`/`FILL`, near-zero `DRAIN_STREAK`): keeping the green zone on the fish
 **reels it in a touch quicker**, but the moment the fish slips out the meter
-**runs down noticeably faster** (`FILL` +25%, `DRAIN` +40%, 2026-07-22, so
+**runs down noticeably faster** (`FILL` +25%, `DRAIN` +70%, 2026-07-23, so
 staying on-target matters more). The reel is still a properly drawn-out fight,
 not a flick. A miss resets the streak. The pond keeps score **per angler** —
 someone else's hot streak doesn't sour your fishing. *Controls: only the **↑ Up arrow** — no mouse /
@@ -836,8 +836,9 @@ composes: its calm-list rules never enter the hand.
 **🎈 Pop-ups** *(Advanced settings → 🗺️ Board — OFF by default while it's
 playtested)* — a few times per Classic game (2–4 moments, scheduled at random
 rounds **mid-to-late game**, `POPUPS.ROUND_MIN`–`ROUND_MAX` = 8–24), something new
-visibly **enters the game mid-play**, announced with a quick card only as it
-happens — and the card **keeps its secret**: a special tile grows onto a plain
+visibly **enters the game mid-play**, announced with a card that **waits for a tap**
+(click it / Enter / Space to continue, so it never vanishes before you've read it —
+hands-off all-bot games dismiss it themselves) — and the card **keeps its secret**: a special tile grows onto a plain
 square, called out by its **colour and tile number only** (*"a dark blue tile has
 appeared on tile 35"* — never what kind of tile it is); a **🎁 chest drops**
 somewhere — the first player to land on it (own roll or knocked there) keeps the

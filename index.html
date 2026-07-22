@@ -1828,12 +1828,18 @@ async function popupCard(ico, headline, sub){
   const card = document.getElementById("bonuscard");
   document.getElementById("bcTitle").textContent = "🎈 Something pops up!";
   document.getElementById("bcCat").textContent = `${ico} ${headline}`;
-  document.getElementById("bcTag").textContent = "";
-  document.getElementById("bcWho").textContent = sub || "";
+  document.getElementById("bcTag").textContent = sub || "";
+  const allBots = game && game.autonomous && game.players.every(q => q.bot);
+  document.getElementById("bcWho").textContent = allBots ? "" : "Tap to continue ▶";
   card.classList.add("show");
   SFX.play("sparkle");
   flashScreen();
-  await sleep(POPUPS.CARD_MS);
+  await new Promise(res => {                       // stays until you tap it (Enter/Space via the overlay handler)
+    const finish = () => { card.removeEventListener("click", finish); bonusResolve = null; res(); };
+    bonusResolve = finish;
+    if (allBots) setTimeout(() => { if (bonusResolve) bonusResolve(); }, POPUPS.CARD_MS);   // hands-off games move themselves on
+    else card.addEventListener("click", finish);
+  });
   card.classList.remove("show");
   await sleep(250);
 }
@@ -2430,6 +2436,7 @@ const CHOICES = {
    picker and the wheel are click-only), and swallowing the key is exactly
    right for both. */
 const OVERLAYS = [
+  { id:"bonuscard", on(e){ if (bonusResolve && (e.code === "Enter" || e.code === "Space")){ e.preventDefault(); bonusResolve(); } } },  // a pop-up waits for a tap
   { id:"fish" },
   { id:"inv",       on(e){ if (e.code === "Enter"){ e.preventDefault(); closeInventory(); } } },
   { id:"journal",   on(e){ if (e.code === "Enter" || e.code === "Escape"){ e.preventDefault(); closeJournal(); } } },
@@ -2562,7 +2569,7 @@ const FISH   = {
   ZONE_BASE:134, ZONE_SHRINK:15, ZONE_MIN:41,             // catch-zone height: base, shrink/streak, floor (px)
   FISH_SPEED:110, FISH_SPEED_STREAK:70,                   // fish drift speed: base + per-streak (px/s) — streak difficulty lives HERE
   RETARGET:0.85, RETARGET_STREAK:0.13, RETARGET_MIN:0.22, // seconds between fish direction changes — erratic with streak
-  DRAIN:0.07, DRAIN_STREAK:0.005, FILL:0.09375,           // reel meter: FILL reel-in +25%, DRAIN reel-out +40% (Isak 2026-07-22); base halved 2026-07-18
+  DRAIN:0.085, DRAIN_STREAK:0.005, FILL:0.09375,          // reel meter: FILL reel-in +25%, DRAIN reel-out +70% (Isak 2026-07-23); base halved 2026-07-18
   // --- minigame bar physics (read by fishingGame) ---
   GRAVITY:540, REEL:1080, START:0.38,                     // bar gravity-down, reel-up, starting progress (0..1)
   METER:{ BOAT:30, FISH:22 },                             // reel meter: boat header + fish emoji heights (px)
@@ -3142,6 +3149,7 @@ let game = null;
 let rulesSeen = {};               // hidden rules already revealed this game
 let rulesEver = {};               // ...and the ones this browser has ever met (DISCOVERY.KEY)
 let revealResolve = null;         // pending rule-reveal resolver
+let bonusResolve = null;          // pending pop-up card "tap to continue" resolver
 let spotDark = null, spotHole = null, beamEl = null, beamFrom = {x:0,y:0};  // spotlight + laser
 let arrowEl = null;               // "whose turn" arrow, re-parented onto the active token
 const die = document.getElementById("die");
