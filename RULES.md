@@ -715,17 +715,21 @@ deals are exactly what they say.
 exotics live in the `EXOTICS` DATA block (own toggle group in Advanced settings).*
 
 ### The Broken Gate — cursed pacts (hidden rule)
-The black market has **two sections**, with tabs to switch freely between them: the
-**dealer's stall** (the market above) and the **Broken Gate** — a gate behind the
-stall that no longer locks. The **first player ever to reach the secret square is
-always greeted by the gate**; after that, which section greets an arriving visitor
-is a **coin flip** (`GATE.RANDOM_GATE`). Bots offered the gate first seal the pact
+The Broken Gate lives on the secret square. When the coin dealer is present it's the
+market's **second section** (tabs switch between the **dealer's stall** and the gate);
+but the gate **needs no coins of its own** — with Coins off it simply stands alone on
+the secret square, the only thing there. The **first player ever to reach the secret
+square is always greeted by the gate**; after that, which section greets an arriving
+visitor is a **coin flip** (`GATE.RANDOM_GATE`). Bots offered the gate first take it
 about half the time (`GATE.BOT_TAKE`).
 
-Through the bars, **ONE pact is offered per visit** — drawn at random from the pacts
-you don't already carry — and it costs **no coins**: take it or leave it. A sealed
-pact is **permanent**: it never occupies a bag or passive slot, can never be removed,
-and its price is always paid. All nine (numbers in the `CURSE` DATA block):
+Through the bars, **ONE thing is offered per visit** — drawn at random from what you
+don't already carry — and it costs **no coins**: take it or leave it. Most offers are
+**pacts** (permanent: never a bag or passive slot, never removable, price always paid);
+the gate can also hand over two **exotic items** it keeps behind the bars — the
+**🕯️ Soul Candle** and the **🐒 Monkey's Paw** (`gate:true` in the `EXOTICS` DATA;
+these drop into your bag / passive slot like any item). The nine pacts (numbers in the
+`CURSE` DATA block):
 
 - **🐍 Serpent Pact** — **snake heads never swallow you**; stand on them like plain
   ground. But **ladders refuse to carry you** — you climb nothing, ever again.
@@ -764,6 +768,11 @@ full catalog each visit, and each item can be **bought only once per visit** (it
 as *sold out* after). You carry a small inventory: **up to 3 consumables plus 1
 passive** at a time. *(Shelf size = `SHOP.STOCK`.)*
 
+**With Coins turned off** the shop still works — there's just no money, so it becomes a
+**free pick: choose one of the three** on the shelf and it's yours, then the shop
+closes. (The shop no longer requires Coins at all; `runShop` switches to this mode when
+`FEATURES.coins` is off.)
+
 **Your coin balance shows only inside a shop** (shop and black-market title) —
 never on the scoreboard or in the inventory. The shop's shelf opens with an
 **"Earning coins"** hint box: a yellow-tile swatch → 🪙1, a blue-tile swatch →
@@ -789,11 +798,13 @@ Family Mode compose on top of your picks (`RULE_PICKS` / `RULE_PRESETS` DATA —
 preset may carry an optional `variants` block to flip manual/dice too).
 
 **Requirements cascade.** A rule that needs another can't outlive it: turning
-**Coins** off also switches off everything coin-dependent — **the shop, the black
-market, shop pass-by, strange fusions, the broken gate** — and the wheel drops its
-💰 **gold-rush** slice. (Generic: the `req` graph on `DRAW.POOL` drives a
-`cascadeRuleReqs()` sweep, so any requirement — coins, fishing, the secret square —
-takes its dependents with it.)
+**Coins** off switches off only what genuinely needs coins — **the black-market
+dealer's stall** — and the wheel drops its 💰 **gold-rush** slice. Everything else
+carries on **coinless**: the **shop** just lets you pick one of its three items free
+(so shop pass-by and Singularity crafting still work), and the **Broken Gate** (its
+pacts were always free) still stands on the secret square. (Generic: the `req` graph
+on `DRAW.POOL` drives a `cascadeRuleReqs()` sweep, so any requirement — coins,
+fishing, the secret square — takes its dependents with it.)
 
 **Item toggles:** on the *Choose players* screen, open **⚙️ Advanced settings → 🛒
 Items** to enable or disable any item. Disabled items never appear on the shop or

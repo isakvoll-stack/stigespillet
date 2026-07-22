@@ -1231,11 +1231,11 @@ const SHOP_CATALOG = [
    Dealer-only stock — never on the gold-shop shelf. Every exotic is
    strong with a hook: a curse, a permanence, a price paid later. */
 const EXOTICS = [
-  { id:"monkeypaw", ico:"🐒", name:"Monkey's Paw", kind:"consumable", cost:8,  enabled:true, exotic:true,
+  { id:"monkeypaw", ico:"🐒", name:"Monkey's Paw", kind:"consumable", cost:8,  enabled:true, exotic:true, gate:true,
     desc:"When used: make a wish — the paw flings you to a random tile… and the board itself recoils." },
   { id:"loadeddice", ico:"🎲", name:"Loaded Dice", kind:"consumable", cost:12, enabled:true, exotic:true,
     desc:"When used: choose exactly what you roll — 3 charges. The dice remember being cheated." },
-  { id:"soulcandle", ico:"🕯️", name:"Soul Candle", kind:"passive",    cost:9,  enabled:true, exotic:true,
+  { id:"soulcandle", ico:"🕯️", name:"Soul Candle", kind:"passive",    cost:9,  enabled:true, exotic:true, gate:true,
     desc:"Passive: +2 to every roll, forever. It can never be snuffed out — and the sky takes notice." },
 ];
 /* ---- DATA: the Broken Gate — cursed pacts ----------------------------
@@ -1717,11 +1717,11 @@ const DRAW = {
     { key:"trapdoor",      ico:"🕳️", name:"The rotten plank" },
     { key:"warp",          ico:"🌫️", name:"The gray square" },
     { key:"coins",         ico:"🪙", name:"Coins" },
-    { key:"shop",          ico:"🏪", name:"The shop", req:["coins"] },
+    { key:"shop",          ico:"🏪", name:"The shop" },
     { key:"shopPassby",    ico:"🚶", name:"Shop pass-by", req:["shop"] },
     { key:"secretSquare",  ico:"❓", name:"The secret square" },
     { key:"blackMarket",   ico:"🕯️", name:"The black market", req:["secretSquare","coins"] },
-    { key:"brokenGate",    ico:"⛓️", name:"The Broken Gate", req:["blackMarket"] },
+    { key:"brokenGate",    ico:"⛓️", name:"The Broken Gate", req:["secretSquare"] },
     { key:"crafting",      ico:"🌑", name:"Strange fusions", req:["shop"] },
     { key:"setback",       ico:"↩️", name:"The dark-red square" },
     { key:"dizzy",         ico:"🍥", name:"The dizzy square" },
@@ -8535,8 +8535,9 @@ function passiveSlots(){ return isMayhem() ? MAYHEM.PASSIVE_SLOTS : INV.PASSIVES
 function hasPassive(p, id){ return p.passive === id || p.passive2 === id; }
 function passivesOf(p){ return [p.passive, p.passive2].filter(Boolean); }
 // Can this player buy this item right now? (enough coins, and room/sense for its kind)
-function canBuy(p, item){
-  if (p.coins < priceFor(p, item)) return false;
+function canBuy(p, item){ return p.coins >= priceFor(p, item) && roomFor(p, item); }
+// Room / sense for an item's kind, price aside — the free (coinless) shop and the Broken Gate reuse it.
+function roomFor(p, item){
   if (item.id === "loadeddice" && p.items.includes("loadeddice")) return false;  // one set of dice at a time
   if (item.kind === "passive"){
     if (hasPassive(p, item.id)) return false;
@@ -9460,10 +9461,27 @@ async function shopPassby(p, cell){
 }
 async function runShop(p){
   await revealRuleOnce("shop");
+  const stock = shopStock();                // the three items on the shelf this visit
+  const bought = new Set();                 // ids already bought this visit — one of each per visit
+  if (!FEATURES.coins){                      // no economy → the shop simply lets you pick one, free
+    log(`🏪 ${p.name} steps up to the shop — pick one, on the house.`);
+    SFX.play("sparkle");
+    if (game.autonomous || p.bot){
+      const pick = botFreePick(p, stock);
+      if (pick){ giveItem(p, pick.id); refreshBadges(); renderScoreboard(); await botDecide(p, `takes ${pick.ico} ${pick.name} 🛒`); }
+      else await botDecide(p, "finds nothing worth taking…");
+      return;
+    }
+    await new Promise(res => {
+      const close = () => { document.getElementById("picker").classList.remove("show"); pickResolve = null; res(); };
+      pickResolve = close;
+      renderFreeShop(p, close, stock);
+      document.getElementById("picker").classList.add("show");
+    });
+    return;
+  }
   log(`🏪 ${p.name} stepped into the shop! (🪙${p.coins})`);
   SFX.play("sparkle");
-  const stock = shopStock();
-  const bought = new Set();                 // ids already bought this visit — one of each per visit
   if (game.autonomous || p.bot){
     await botThink(p, "browses the shelf");
     const haul = botShopSpree(p, stock, bought);
@@ -9477,6 +9495,32 @@ async function runShop(p){
     document.getElementById("picker").classList.add("show");
   });
 }
+// The coinless shop: the three items on the shelf, pick exactly one (free) — then it closes.
+function renderFreeShop(p, close, stock){
+  document.getElementById("pickerTitle").textContent = `🏪 Shop — ${p.name}: choose one, free`;
+  const list = document.getElementById("pickerList"); list.innerHTML = "";
+  stock.forEach(item => {
+    const can = roomFor(p, item);
+    const tag = (item.kind === "passive" ? " · passive" : "") + (item.exotic ? " · exotic" : "");
+    const b = document.createElement("button");
+    b.className = "btn" + (item.exotic ? " exotic" : item.kind === "passive" ? " passive" : "");
+    b.innerHTML = `${item.ico} <b>${item.name}</b> — ${item.desc} <span style="opacity:.85">(free${tag})</span>`;
+    b.style.textAlign = "left"; b.style.boxShadow = "none";
+    b.disabled = !can; b.style.opacity = can ? "1" : ".45";
+    b.onclick = () => { if (giveItem(p, item.id)){ SFX.play("sparkle"); log(`🛒 ${p.name} takes ${item.ico} ${item.name}.`); refreshBadges(); renderScoreboard(); } close(); };
+    list.appendChild(b);
+  });
+  const leave = document.createElement("button");
+  leave.className = "btn ghost"; leave.textContent = "Leave shop"; leave.style.marginTop = "4px";
+  leave.onclick = close;
+  list.appendChild(leave);
+}
+// A bot's coinless pick: the best item it has room for (0-value items ignored).
+function botFreePick(p, stock){
+  const room = stock.filter(i => roomFor(p, i) && botItemValue(p, i) > 0);
+  if (!room.length) return null;
+  return room.reduce((a, i) => botItemValue(p, i) > botItemValue(p, a) ? i : a);
+}
 function renderShop(p, close, stock, bought, market, offer){
   document.getElementById("pickerTitle").textContent = market
     ? `🕯️ Black market — ${p.name} has 🪙${p.coins}`
@@ -9487,7 +9531,7 @@ function renderShop(p, close, stock, bought, market, offer){
   hint.innerHTML = `<b>Earning coins:</b>` + SHOP_EARN.map(r =>
     `<span class="shoprow">${r.color ? `<span class="swatch" style="background:${r.color}"></span>` : r.ico + " "}${r.label} → 🪙${r.pay}</span>`).join("");
   list.appendChild(hint);
-  if (market && offer) marketTabs(p, list, "stall", close, offer, stock, bought);
+  if (market && offer) marketTabs(p, list, "stall", close, offer, stock, bought, true);
   stock.forEach(item => {
     const sold = bought.has(item.id);
     const can = !sold && canBuy(p, item);
@@ -9507,7 +9551,7 @@ function renderShop(p, close, stock, bought, market, offer){
 }
 
 /* ---- the Broken Gate: cursed pacts ---------------------------------- */
-function hasCurse(p, id){ return FEATURES.blackMarket && FEATURES.brokenGate && !!(p.curses && p.curses.includes(id)); }
+function hasCurse(p, id){ return FEATURES.brokenGate && !!(p.curses && p.curses.includes(id)); }
 // Blood Dice never land below their floor; the Everburning Heart snuffs the top face.
 function pactAdjustRoll(p, value){
   const m = activeLegMod();
@@ -9544,17 +9588,22 @@ function spillPurse(pl){
   log(`💰 ${pl.name}'s Midas Purse bursts open — 🪙${k} scatter across the board, gone!`);
   renderScoreboard();
 }
-// One pact on offer per visit — never one the visitor already carries.
+// One offer per visit — a cursed pact, or a gate-flagged exotic (Soul Candle /
+// Monkey's Paw). Never something the visitor already carries or has no room for.
 function gateOffer(p){
   if (!FEATURES.brokenGate) return null;
-  const pool = CURSED.filter(i => i.enabled && !(p.curses||[]).includes(i.id));
+  const held = id => (p.curses||[]).includes(id) || (p.items||[]).includes(id) || hasPassive(p, id);
+  const pool = [...CURSED, ...EXOTICS.filter(i => i.gate)]
+    .filter(i => i.enabled && !held(i.id) && (i.cursed || roomFor(p, i)));
   return pool.length ? pool[(Math.random()*pool.length)|0] : null;
 }
 function sealPact(p, item){
-  p.curses = p.curses || [];
-  p.curses.push(item.id);
+  if (item.cursed){ p.curses = p.curses || []; p.curses.push(item.id); }
+  else giveItem(p, item.id);                                        // a gate item (candle/paw) is simply handed over
   SFX.play("leviathan"); flashScreen(); iconPopup(p, item.ico);
-  log(`⛓️ ${p.name} reaches through the Broken Gate — the ${item.name} pact is sealed, forever. ${item.ico}`, "win");
+  log(item.cursed
+    ? `⛓️ ${p.name} reaches through the Broken Gate — the ${item.name} pact is sealed, forever. ${item.ico}`
+    : `⛓️ ${p.name} reaches through the Broken Gate and claims the ${item.name}. ${item.ico}`, "win");
   renderScoreboard();
 }
 // The Toll Keeper's Ledger doubles every price its holder pays.
@@ -9563,7 +9612,9 @@ function priceFor(p, item){ return item.cost * (hasCurse(p, "tollledger") ? 2 : 
 /* ---- the black market (lives on the secret square) ------------------ */
 async function visitSecret(pl){
   await revealRuleOnce("secret");
-  if (FEATURES.blackMarket && FEATURES.shop) await runBlackMarket(pl);
+  const stall = FEATURES.blackMarket && FEATURES.shop;   // the coin dealer's shelf
+  const gate  = FEATURES.brokenGate;                     // the free pacts — needs no coins
+  if (stall || gate) await runBlackMarket(pl, stall, gate);
 }
 // The dealer only shows himself on the visitor's OWN turn: immediately if they
 // arrive standing mid-turn, otherwise the pending `marketDue` is consumed after
@@ -9586,28 +9637,35 @@ function marketPrice(p, item){
 // The market has two sections: the dealer's stall and the Broken Gate.
 // The FIRST visitor ever is always shown the gate; after that the section
 // that greets you is random — tabs let a human switch freely either way.
-async function runBlackMarket(p){
-  log(`🕯️ ${p.name} finds a shady dealer under the board… (🪙${p.coins})`);
+async function runBlackMarket(p, stall, gate){
+  log(stall ? `🕯️ ${p.name} finds a shady dealer under the board… (🪙${p.coins})`
+            : `⛓️ ${p.name} finds the Broken Gate waiting under the board…`);
   SFX.play("leviathan");
   // shelf = EXOTIC_STOCK exotics (at their listed price — a deal is a deal) + NORMAL_STOCK
-  // normal items at the dealer's flexing price
-  const pool = EXOTICS.filter(i => i.enabled && itemInPlay(i));
-  for (let i = pool.length - 1; i > 0; i--){ const j = (Math.random()*(i+1))|0; [pool[i],pool[j]] = [pool[j],pool[i]]; }
-  const stock = [...pool.slice(0, MARKET.EXOTIC_STOCK),
-                 ...shopStock().slice(0, MARKET.NORMAL_STOCK).map(i => ({...i, cost: marketPrice(p, i)}))];
+  // normal items at the dealer's flexing price (empty when the coin dealer isn't here)
+  let stock = [];
+  if (stall){
+    const pool = EXOTICS.filter(i => i.enabled && itemInPlay(i));
+    for (let i = pool.length - 1; i > 0; i--){ const j = (Math.random()*(i+1))|0; [pool[i],pool[j]] = [pool[j],pool[i]]; }
+    stock = [...pool.slice(0, MARKET.EXOTIC_STOCK),
+             ...shopStock().slice(0, MARKET.NORMAL_STOCK).map(i => ({...i, cost: marketPrice(p, i)}))];
+  }
   const firstVisit = game.marketVisits === 0;
   game.marketVisits++;
-  const offer = gateOffer(p);
+  const offer = gate ? gateOffer(p) : null;
   if (offer) await revealRuleOnce("gate");
-  const gateFirst = !!offer && (firstVisit || Math.random() < GATE.RANDOM_GATE);
+  if (!stall && !offer){ log(`⛓️ The Broken Gate stands quiet — nothing waits behind the bars this time.`); return; }
+  const gateFirst = !!offer && (!stall || firstVisit || Math.random() < GATE.RANDOM_GATE);
   const bought = new Set();
   if (game.autonomous || p.bot){
-    if (gateFirst && Math.random() < GATE.BOT_TAKE){
+    if (offer && gateFirst && Math.random() < GATE.BOT_TAKE){
       await botThink(p, "stares through the broken gate");
       sealPact(p, offer);
-      await botDecide(p, `seals a dark pact — ${offer.ico} ${offer.name}!`);
+      await botDecide(p, offer.cursed ? `seals a dark pact — ${offer.ico} ${offer.name}!`
+                                      : `reaches through and takes ${offer.ico} ${offer.name}!`);
       return;
     }
+    if (!stall){ await botDecide(p, "turns from the gate and moves on…"); return; }
     await botThink(p, "haggles in the shadows");
     const haul = botShopSpree(p, stock, bought);
     await botDecide(p, haul.length ? `slinks off with ${haul.join(" + ")} 🕯️` : "gets waved away by the dealer…");
@@ -9616,13 +9674,14 @@ async function runBlackMarket(p){
   await new Promise(res => {
     const close = () => { document.getElementById("picker").classList.remove("show"); pickResolve = null; res(); };
     pickResolve = close;
-    if (gateFirst) renderGate(p, close, offer, stock, bought);
+    if (gateFirst) renderGate(p, close, offer, stock, bought, stall);
     else renderShop(p, close, stock, bought, true, offer);
     document.getElementById("picker").classList.add("show");
   });
 }
 // The section switcher at the top of the market picker.
-function marketTabs(p, list, active, close, offer, stock, bought){
+function marketTabs(p, list, active, close, offer, stock, bought, stall){
+  if (!stall) return;                       // gate-only market: no stall to switch to, so no tabs
   const row = document.createElement("div");
   row.style.cssText = "display:flex;gap:8px";
   const mk = (label, on, fn) => {
@@ -9635,21 +9694,21 @@ function marketTabs(p, list, active, close, offer, stock, bought){
     row.appendChild(b);
   };
   mk("🕯️ The stall", active === "stall", () => renderShop(p, close, stock, bought, true, offer));
-  mk("⛓️ Broken Gate", active === "gate", () => renderGate(p, close, offer, stock, bought));
+  mk("⛓️ Broken Gate", active === "gate", () => renderGate(p, close, offer, stock, bought, stall));
   list.appendChild(row);
 }
 // The Broken Gate: ONE pact on offer — seal it or walk away.
-function renderGate(p, close, offer, stock, bought){
+function renderGate(p, close, offer, stock, bought, stall){
   document.getElementById("pickerTitle").textContent = `⛓️ The Broken Gate — ${p.name}`;
   const list = document.getElementById("pickerList"); list.innerHTML = "";
-  marketTabs(p, list, "gate", close, offer, stock, bought);
+  marketTabs(p, list, "gate", close, offer, stock, bought, stall);
   const card = document.createElement("div");
   card.style.cssText = "max-width:340px;padding:10px 12px;border:1px dashed #a06ad0;border-radius:10px;color:var(--cream);font-size:14px;text-align:left";
   card.innerHTML = `Something waits behind the bars, offered freely:<br><br>${offer.ico} <b>${offer.name}</b> — ${offer.desc}`;
   list.appendChild(card);
   const take = document.createElement("button");
   take.className = "btn exotic";
-  take.textContent = `${offer.ico} Seal the pact`;
+  take.textContent = offer.cursed ? `${offer.ico} Seal the pact` : `${offer.ico} Claim it`;
   take.onclick = () => { sealPact(p, offer); close(); };
   list.appendChild(take);
   const leave = document.createElement("button");

@@ -3,6 +3,32 @@
 Newest first. One entry per working session; note what shipped and what's next.
 
 ---
+## 2026-07-23 — Coinless shops + the Broken Gate freed from coins
+
+The coins layer is now truly optional for shops and the gate.
+
+**Shop no longer needs coins.** `shop`'s `req:["coins"]` is gone. With Coins off,
+`runShop` switches to a **free pick**: the same three-item shelf, choose one, it drops
+into your bag/passive slot and the shop closes (`renderFreeShop`; bots use `botFreePick`
+= best item they have room for). Factored the room-vs-coins logic apart: `canBuy` =
+`coins ≥ price && roomFor(...)`, and the new `roomFor` is reused by the free shop + gate.
+
+**Broken Gate freed from coins.** Its `req` went `["blackMarket"]` → `["secretSquare"]`,
+so disabling Coins no longer sweeps it (only the coin **stall** goes). `visitSecret` now
+opens the stall and/or the gate independently, and `runBlackMarket(p, stall, gate)` grew
+a **gate-only** mode (no stall tab — `marketTabs`/`renderGate` take a `stall` flag).
+`hasCurse` dropped its `FEATURES.blackMarket` clause (gate works without the dealer).
+
+**Soul Candle + Monkey's Paw at the gate.** Both `EXOTICS` got `gate:true`; `gateOffer`
+now draws from `CURSED` **plus** the gate-flagged items, and `sealPact` hands over a real
+item (`giveItem`) when the offer isn't a pact. So without coins you can't *buy* exotics,
+but the gate can gift these two (with their own built-in prices).
+
+Verified headless (Edge): boots clean; shop req null, gate req `["secretSquare"]`; coins
+off keeps shop/pass-by/crafting/gate and sweeps only the black-market stall; `gateOffer`
+sampled 400× returns all 9 pacts + monkeypaw + soulcandle, no throw.
+
+---
 ## 2026-07-22 — Fishing feel, pop-up secrecy + timing, Kong vs. downed players
 
 Four touch-ups.
