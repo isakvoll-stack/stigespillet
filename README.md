@@ -55,6 +55,17 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
+Recently shipped (2026-07-23): three quick tweaks — **the Forever Night circle of
+light now scales with the table** (full size at 2 players, shrinking linearly to
+~1.25 tiles across at 10; tuned via `NIGHT_MOD.LIGHT_*`, computed in
+`nightLightTiles`), **the end podium now stands the players' actual tokens on the
+pillars** (1st/2nd/3rd) with 4th/5th standing beside it (serialised pawns via
+`podiumPawnHtml`, gradients resolve from the board defs), and **you can only step
+onto tile 90 on a legal move** — an illegal placement onto the win tile is refused
+with a pop-up ("You can only win on a legal move." / "Did you perhaps forget to
+consider bounce back?") and you place again. Verified headless (radius math,
+5-pawn podium render, 0 JS errors).
+
 Recently shipped (2026-07-22): **Grand Tour finale now shows 5-leg stat totals**
 (KOTH-style podium + tour-totals stat sheet; shared `podiumHtml`/`leaderboardHtml`/
 `statsTableHtml` helpers), the **stat table now shows category titles** (transposed
