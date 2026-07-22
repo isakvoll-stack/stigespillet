@@ -428,8 +428,9 @@
   .banner .box{max-width:660px}
   .podwrap{display:flex;align-items:flex-end;justify-content:center;gap:20px}
   .sideplaces{display:flex;flex-direction:column;gap:6px;text-align:left;margin-bottom:10px}
-  .sprow{font-size:13px;color:var(--cream);font-weight:700}
+  .sprow{font-size:13px;color:var(--cream);font-weight:700;display:flex;align-items:flex-end;gap:5px}
   .podium{display:flex;align-items:flex-end;justify-content:center;gap:8px;margin:4px 0 16px}
+  .podpawn{display:block;margin:0 auto}
   .pcol{display:flex;flex-direction:column;align-items:center;width:74px}
   .pname{font-size:12px;color:var(--cream);font-weight:700;text-align:center;line-height:1.15;
     margin-bottom:5px;min-height:30px;display:flex;align-items:flex-end}
@@ -1083,6 +1084,8 @@ const PODIUM = {
   METALS: { 1:"#ffd257", 2:"#c9ced6", 3:"#cd7f32" },   // gold / silver / bronze pillar bases
   KEEP: 55,                          // % of the pillar that stays metal before blending to the player's colour
   HEIGHTS: { 1:96, 2:74, 3:58 },     // pillar pixel heights for 1st / 2nd / 3rd
+  PAWN_VB: { x:-18, y:-34, w:36, h:65 },   // viewBox framing a standing pawn, feet on the bottom edge
+  PAWN_H: 70, SIDE_H: 42,            // podium pawn heights (px): top-3 standing on the pillars, 4th/5th beside
 };
 /* ---- DATA: the STATUS registry (IMPROVEMENTS G2 + C2) ----------------
    One entry per thing that can be TRUE of a player. It drives both the
@@ -1472,6 +1475,7 @@ const TOUR = {
    tiles are, plus white overlays tracing the ladders and snakes. The lines vanish
    inside the light. Shared by the Nightfall square. */
 const NIGHT_MOD = { LIGHT_TILES:3.5, DARK:"#000000", DARK_OPACITY:1,   // pitch black, zero see-through (Isak, 2026-07-20)
+                    LIGHT_REF_PLAYERS:2, LIGHT_MIN_TILES:1.25, LIGHT_MAX_PLAYERS:10,  // circle shrinks as the table fills: LIGHT_TILES at ref players, LIGHT_MIN_TILES at max
                     GRID:"#ffffff", GRID_OPACITY:.5, GRID_W:1.5, LINK_W:3 };
 const ICE_MOD   = { SKID: 2 };
 const FLOOD_MOD = { START_ROUND: 3, EVERY: 2, MAX_ROWS: 3 };
@@ -2160,6 +2164,9 @@ const TXT = {
   pickDie: "Pick a die — click it (← / → or 1 / 2)",
   rollHintManual: "Tap the die<br>or press ENTER",
   placePiece: "Place your piece — click the square your roll takes you to, then Confirm (Enter)",
+  winIllegalTitle: "Not so fast",
+  winIllegal: "You can only win on a legal move.",
+  winIllegalSub: "Did you perhaps forget to consider bounce back?",
   bounced: (n,a,b)=>`${n} bounced on: ${a} → ${b}`,
   kicked:  (n,a,b)=>`${n} was kicked back: ${a} → ${b}`,
   won: (name)=>`${name} wins! 🎉`,
@@ -4104,7 +4111,11 @@ async function manualMove(cur, faces, again, dual){
     cells.forEach(c => { if (!legal.includes(c)) legal.push(c); });
     return { f, cells };
   });
-  const target = await placePiece(cur, i);
+  let target = await placePiece(cur, i);
+  while (target === BOARD.WIN && !legal.includes(BOARD.WIN)){   // stepping onto the win tile is only allowed on a legal move
+    await popNote("🏁", TXT.winIllegalTitle, TXT.winIllegal, TXT.winIllegalSub);
+    target = await placePiece(cur, i);
+  }
   lastMove = null;                                // the confirmed move retires the old call
   const face = (byFace.find(e => e.cells.includes(target)) || byFace[0]).f;
   const rolled = face + moveBonusTotal(cur, face);   // the roll is walked: bonuses are spent
@@ -4231,6 +4242,22 @@ async function fireCheatCall(){
   else { game.busy = false; refreshHUD(); maybeAuto(); }
 }
 
+// A one-off note in the rule-reveal modal (icon + heading + two lines);
+// resolves when the player dismisses it (Enter / click).
+function popNote(ico, title, name, text){
+  return new Promise(res => {
+    SFX.play("rule");
+    document.getElementById("revealIco").textContent = ico;
+    document.getElementById("revealTitle").textContent = title;
+    document.getElementById("revealName").textContent = name;
+    document.getElementById("revealText").textContent = text;
+    document.getElementById("reveal").classList.add("show");
+    revealResolve = () => {
+      document.getElementById("reveal").classList.remove("show");
+      revealResolve = null; res();
+    };
+  });
+}
 // The verdict box (reuses the rule-reveal modal); resolves when dismissed.
 function showVerdict(ico, name, text){
   return new Promise(res => {
@@ -8409,9 +8436,17 @@ async function mayhemSurge(){
 /* Leg-twist overlays: Forever Night's fog and the Rising Flood's water.
    Both are pointer-transparent SVG groups appended above the board art. */
 let fogG = null, floodG = null, nightHoles = null, nightRaf = 0;
+// The lit circle each pawn carries, in tiles: the full LIGHT_TILES at the
+// reference table size, shrinking linearly to LIGHT_MIN_TILES as seats fill.
+function nightLightTiles(){
+  const n = game && game.players ? game.players.length : NIGHT_MOD.LIGHT_REF_PLAYERS;
+  const { LIGHT_TILES:hi, LIGHT_MIN_TILES:lo, LIGHT_REF_PLAYERS:ref, LIGHT_MAX_PLAYERS:max } = NIGHT_MOD;
+  const t = Math.max(0, Math.min(1, (n - ref) / (max - ref)));
+  return hi + (lo - hi) * t;
+}
 function buildFog(){
   clearFog();
-  const C = BOARD.CELL, M = BOARD.MARGIN, r = NIGHT_MOD.LIGHT_TILES / 2 * C;
+  const C = BOARD.CELL, M = BOARD.MARGIN, r = nightLightTiles() / 2 * C;
   fogG = el("g", {"pointer-events":"none"});
   const mask = el("mask", {id:"nightmask"});
   mask.appendChild(el("rect",{x:VIEW.X,y:VIEW.Y,width:VIEW.W,height:VIEW.H,fill:"#fff"}));
@@ -9948,18 +9983,32 @@ function tonightsBoardHtml(){
 }
 // Shared end-screen pieces, used by both the KOTH/classic podium and the Grand
 // Tour finale. `extra(p)` appends a trailing badge after each name (🏆 / ⭐).
+// A standing pawn for the podium: the very token the player raced with,
+// serialised into its own <svg>. The fancy-skin gradients live in the board's
+// <defs>, and url(#…) fragment refs resolve document-wide, so they still paint.
+function podiumPawnHtml(p, cls){
+  const f = fancyOf(p);
+  const g = makePawn(f && f.look ? `url(#fancy-${f.id})` : p.color, f);
+  if (f && f.id === "rgb") g.classList.add("rgbflash");
+  if (f && f.look && f.look.deco) addPawnDeco(g, f);
+  const vb = PODIUM.PAWN_VB, h = cls.indexOf("side") >= 0 ? PODIUM.SIDE_H : PODIUM.PAWN_H;
+  const w = Math.round(h * vb.w / vb.h);
+  return `<svg class="${cls}" width="${w}" height="${h}" viewBox="${vb.x} ${vb.y} ${vb.w} ${vb.h}">` +
+         new XMLSerializer().serializeToString(g) + `</svg>`;
+}
 function podiumHtml(s, extra){
   const order = [2,1,3].filter(pl => s.length >= pl);   // 2nd · 1st · 3rd pillars; 4th/5th listed beside
   let pod = '<div class="podwrap">';
   if (s.length > 3){
     pod += '<div class="sideplaces">' + s.slice(3, 5).map((p, k) =>
-      `<div class="sprow">${k+4}. <b style="color:${p.color}">${p.name}</b>${extra(p)}</div>`).join("") + '</div>';
+      `<div class="sprow">${podiumPawnHtml(p, "podpawn side")}<span>${k+4}. <b style="color:${p.color}">${p.name}</b>${extra(p)}</span></div>`).join("") + '</div>';
   }
   pod += '<div class="podium">';
   order.forEach(pl => {
     const p = s[pl-1], metal = PODIUM.METALS[pl];
     pod += `<div class="pcol top3">` +
              `<div class="pname">${MEDALS[pl-1]||""} ${p.name}${extra(p)}</div>` +
+             podiumPawnHtml(p, "podpawn") +
              `<div class="pbar" style="height:${PODIUM.HEIGHTS[pl]}px;background:linear-gradient(to top, ${metal} 0%, ${metal} ${PODIUM.KEEP}%, ${p.color} 100%)">${pl}</div>` +
            `</div>`;
   });
