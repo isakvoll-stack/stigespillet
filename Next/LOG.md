@@ -3,6 +3,17 @@
 Newest first. One entry per working session; note what shipped and what's next.
 
 ---
+## 2026-07-22 — disable the 🎁 chest/loot drop pop-up
+
+Isak: *"disable the «loot drop» or «chest drop» event that can happen."* Done by
+removing the `{ id:"chest" }` entry from `POPUPS.POOL` (the 🎈 Pop-ups data
+block) — so even with Pop-ups on, a chest is never selected to drop. Also trimmed
+"a chest drops" out of the Pop-ups board-option description so the menu text
+stays truthful. The chest handler/FX code (`POPUP_RUN.chest`, `collectChest`,
+`chestDropFx`, `drawChest`) is left intact but unwired, so re-enabling later is a
+one-line add of the pool entry back. Remaining pop-up kinds: grow / wake / strike.
+
+---
 ## 2026-07-21 — boss telegraph timing fix
 
 Isak: *"boss fight red attacks take two rounds instead of activating at the end

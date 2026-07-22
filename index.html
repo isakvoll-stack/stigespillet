@@ -1314,7 +1314,7 @@ const BOARD_OPTIONS = [
   { key:"nightlyDraw", ico:"🎴", name:"Nightly draw", enabled:false,
     desc:"Each game secretly plays its own hand — a slice of the rules, a slice of the shop, tiles in fresh spots. The end screen turns the hand face-up." },
   { key:"popups", ico:"🎈", name:"Pop-ups", enabled:false,
-    desc:"A few times a game something new enters mid-play — a square grows in, a chest drops, a sleeping rule wakes." },
+    desc:"A few times a game something new enters mid-play — a square grows in, a sleeping rule wakes." },
 ];
 const boardOpt = key => { const o = BOARD_OPTIONS.find(b => b.key === key); return !!(o && o.enabled); };
 /* ---- DATA: the finish line (Advanced settings → Game) -----------------
@@ -1794,7 +1794,7 @@ const POPUPS = {
   GAP_ROUNDS:2,                    // rounds two moments must sit apart
   CARD_MS:2000, GROW_MS:700,       // announce-card hold; tile grow-in tween
   CHEST:{ ITEMS:1, FALLBACK_COINS:6, DROP_MS:900, DROP_FALL:260 },   // loot; fall tween + drop height
-  POOL:[ { id:"grow", w:3 }, { id:"chest", w:3 }, { id:"wake", w:2 }, { id:"strike", w:1 } ],
+  POOL:[ { id:"grow", w:3 }, { id:"wake", w:2 }, { id:"strike", w:1 } ],
   GROW:[                           // tile rules a pop-up may grow onto the board
     { id:"fishing",  ico:"🎣", name:"a fishing hole" },
     { id:"teleport", ico:"🌀", name:"a teleporter" },

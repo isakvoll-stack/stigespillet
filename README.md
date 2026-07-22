@@ -55,6 +55,10 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
+Recently shipped (2026-07-22): **the 🎁 chest/loot drop pop-up is disabled** —
+removed from `POPUPS.POOL`, so it never fires even with Pop-ups on (handler code
+kept, unwired, for easy re-enable). Remaining pop-ups: grow / wake / strike.
+
 Recently shipped (2026-07-21): **boss telegraphs tell the truth.** A red tile
 now means exactly one thing — *this strikes at the end of this round* — so
 every player gets one turn to clear out and no more. Red attacks used to sit
