@@ -3,6 +3,36 @@
 Newest first. One entry per working session; note what shipped and what's next.
 
 ---
+## 2026-07-22 — Fishing feel, pop-up secrecy + timing, Kong vs. downed players
+
+Four touch-ups.
+
+**Fishing reel, sharper both ways.** `FISH.FILL` +25% (0.075 → 0.09375) so keeping
+the green zone on the fish reels in quicker, and `FISH.DRAIN` +40% (0.05 → 0.07) so
+the meter runs down harder the moment the fish slips out — staying on-target matters
+more. `DRAIN_STREAK` untouched (still near streak-independent).
+
+**"Fishing pond", not "fishing hole".** The lone `POPUPS.GROW` label still said
+"a fishing hole"; the rest of the game/RULES already said "pond". Fixed the outlier.
+
+**Pop-ups keep their secret + land later.** (1) Timing pushed from rounds 3–14 to
+**8–24** (`POPUPS.ROUND_MIN/MAX`). (2) A tile growing in is now announced by
+**colour + number only** — *"A dark blue tile has appeared on tile 35."* — instead of
+naming the tile type (added a `col` field to each `POPUPS.GROW` row as the data source).
+(3) A waking rule is announced by **name only** — *"Teleporter is now in play."* — with
+the rule ico and the "here all along" flavour dropped, and its tiles now **quietly
+repaint** instead of a `growCellFx` spotlight, so nothing points at which tile fires it.
+The end-screen 🎴 recap still shows real identities (mystery's over by then).
+
+**Kong barrels bowl the downed.** `kongBarrelHits` and `springBarrel` no longer skip
+`downed` players — a floored player gets bowled further down the board (frozen still
+exempt; `downPlayer` already guards the down-count so no double-counting).
+
+Verified headless (Edge): boots clean; `FILL`/`DRAIN` = +25% / +40%; pond name; window
+8–24; every grow row has a colour; wake path uses no spotlight; both barrel paths no
+longer condition on `downed`.
+
+---
 ## 2026-07-22 — Lantern night tiles + coin-dependency cascade
 
 Two touch-ups.

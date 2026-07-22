@@ -1793,20 +1793,20 @@ function weightedSample(list, n, weightOf){
    round wrap so they ride between turns, never inside one. */
 const POPUPS = {
   COUNT_MIN:2, COUNT_MAX:4,        // guaranteed moments per game
-  ROUND_MIN:3, ROUND_MAX:14,       // the window the moments land in
+  ROUND_MIN:8, ROUND_MAX:24,       // the window the moments land in (delayed later, Isak 2026-07-22)
   GAP_ROUNDS:2,                    // rounds two moments must sit apart
   CARD_MS:2000, GROW_MS:700,       // announce-card hold; tile grow-in tween
   CHEST:{ ITEMS:1, FALLBACK_COINS:6, DROP_MS:900, DROP_FALL:260 },   // loot; fall tween + drop height
   POOL:[ { id:"grow", w:3 }, { id:"wake", w:2 }, { id:"strike", w:1 } ],
-  GROW:[                           // tile rules a pop-up may grow onto the board
-    { id:"fishing",  ico:"🎣", name:"a fishing hole" },
-    { id:"teleport", ico:"🌀", name:"a teleporter" },
-    { id:"orange",   ico:"🟧", name:"an orange square" },
-    { id:"shop",     ico:"🏪", name:"a shop" },
-    { id:"setback",  ico:"↩️", name:"a dark-red square" },
-    { id:"dizzy",    ico:"🍥", name:"a dizzy square" },
-    { id:"warp",     ico:"🌫️", name:"a gray square" },
-    { id:"freeze",   ico:"🧊", name:"an icy square" },
+  GROW:[                           // tile rules a pop-up may grow onto the board (col = the tile's colour, all the announcement reveals)
+    { id:"fishing",  ico:"🎣", name:"a fishing pond",    col:"dark blue" },
+    { id:"teleport", ico:"🌀", name:"a teleporter",      col:"teal" },
+    { id:"orange",   ico:"🟧", name:"an orange square",  col:"orange" },
+    { id:"shop",     ico:"🏪", name:"a shop",            col:"gold" },
+    { id:"setback",  ico:"↩️", name:"a dark-red square", col:"dark red" },
+    { id:"dizzy",    ico:"🍥", name:"a dizzy square",     col:"tan" },
+    { id:"warp",     ico:"🌫️", name:"a gray square",      col:"gray" },
+    { id:"freeze",   ico:"🧊", name:"an icy square",      col:"pale blue" },
   ],
 };
 const CHEST_TILES = [];            // dynamic — chests currently sitting on the board
@@ -1932,11 +1932,11 @@ const POPUP_RUN = {
     const g = weightedSample(opts, 1, x => freshWeight(ages[x.id]))[0];
     freshBump("grows", [g.id], opts.map(x => x.id));
     const cell = spots[(Math.random()*spots.length)|0];
-    await popupCard(g.ico, `${g.name} grows in!`, "keep an eye on the board…");
+    await popupCard("🎈", `a ${g.col} tile has appeared on tile ${cell}`, "keep an eye on the board…");
     TILE_RULES[g.id].tiles.push(cell);
     await growCellFx(cell);
     notePopup(`${g.ico} ${g.name} grew in at ${cell}`);
-    log(`🎈 Pop-up: ${g.ico} ${g.name} grows in at tile ${cell}!`);
+    log(`🎈 A ${g.col} tile has appeared on tile ${cell}.`);
   },
   async chest(){
     const spots = popupPlainSpots();
@@ -1954,13 +1954,13 @@ const POPUP_RUN = {
     const opts = wakeablePopupRules();
     if (!opts.length) return;
     const e = opts[(Math.random()*opts.length)|0];
-    await popupCard(e.ico, `${e.name} wakes up!`, "it was here all along — asleep");
+    await popupCard("🎈", `${e.name} is now in play`, "");
     FEATURES[e.key] = true;
     if (game.draw) game.draw.rulesOut = game.draw.rulesOut.filter(k => k !== e.key);
     const tr = Object.values(TILE_RULES).find(r => r.feature === e.key);
-    if (tr) for (const c of tr.tiles) await growCellFx(c);
+    if (tr) tr.tiles.forEach(c => repaintCell(c));   // tiles quietly take their colour — no spotlight pointing at what activates the rule
     notePopup(`${e.ico} ${e.name} woke mid-game`);
-    log(`🎈 Pop-up: ${e.ico} ${e.name} is now in play!`);
+    log(`🎈 ${e.name} is now in play.`);
   },
   async strike(){
     await popupCard("🎲", "the chaos wheel twitches…", "a stray strike gets loose");
@@ -2562,7 +2562,7 @@ const FISH   = {
   ZONE_BASE:134, ZONE_SHRINK:15, ZONE_MIN:41,             // catch-zone height: base, shrink/streak, floor (px)
   FISH_SPEED:110, FISH_SPEED_STREAK:70,                   // fish drift speed: base + per-streak (px/s) — streak difficulty lives HERE
   RETARGET:0.85, RETARGET_STREAK:0.13, RETARGET_MIN:0.22, // seconds between fish direction changes — erratic with streak
-  DRAIN:0.05, DRAIN_STREAK:0.005, FILL:0.075,             // reel meter: halved 2026-07-18 (Isak: ≥2× longer reel before a catch)
+  DRAIN:0.07, DRAIN_STREAK:0.005, FILL:0.09375,           // reel meter: FILL reel-in +25%, DRAIN reel-out +40% (Isak 2026-07-22); base halved 2026-07-18
   // --- minigame bar physics (read by fishingGame) ---
   GRAVITY:540, REEL:1080, START:0.38,                     // bar gravity-down, reel-up, starting progress (0..1)
   METER:{ BOAT:30, FISH:22 },                             // reel meter: boat header + fish emoji heights (px)
@@ -8202,13 +8202,13 @@ async function barrelBowl(q){
 }
 async function kongBarrelHits(b){
   for (const q of game.players){
-    if (q.finished || q.downed || q.frozen || q.pos !== b.pos) continue;
+    if (q.finished || q.frozen || q.pos !== b.pos) continue;   // a downed player still gets bowled further down
     await barrelBowl(q);
   }
 }
 // Landing on a square a barrel is parked on hurts exactly the same way.
 async function springBarrel(p){
-  if (!game.kongBarrels || p.finished || p.downed || p.frozen) return false;
+  if (!game.kongBarrels || p.finished || p.frozen) return false;   // downed players are still fair game for a parked barrel
   if (!game.kongBarrels.some(b => b.pos === p.pos)) return false;
   await barrelBowl(p);
   return true;

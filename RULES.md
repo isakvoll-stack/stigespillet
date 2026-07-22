@@ -467,10 +467,12 @@ It's tricky even the first time, and **every catch in a row makes YOUR next one
 harder** — the difficulty lives in the **fish itself**: each straight catch makes
 it **swim faster and dart more erratically** (`FISH_SPEED_STREAK`,
 `RETARGET_STREAK`) **and shrinks the green catch zone a little** (`ZONE_SHRINK`),
-while the reel meter itself fills and drains **slowly and almost
-streak-independently** (`DRAIN`/`FILL`, near-zero `DRAIN_STREAK`). The reel is
-deliberately **long** — landing a fish takes a properly drawn-out fight, not a
-flick. A miss resets the streak. The pond keeps score **per angler** —
+while the reel meter itself fills and drains **almost streak-independently**
+(`DRAIN`/`FILL`, near-zero `DRAIN_STREAK`): keeping the green zone on the fish
+**reels it in a touch quicker**, but the moment the fish slips out the meter
+**runs down noticeably faster** (`FILL` +25%, `DRAIN` +40%, 2026-07-22, so
+staying on-target matters more). The reel is still a properly drawn-out fight,
+not a flick. A miss resets the streak. The pond keeps score **per angler** —
 someone else's hot streak doesn't sour your fishing. *Controls: only the **↑ Up arrow** — no mouse /
 space / enter.*
 
@@ -624,7 +626,9 @@ Land on an **orange square** and pick one of three:
   ride takes **two turns** — it stops **halfway down the ladder** after the
   first. Anyone a barrel reaches is **bowled over**: knocked flat AND sent
   tumbling **1–2 rows straight down** the board (same column, gold-rain style;
-  on the bottom row there's nowhere to fall — just flattened). **Landing on a
+  on the bottom row there's nowhere to fall — just flattened). Being **already
+  downed is no protection** — a barrel bowls a floored player further down the
+  board too. **Landing on a
   square a barrel is parked on hurts exactly the same way.** Shields block,
   Mirrors deflect; a barrel bursts when it reaches tile 1. Tunables in `KONG`).
 
@@ -820,12 +824,16 @@ composes: its calm-list rules never enter the hand.
 
 **🎈 Pop-ups** *(Advanced settings → 🗺️ Board — OFF by default while it's
 playtested)* — a few times per Classic game (2–4 moments, scheduled at random
-rounds early-to-mid game), something new visibly **enters the game mid-play**,
-announced with a quick card only as it happens: a special tile **grows onto a
-plain square** before your eyes; a **🎁 chest drops** somewhere — the first
-player to land on it (own roll or knocked there) keeps the loot, even with a
-full bag; a **sleeping rule wakes up**; or a **stray strike** gets loose from
-the chaos pool and hits a random player. Pop-up moments ride between turns and
+rounds **mid-to-late game**, `POPUPS.ROUND_MIN`–`ROUND_MAX` = 8–24), something new
+visibly **enters the game mid-play**, announced with a quick card only as it
+happens — and the card **keeps its secret**: a special tile grows onto a plain
+square, called out by its **colour and tile number only** (*"a dark blue tile has
+appeared on tile 35"* — never what kind of tile it is); a **🎁 chest drops**
+somewhere — the first player to land on it (own roll or knocked there) keeps the
+loot, even with a full bag; a **sleeping rule wakes up**, announced by **name
+only** (*"Teleporter is now in play"* — no hint what it does or which tile fires
+it, and its tiles quietly take their colour without a spotlight); or a **stray
+strike** gets loose from the chaos pool and hits a random player. Pop-up moments ride between turns and
 are listed on the end screen's **🎴 Tonight's board**. Composes freely with the
 Nightly draw (a woken rule is one the draw had left out) — and a quiet hand
 still gets its "wait, WHAT?" moments.
