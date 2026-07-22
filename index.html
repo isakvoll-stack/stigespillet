@@ -2604,7 +2604,7 @@ const FREEZE = { GETUP_MIN: 4, ADJ: 1,     // need 4+ to break free; LANDING wit
    START your turn standing on it and the whole board flips (90/180/270°)
    with every colour inverted — and you play your turn like that. The
    board rights itself when the next player's turn begins. */
-const NIGHTFALL = { TILES:[31, 74], ROUNDS:3, COLOR:"#191527" };  // pitch-black dusk squares — night falls for ROUNDS rounds
+const NIGHTFALL = { TILES:[31, 74], ROUNDS:3, COLOR:"#ffd21f" };  // bright lantern squares — step on one and night falls over the board for ROUNDS rounds
 const FLY = { ARC:90, SPIN:540, MS:520 };  // thrown-item emoji arc: height (px), spin (deg), flight time
 const WARP_TILES = [44];
 const WARP_COLOR = "#9aa0a6";              // plain gray
@@ -7982,28 +7982,38 @@ async function revolverRoulette(p){
   await sleep(320); gun.remove(); dim.remove();
 }
 
-const WHEEL_LABELS = ["☢️","🔙","➡️","🚀","🎲","🎲","🌀","💰","🦍"];   // nuke / start / next / +15 / random / random-target / tile-shuffle / gold-rain / KONG
-const WHEEL_COLORS = ["#d64541","#8e44ad","#2e86c1","#27ae60","#e67e22","#e84393","#17b5a3","#f1c40f","#8b5a2b"];
-const WHEEL_PICKS  = ["nuke","start","next","move15","random","random_target","tile_shuffle","gold_rain","kong"];
+const WHEEL_SLICES = [   // one slice per outcome; a `feature` gate drops the slice when that rule is off
+  { pick:"nuke",          label:"☢️", color:"#d64541" },
+  { pick:"start",         label:"🔙", color:"#8e44ad" },
+  { pick:"next",          label:"➡️", color:"#2e86c1" },
+  { pick:"move15",        label:"🚀", color:"#27ae60" },
+  { pick:"random",        label:"🎲", color:"#e67e22" },
+  { pick:"random_target", label:"🎲", color:"#e84393" },
+  { pick:"tile_shuffle",  label:"🌀", color:"#17b5a3" },
+  { pick:"gold_rain",     label:"💰", color:"#f1c40f", feature:"coins" },   // the coin rush — gone when coins are off
+  { pick:"kong",          label:"🦍", color:"#8b5a2b" },
+];
+function liveWheelSlices(){ return WHEEL_SLICES.filter(s => !s.feature || FEATURES[s.feature]); }
 function wpol(cx,cy,r,deg){ const a = (deg-90)*Math.PI/180; return [cx+r*Math.cos(a), cy+r*Math.sin(a)]; }
-function buildWheel(){
+function buildWheel(slices){
   const g = document.getElementById("wheelSpin"); if (!g) return;
+  slices = slices || liveWheelSlices();
   g.innerHTML = "";
-  const N = WHEEL_LABELS.length, SEG = 360/N;
+  const N = slices.length, SEG = 360/N;
   for (let i=0;i<N;i++){
     const [x1,y1] = wpol(100,100,92,i*SEG), [x2,y2] = wpol(100,100,92,(i+1)*SEG);
     g.appendChild(el("path",{ d:`M100,100 L${x1.toFixed(1)},${y1.toFixed(1)} A92,92 0 0 1 ${x2.toFixed(1)},${y2.toFixed(1)} Z`,
-                              fill:WHEEL_COLORS[i], stroke:"#1a140d", "stroke-width":"2" }));
+                              fill:slices[i].color, stroke:"#1a140d", "stroke-width":"2" }));
     const [lx,ly] = wpol(100,100,62,i*SEG+SEG/2);
     const t = el("text",{ x:lx.toFixed(1), y:(ly+8).toFixed(1), "text-anchor":"middle", "font-size":"24" });
-    t.textContent = WHEEL_LABELS[i]; g.appendChild(t);
+    t.textContent = slices[i].label; g.appendChild(t);
   }
   g.appendChild(el("circle",{ cx:"100", cy:"100", r:"11", fill:"#f6ecd9", stroke:"#1a140d", "stroke-width":"2" }));
 }
-function showWheel(idx){
+function showWheel(idx, n){
   return new Promise(res => {
     const g = document.getElementById("wheelSpin");
-    const SEG = 360/WHEEL_LABELS.length;
+    const SEG = 360/(n || liveWheelSlices().length);
     g.style.transition = "none"; g.style.transform = "rotate(0deg)";
     void document.getElementById("wheelSvg").getBoundingClientRect();          // reflow before the spin
     document.getElementById("wheel").classList.add("show");
@@ -8301,7 +8311,7 @@ const WHEEL_CHAOS = [
   { id:"fate", run:(t)=> fateSwapYou(t) },
   { run:(t)=> randomTeleport(t) },
   { run:(t)=> downYou(t) },
-  { run:(t)=> goldRain(t) },
+  { feature:"coins", run:(t)=> goldRain(t) },
   { run:()=> kongRampage() },
   { run:()=> shuffleTiles() },
   { feature:"shop", run:async(t)=>{ awardCoin(t, "🎲 Windfall", CHAOS.COINS_GAIN, "plain"); await sleep(500); } },
@@ -8484,9 +8494,11 @@ async function spinWheel(p){
   }
 }
 async function spinWheelOnce(p){
-  const idx = Math.floor(Math.random()*WHEEL_LABELS.length);   // uniform: one chance per slice
-  const pick = WHEEL_PICKS[idx];
-  await showWheel(idx);
+  const slices = liveWheelSlices();
+  buildWheel(slices);                                         // render exactly the live slices, so the pointer lands on what fires
+  const idx = Math.floor(Math.random()*slices.length);        // uniform: one chance per slice
+  const pick = slices[idx].pick;
+  await showWheel(idx, slices.length);
   if (pick === "nuke"){ await nukeEveryone(""); }
   else if (pick === "start"){ SFX.play("chute"); noteSkip(p, p.pos, 1); p.pos = 1; layoutTokens(); renderScoreboard(); log(`🎡 The wheel sends ${p.name} back to the start!`); await sleep(650); await resolveLanding(p); }
   else if (pick === "next"){ log(`🎡 ${p.name} edges to the next square.`); await advancePlayer(p, MOVE.WHEEL_NEXT); }
@@ -9995,7 +10007,21 @@ function buildToggleRows(list, entries){
 // Advanced → 📜 Rules & tiles: preset buttons + name-only rows (no
 // descriptions — the rules keep their secrets). A preset button paints
 // itself selected while the current mix matches it; no match = custom.
+// A rule's requirements already live in the nightly-draw pool (the shop needs
+// coins, the black market needs coins + the secret square, …). Turning a
+// requirement off in Settings sweeps its dependents off with it, so no orphaned
+// coin-rule (shop, black market, pass-by, crafting, the broken gate) survives.
+const RULE_REQ = {};
+DRAW.POOL.forEach(e => { if (e.req) RULE_REQ[e.key] = e.req; });
 function setRulePick(key, on){ FEATURE_BASE[key] = on; FEATURES[key] = on; }
+function cascadeRuleReqs(){
+  for (let swept = true; swept; ){
+    swept = false;
+    for (const k in RULE_REQ){
+      if (FEATURE_BASE[k] && RULE_REQ[k].some(r => !FEATURE_BASE[r])){ setRulePick(k, false); swept = true; }
+    }
+  }
+}
 function rulePresetOn(pr, key){ return pr.on ? pr.on.includes(key) : true; }
 // A preset may also flip VARIANTS (manual, dice count); mirror that onto any
 // on-screen toggles that show them so the UI can't drift from the state.
@@ -10027,7 +10053,8 @@ function buildRulePicker(list){
     const row = document.createElement("label"); row.className = "adv-item";
     const box = document.createElement("input"); box.type = "checkbox";
     box.checked = FEATURE_BASE[r.key];
-    box.onchange = ()=>{ setRulePick(r.key, box.checked); paint(); saveSettings(); };
+    box.onchange = ()=>{ setRulePick(r.key, box.checked); cascadeRuleReqs();
+      boxes.forEach(([b, rr]) => b.checked = FEATURE_BASE[rr.key]); paint(); saveSettings(); };
     const label = document.createElement("span");
     label.innerHTML = `${r.ico} <b>${r.name}</b>`;
     row.append(box, label); boxes.push([box, r]); list.appendChild(row);

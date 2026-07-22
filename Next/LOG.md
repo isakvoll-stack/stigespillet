@@ -3,6 +3,33 @@
 Newest first. One entry per working session; note what shipped and what's next.
 
 ---
+## 2026-07-22 — Lantern night tiles + coin-dependency cascade
+
+Two touch-ups.
+
+**Night tiles are now bright lanterns.** `NIGHTFALL.COLOR` went from the near-black
+`#191527` to a glowing `#ffd21f` — the two dusk squares (31, 74) read as lit lanterns
+rather than pitch-dark. Only the *tile* colour changed; the actual night darkness is a
+separate fog overlay (`buildFog`/`updateFog`), untouched. Tile numbers stay legible (they
+sit in a white pill, so tile fill never affects them).
+
+**Disabling coins now sweeps out everything coin-dependent.** The rule requirements
+already lived as `req:[…]` on the nightly-draw `DRAW.POOL` (the one dependency graph);
+I lifted it into `RULE_REQ` + a `cascadeRuleReqs()` sweep (same fixpoint the nightly draw
+uses) wired into the Settings toggle. Turning **Coins** off in Advanced → 📜 Rules now
+auto-unchecks **the shop, black market, shop pass-by, strange fusions, the broken gate**
+(and any future coin-dependent rule — it's data-driven, not a coins special-case).
+
+**The wheel's coin rush follows suit.** The three parallel wheel arrays became one
+`WHEEL_SLICES` table with an optional per-slice `feature`; `liveWheelSlices()` drops the
+💰 gold-rain slice when coins are off, and `buildWheel`/`showWheel`/`spinWheelOnce` all
+render + spin over the live set (8 slices, no 💰, when coins off). The secondary
+🎲-random gold-rain path in `WHEEL_CHAOS` got a `feature:"coins"` gate too.
+
+Verified headless (Edge): boots clean; coins-off → wheel 8 slices / no 💰, coins-on → 9;
+cascade sweeps the 5 coin rules off while leaving non-coin rules (fishing, teleport) on.
+
+---
 ## 2026-07-22 — Grand Tour stat totals + two new rule presets
 
 **Grand Tour finale, KOTH-style.** The champion screen used to show only the

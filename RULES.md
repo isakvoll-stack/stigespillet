@@ -478,8 +478,8 @@ space / enter.*
 squares). Fishing is a **core rule**: the nightly draw never benches it (`DRAW.CORE`).*
 
 ### Nightfall (hidden rule)
-Two **pitch-black squares** hold the last light of dusk. Stop on one (landed or
-thrown there) and **night falls over the whole board for 3 rounds**: the board
+Two **bright lantern squares** (a glowing yellow) hold the last light of dusk. Stop
+on one (landed or thrown there) and **night falls over the whole board for 3 rounds**: the board
 ahead sinks into the same dark fog as 🌙 Forever Night, and the soundtrack gives
 way to **night ambience** — crickets, the occasional owl. At dawn the fog lifts
 and the board's music returns. Stepping on a dusk square while it's already
@@ -783,6 +783,13 @@ stays as colourful as ever). Hand-mix the boxes and no preset stays lit — that
 your own custom table. Saved like every other toggle; the 🎴 nightly draw and
 Family Mode compose on top of your picks (`RULE_PICKS` / `RULE_PRESETS` DATA — a
 preset may carry an optional `variants` block to flip manual/dice too).
+
+**Requirements cascade.** A rule that needs another can't outlive it: turning
+**Coins** off also switches off everything coin-dependent — **the shop, the black
+market, shop pass-by, strange fusions, the broken gate** — and the wheel drops its
+💰 **gold-rush** slice. (Generic: the `req` graph on `DRAW.POOL` drives a
+`cascadeRuleReqs()` sweep, so any requirement — coins, fishing, the secret square —
+takes its dependents with it.)
 
 **Item toggles:** on the *Choose players* screen, open **⚙️ Advanced settings → 🛒
 Items** to enable or disable any item. Disabled items never appear on the shop or
