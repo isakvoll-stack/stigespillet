@@ -491,6 +491,8 @@
   .statstable td{padding:3px 4px;text-align:center;font-variant-numeric:tabular-nums;
     border-bottom:1px solid rgba(212,166,86,.12)}
   .statstable td:first-child,.statstable th:first-child{text-align:left;white-space:nowrap}
+  .statstable td.statcat{white-space:normal;line-height:1.25}
+  .statstable .statico{margin-right:5px}
 
   /* player-colour picker (setup screen) */
   .namerow .swatch.pick{cursor:pointer}
@@ -1080,6 +1082,7 @@ const STATS = {
 const PODIUM = {
   METALS: { 1:"#ffd257", 2:"#c9ced6", 3:"#cd7f32" },   // gold / silver / bronze pillar bases
   KEEP: 55,                          // % of the pillar that stays metal before blending to the player's colour
+  HEIGHTS: { 1:96, 2:74, 3:58 },     // pillar pixel heights for 1st / 2nd / 3rd
 };
 /* ---- DATA: the STATUS registry (IMPROVEMENTS G2 + C2) ----------------
    One entry per thing that can be TRUE of a player. It drives both the
@@ -2370,7 +2373,13 @@ RULE_PICKS.forEach(r => { const c = RULE_INFO[r.card]; if (c){ r.ico = c.ico; r.
 // One press applies a whole table setup; `on:null` means every rule.
 const RULE_PRESETS = [
   { id:"everything", name:"🎪 Everything", on:null },
+  { id:"alpha",      name:"Alpha",         // freeze + every rule listed before it (the early-era set)
+    on:["exactFinish","sixRollsAgain","encounter","kickWhileDown","sniper","fishing","fishPowers",
+        "nightfall","teleport","teleportMalfunction","lightning","luckyStar","fateSwap","orange",
+        "snakeCollision","freeze"] },
   { id:"classic",    name:"🎯 Pure classic", on:["exactFinish","sixRollsAgain"] },
+  { id:"boring",     name:"Classic (boring)", on:["exactFinish"],   // plain S&L; manual + a single die
+    variants:{ manual:true, dualDice:false } },
 ];
 
 /* ---- DATA: how a rule announces itself -----------------------------
@@ -9662,7 +9671,7 @@ async function runOrange(p){
 let tour = null;
 function startTour(roster){
   series = null;
-  tour = { leg:0, roster, points:roster.map(()=>0), carry:null, usedMods:[], done:false, legBase:null, legModId:null };
+  tour = { leg:0, roster, points:roster.map(()=>0), stats:roster.map(()=>END_STATS.map(()=>0)), carry:null, usedMods:[], done:false, legBase:null, legModId:null };
   nextTourLeg();
 }
 function nextTourLeg(){
@@ -9779,7 +9788,11 @@ async function tourLegDone(){
     items: p.items.filter(id => { const d = itemDef(id); return !(d && d.boss); }),   // the arena kit stays in the arena
     passive:p.passive, passive2:p.passive2,
     coins:p.coins||0, curses:[...(p.curses||[])], diceCharges:p.diceCharges||0, fish:p.fish||0 }));
-  game.players.forEach((p, i) => { p.tourPts = tour.points[i]; });
+  game.players.forEach((p, i) => {
+    END_STATS.forEach((c, ci) => { tour.stats[i][ci] += c.stat(p); });   // the leg's stats bank into the tour totals
+    p.tourPts = tour.points[i];
+    p.tourStats = tour.stats[i];
+  });
   renderScoreboard();
   if (tour.leg >= TOUR.LEGS) showTourChampion();
   else showTourStandings();
@@ -9800,10 +9813,15 @@ function showTourStandings(){
 }
 function showTourChampion(){
   tour.done = true;
-  const order = game.players.map((p, i) => ({ p, pts: tour.points[i] })).sort((a, b) => b.pts - a.pts);
+  const order = [...game.players].sort((a, b) => (b.tourPts||0) - (a.tourPts||0));
+  const pts = p => ` ⭐${p.tourPts||0}`;
   document.getElementById("bannerNew").textContent = "New tour";
   document.getElementById("bannerText").innerHTML =
-    `<div class="serieshead">🗺️👑 ${order[0].p.name} wins the Grand Tour with ⭐${order[0].pts}!</div>` + tourTableHtml();
+    `<div class="serieshead">🗺️👑 ${order[0].name} wins the Grand Tour with ⭐${order[0].tourPts||0}!</div>` +
+    podiumHtml(order, pts) +
+    leaderboardHtml(order, pts, "Final standings") +
+    `<div class="lbtitle">Tour totals — all ${TOUR.LEGS} legs</div>` +
+    statsTableHtml(order, (p, c, ci) => p.tourStats ? p.tourStats[ci] : 0);
   document.getElementById("banner").classList.add("show");
   confettiBurst();
   game.busy = false;
@@ -9849,48 +9867,56 @@ function tonightsBoardHtml(){
   }
   return h + `</div>`;
 }
-function showStandings(){
-  const s = game.standings;
-  const trophies = p => isKoth() ? ` 🏆${p.trophies||0}` : "";
-  const heights = {1:96, 2:74, 3:58};
-  // pillars for the top 3 only (2nd · 1st · 3rd); 4th and 5th are listed beside them
-  const order = [2,1,3].filter(pl => s.length >= pl);
+// Shared end-screen pieces, used by both the KOTH/classic podium and the Grand
+// Tour finale. `extra(p)` appends a trailing badge after each name (🏆 / ⭐).
+function podiumHtml(s, extra){
+  const order = [2,1,3].filter(pl => s.length >= pl);   // 2nd · 1st · 3rd pillars; 4th/5th listed beside
   let pod = '<div class="podwrap">';
   if (s.length > 3){
     pod += '<div class="sideplaces">' + s.slice(3, 5).map((p, k) =>
-      `<div class="sprow">${k+4}. <b style="color:${p.color}">${p.name}</b>${trophies(p)}</div>`).join("") + '</div>';
+      `<div class="sprow">${k+4}. <b style="color:${p.color}">${p.name}</b>${extra(p)}</div>`).join("") + '</div>';
   }
   pod += '<div class="podium">';
   order.forEach(pl => {
     const p = s[pl-1], metal = PODIUM.METALS[pl];
     pod += `<div class="pcol top3">` +
-             `<div class="pname">${MEDALS[pl-1]||""} ${p.name}${trophies(p)}</div>` +
-             `<div class="pbar" style="height:${heights[pl]}px;background:linear-gradient(to top, ${metal} 0%, ${metal} ${PODIUM.KEEP}%, ${p.color} 100%)">${pl}</div>` +
+             `<div class="pname">${MEDALS[pl-1]||""} ${p.name}${extra(p)}</div>` +
+             `<div class="pbar" style="height:${PODIUM.HEIGHTS[pl]}px;background:linear-gradient(to top, ${metal} 0%, ${metal} ${PODIUM.KEEP}%, ${p.color} 100%)">${pl}</div>` +
            `</div>`;
   });
-  pod += '</div></div>';
-  const marks = END_STATS.map(c => {
-    const vals = s.map(c.stat), hi = Math.max(...vals), lo = Math.min(...vals);
-    return { c, flat: hi === lo, star: c.best === "high" ? hi : lo, dot: c.best === "high" ? lo : hi };
-  });
-  let lb = '<div class="lbtitle">Leaderboard</div><div class="lb">';
-  s.forEach((p,idx) => {
+  return pod + '</div></div>';
+}
+function leaderboardHtml(s, extra, title){
+  let lb = `<div class="lbtitle">${title}</div><div class="lb">`;
+  s.forEach((p, idx) => {
     lb += `<div class="lbrow"><span class="place">${idx+1}. ${MEDALS[idx]||""}</span>` +
-          `<b style="color:${p.color}">${p.name}</b>${trophies(p)}</div>`;
+          `<b style="color:${p.color}">${p.name}</b>${extra(p)}</div>`;
   });
-  lb += '</div>';
-  // the per-player stats as one proper table: bare numbers, only ⭐ best / ⚫ worst marks
-  lb += '<table class="statstable"><tr><th></th>' +
-        marks.map(m => `<th title="${m.c.name}">${m.c.ico}</th>`).join("") + '</tr>';
-  s.forEach(p => {
-    lb += `<tr><td><b style="color:${p.color}">${p.name}</b></td>` +
-          marks.map(m => {
-            const v = m.c.stat(p);
-            const mark = m.flat ? "" : v === m.star ? "⭐" : v === m.dot ? "⚫" : "";
-            return `<td>${v}${mark}</td>`;
-          }).join("") + '</tr>';
+  return lb + '</div>';
+}
+// The stat sheet: one row per named category (small icon + title), one column
+// per player; ⭐ marks the category best, ⚫ the worst. `valueOf(p, cat, idx)`
+// lets the tour feed accumulated totals in place of a single game's fields.
+function statsTableHtml(players, valueOf){
+  const rows = END_STATS.map((c, ci) => {
+    const vals = players.map(p => valueOf(p, c, ci)), hi = Math.max(...vals), lo = Math.min(...vals);
+    return { c, ci, flat: hi === lo, star: c.best === "high" ? hi : lo, dot: c.best === "high" ? lo : hi };
   });
-  lb += '</table>';
+  let h = '<table class="statstable"><tr><th></th>' +
+    players.map(p => `<th style="color:${p.color}">${p.name}</th>`).join("") + '</tr>';
+  rows.forEach(r => {
+    h += `<tr><td class="statcat"><span class="statico">${r.c.ico}</span>${r.c.name}</td>` +
+      players.map(p => {
+        const v = valueOf(p, r.c, r.ci);
+        const mark = r.flat ? "" : v === r.star ? "⭐" : v === r.dot ? "⚫" : "";
+        return `<td>${v}${mark}</td>`;
+      }).join("") + '</tr>';
+  });
+  return h + '</table>';
+}
+function showStandings(){
+  const s = game.standings;
+  const trophies = p => isKoth() ? ` 🏆${p.trophies||0}` : "";
   let seriesHtml = "";
   if (series){
     const line = game.players.map((q,i)=>`<b style="color:${q.color}">${q.name}</b> ${series.wins[i]}`).join(" · ");
@@ -9900,7 +9926,8 @@ function showStandings(){
       `<div class="serieswins">${line}</div></div>`;
   }
   document.getElementById("bannerNew").textContent = series && !series.done ? "▶ Next game" : "Play again";
-  document.getElementById("bannerText").innerHTML = seriesHtml + pod + lb + tonightsBoardHtml();
+  document.getElementById("bannerText").innerHTML = seriesHtml + podiumHtml(s, trophies) +
+    leaderboardHtml(s, trophies, "Leaderboard") + statsTableHtml(s, (p, c) => c.stat(p)) + tonightsBoardHtml();
   document.getElementById("banner").classList.add("show");
   confettiBurst();
 }
@@ -9970,6 +9997,13 @@ function buildToggleRows(list, entries){
 // itself selected while the current mix matches it; no match = custom.
 function setRulePick(key, on){ FEATURE_BASE[key] = on; FEATURES[key] = on; }
 function rulePresetOn(pr, key){ return pr.on ? pr.on.includes(key) : true; }
+// A preset may also flip VARIANTS (manual, dice count); mirror that onto any
+// on-screen toggles that show them so the UI can't drift from the state.
+function syncVariantUI(){
+  document.querySelectorAll("[data-vkey]").forEach(box => { box.checked = !!VARIANTS[box.dataset.vkey]; });
+  const om = document.getElementById("optManual");
+  if (om) om.checked = VARIANTS.manual;
+}
 function buildRulePicker(list){
   const btns = document.createElement("div"); btns.className = "matchbtns";
   const boxes = [];
@@ -9983,6 +10017,7 @@ function buildRulePicker(list){
     b.onclick = ()=>{
       RULE_PICKS.forEach(r => setRulePick(r.key, rulePresetOn(pr, r.key)));
       boxes.forEach(([box, r]) => box.checked = FEATURE_BASE[r.key]);
+      if (pr.variants){ Object.assign(VARIANTS, pr.variants); syncVariantUI(); }
       paint(); saveSettings();
     };
     btns.appendChild(b);
@@ -10020,6 +10055,7 @@ function buildVariantRows(list){
     const row = document.createElement("label"); row.className = "adv-item";
     if (v.sub) row.style.marginLeft = "24px";
     const box = document.createElement("input"); box.type = "checkbox";
+    box.dataset.vkey = v.key;
     box.checked = VARIANTS[v.key];
     box.onchange = ()=>{ VARIANTS[v.key] = box.checked; saveSettings(); };
     const label = document.createElement("span");

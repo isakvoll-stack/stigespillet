@@ -3,7 +3,25 @@
 Standing file: autonomous sessions log clarifications here instead of stopping to ask.
 Answer whenever — each answer gets folded in and the question checked off.
 
-## 2026-07-21 (latest) — boss telegraph fix
+## 2026-07-22 — new rule presets (Alpha / Classic-boring)
+
+- [ ] **"Alpha" = which rules exactly?** You said "the freeze tile and everything
+  made BEFORE it." Git timestamps are muddy (reformatting resets them), so I read
+  it as **the picker's list order**: freeze + every rule listed above it in
+  Advanced → Rules & tiles = 16 rules on (exact finish, six-again, encounter,
+  kick-when-down, sniper, fishing, fish powers, nightfall, teleport, teleport
+  malfunction, lightning, lucky star, fate swap, orange, snake collision, freeze).
+  Left OFF: radioactive, trapdoor, warp, snake-eyes, secret square, black market,
+  broken gate, shop, shop pass-by, coins, setback, dizzy, crafting. If "before
+  freeze" should follow true creation dates instead (a couple of list-order picks
+  like nightfall/snake-collision are actually late additions), tell me and I'll
+  re-scope it.
+- [ ] **"Classic (boring)" — keep exact-finish on?** I left **exact finish ON**
+  (the standard overshoot-bounces rule feels part of "normal" S&L) and everything
+  else off, plus manual mode + one die. Want it even barer (exact finish off too),
+  or is this right?
+
+## 2026-07-21 — boss telegraph fix
 
 - [ ] **Frost Titan**: red now always means "lands at the end of this round", so
   I had to decide what happens to the Titan's deliberately slow 3-turn charge.

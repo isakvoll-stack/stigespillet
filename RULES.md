@@ -773,12 +773,16 @@ own roll, wheel and support moves, even being dragged backwards. *(Toggle:
 
 **Rule toggles:** **⚙️ Advanced settings → 📜 Rules & tiles** lists every optional
 rule and special tile **by name only** — what a rule actually does stays a table
-secret until it fires in play. Two preset buttons apply a whole setup with one
-press: **🎪 Everything** (all rules live) and **🎯 Pure classic** (bare snakes &
-ladders — exact finish and six-rolls-again only). Hand-mix the boxes and neither
-preset stays lit — that's your own custom table. Saved like every other toggle;
-the 🎴 nightly draw and Family Mode compose on top of your picks (`RULE_PICKS` /
-`RULE_PRESETS` DATA).
+secret until it fires in play. Four preset buttons apply a whole setup with one
+press: **🎪 Everything** (all rules live); **Alpha** (the early-era set — the
+freeze tile plus every rule listed before it, none of the later additions);
+**🎯 Pure classic** (bare snakes & ladders — exact finish and six-rolls-again
+only); and **Classic (boring)** (plain snakes & ladders — exact finish only —
+that *also* switches on **manual mode** and forces a **single die**; the board
+stays as colourful as ever). Hand-mix the boxes and no preset stays lit — that's
+your own custom table. Saved like every other toggle; the 🎴 nightly draw and
+Family Mode compose on top of your picks (`RULE_PICKS` / `RULE_PRESETS` DATA — a
+preset may carry an optional `variants` block to flip manual/dice too).
 
 **Item toggles:** on the *Choose players* screen, open **⚙️ Advanced settings → 🛒
 Items** to enable or disable any item. Disabled items never appear on the shop or

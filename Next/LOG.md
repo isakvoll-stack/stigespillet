@@ -3,6 +3,35 @@
 Newest first. One entry per working session; note what shipped and what's next.
 
 ---
+## 2026-07-22 — Grand Tour stat totals + two new rule presets
+
+**Grand Tour finale, KOTH-style.** The champion screen used to show only the
+points table. Now it accumulates each leg's `END_STATS` into a new `tour.stats`
+array (banked in `tourLegDone`) and renders the finale like the KOTH last page:
+podium + final standings + a **tour-totals stat sheet** summing all 5 legs. To do
+that without duplicating markup I extracted three shared helpers —
+`podiumHtml` / `leaderboardHtml` / `statsTableHtml` — now used by both
+`showStandings` and `showTourChampion` (pillar heights moved into `PODIUM.HEIGHTS`).
+
+**Category titles, not just emojis.** The stat sheet was players-as-rows ×
+emoji-only columns (names hidden in hover tooltips). Transposed it to
+**category-as-rows** so each category shows its **text title** (with the emoji
+kept as a small leading icon) and players become the columns — the only layout
+where full titles fit on a phone. Applies to the KOTH/classic page too.
+
+**Two presets** (Advanced → 📜 Rules & tiles): **Alpha** = freeze tile + every
+rule listed before it (16 on, the 13 later ones off); **Classic (boring)** = plain
+S&L (exact finish only) that also flips on **manual mode** + a **single die** via a
+new optional `variants` block on a preset entry (`syncVariantUI` mirrors it onto
+the toggles). Board stays colourful regardless (`cellColor` colours ladders/snakes
++ scatters plain tiles). New preset labels are **text, no emoji**, per Isak's note.
+Two interpretation calls logged in `Next/QUESTIONS.md`.
+
+Verified headless (Chrome): finale render (accumulation + titled table, 0 errors),
+preset logic (Alpha=16 exact, boring=exactFinish+manual+1 die, no unknown keys),
+and a full `index.html` load with 0 console errors.
+
+---
 ## 2026-07-22 — disable the 🎁 chest/loot drop pop-up
 
 Isak: *"disable the «loot drop» or «chest drop» event that can happen."* Done by

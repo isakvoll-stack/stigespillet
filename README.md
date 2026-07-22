@@ -55,9 +55,13 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
-Recently shipped (2026-07-22): **the 🎁 chest/loot drop pop-up is disabled** —
-removed from `POPUPS.POOL`, so it never fires even with Pop-ups on (handler code
-kept, unwired, for easy re-enable). Remaining pop-ups: grow / wake / strike.
+Recently shipped (2026-07-22): **Grand Tour finale now shows 5-leg stat totals**
+(KOTH-style podium + tour-totals stat sheet; shared `podiumHtml`/`leaderboardHtml`/
+`statsTableHtml` helpers), the **stat table now shows category titles** (transposed
+to category-rows, emoji kept as a small icon), and two new rule presets — **Alpha**
+(freeze + everything before it) and **Classic (boring)** (plain S&L + manual + one
+die). Before that: **the 🎁 chest/loot drop pop-up was disabled** — removed from
+`POPUPS.POOL` (handler kept, unwired). Remaining pop-ups: grow / wake / strike.
 
 Recently shipped (2026-07-21): **boss telegraphs tell the truth.** A red tile
 now means exactly one thing — *this strikes at the end of this round* — so
