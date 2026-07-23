@@ -281,9 +281,10 @@ to move that round gets their shot at the line. The game ends once that round wr
 
 **Ranking is by the round you finished in**, not by seat order — someone home in
 round 4 always beats someone home in round 5. Players who cross the line **in the same
-round** settle it with a **roll-off**: each rolls the die, highest takes it, and a tie
-just rolls again (this keeps a single clean winner). Anyone still on the board is ranked
-behind the finishers by how far up they are.
+round** settle it with a **roll-off**: each contestant rolls the die (**a human taps
+their own die**; bots roll themselves), highest takes it, and a tie just rolls again
+(this keeps a single clean winner). Anyone still on the board is ranked behind the
+finishers by how far up they are.
 
 The end screen shows a **podium** for the top 3 (1st 🥇 in the centre on a **gold**
 pillar, 2nd 🥈 on **silver**, 3rd 🥉 on **bronze** — each pillar blending into the

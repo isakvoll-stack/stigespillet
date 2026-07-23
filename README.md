@@ -55,6 +55,12 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
+Recently shipped (2026-07-23, latest): **the roll-off lets each human tap their own die.**
+In a same-round tiebreak, a human contestant now waits for a tap (die click / Enter /
+Space / ↓) before their die spins; bots still roll themselves, so all-bot games never
+stall (`rollOffTap`, gated on `!p.bot`). Verified headless: 7/7 (mixed + all-human +
+cross-round roll-offs with simulated taps, plus an all-bot game that fired zero taps).
+
 Recently shipped (2026-07-23, later): **no more first-mover advantage at the finish.**
 Reaching tile 90 no longer ends the game on the spot — **the current round is played
 out in full** so seats after the finisher still get their turn, and the game ends when

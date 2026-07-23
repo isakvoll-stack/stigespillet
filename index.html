@@ -2173,6 +2173,7 @@ const TXT = {
   rolloffTitle: "Photo finish!",
   rolloff: (names)=>`${names.join(" & ")} crossed the line in the same round — roll off for the win!`,
   rolloffSub: "Highest roll takes it. A tie rolls again.",
+  rolloffTap: (name)=>`${name} — tap the die to roll for it!`,
   rolloffRoll: (name)=>`${name} — rolling for it…`,
   rolloffRolled: (name,v)=>`🎲 ${name} rolls a ${v}.`,
   rolloffTie: (v,names)=>`Still level on ${v} — ${names.join(" & ")} roll again!`,
@@ -4673,6 +4674,7 @@ async function rollOff(grp){
   await popNote("⚔️", TXT.rolloffTitle, TXT.rolloff(grp.map(p => p.name)), TXT.rolloffSub);
   const ordered = await rollOffRound(grp);
   hidePrompt();
+  die.classList.add("disabled");
   return ordered;
 }
 async function rollOffRound(grp){
@@ -4693,11 +4695,35 @@ async function rollOffRound(grp){
   }
   return ordered;
 }
-// One clean roll of the single die (no curses/bonuses — a fair draw).
+// A human takes their own roll-off die: the die lights up and waits for a tap
+// (click / Enter / Space / ↓). Bots skip this and roll straight away.
+function rollOffTap(p){
+  return new Promise(res => {
+    showPrompt(TXT.rolloffTap(p.name));
+    const hint = document.getElementById("rollHint");
+    if (hint) hint.innerHTML = game.manual ? TXT.rollHintManual : TXT.rollHint;
+    die2.classList.add("faded");
+    die.classList.remove("disabled");
+    const done = () => {
+      die.removeEventListener("click", onTap);
+      document.removeEventListener("keydown", onKey);
+      if (hint) hint.innerHTML = "";
+      res();
+    };
+    const onTap = () => done();
+    const onKey = e => { if (["Enter","Space","ArrowDown"].includes(e.code)){ e.preventDefault(); done(); } };
+    die.addEventListener("click", onTap);
+    document.addEventListener("keydown", onKey);
+  });
+}
+// One clean roll of the single die (no curses/bonuses — a fair draw). A human
+// player taps to take it; a bot rolls on its own.
 async function rollOffRoll(p){
+  if (!p.bot) await rollOffTap(p);
   showPrompt(TXT.rolloffRoll(p.name));
   SFX.play("dice");
   die2.classList.add("faded");
+  die.classList.remove("disabled");
   die.classList.add("rolling");
   const end = performance.now() + ffms(ANIM.DICE);
   while (performance.now() < end){ setDie(1 + Math.floor(Math.random()*RULES.DICE_SIDES)); await sleep(70); }
