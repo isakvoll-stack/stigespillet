@@ -1328,7 +1328,7 @@ const boardOpt = key => { const o = BOARD_OPTIONS.find(b => b.key === key); retu
    1 = first past the post (the original rule). Clamped to the seat count;
    when only one racer is left unfinished they take the last place and the
    game ends anyway. */
-const FINISH = { NEED:1 };
+const FINISH = { NEED:1, PLAY_OUT_ROUND:true, ROLLOFF_MS:900 };   // PLAY_OUT_ROUND: a finish never ends the game mid-round — the round is played out so late seats aren't robbed, then same-round finishers settle it with a roll-off (ROLLOFF_MS = the pause on each rolled face)
 /* ---- DATA: page themes (title-screen 🎨 button cycles them) -----------
    Ambient dressing only: sky gradient, sun-glow tint, drifting glyphs,
    clouds and the title tagline. Board and tile colours are untouched. */
@@ -2170,6 +2170,12 @@ const TXT = {
   bounced: (n,a,b)=>`${n} bounced on: ${a} → ${b}`,
   kicked:  (n,a,b)=>`${n} was kicked back: ${a} → ${b}`,
   won: (name)=>`${name} wins! 🎉`,
+  rolloffTitle: "Photo finish!",
+  rolloff: (names)=>`${names.join(" & ")} crossed the line in the same round — roll off for the win!`,
+  rolloffSub: "Highest roll takes it. A tie rolls again.",
+  rolloffRoll: (name)=>`${name} — rolling for it…`,
+  rolloffRolled: (name,v)=>`🎲 ${name} rolls a ${v}.`,
+  rolloffTie: (v,names)=>`Still level on ${v} — ${names.join(" & ")} roll again!`,
 };
 
 /* ---- DATA: how the log reads ---------------------------------------
@@ -2312,6 +2318,11 @@ const RULE_INFO = {
     ico: "🏁",
     name: "The gates are open",
     text: "Someone is home! For everyone else the summit stops biting: rolling past 90 no longer bounces you back — any roll that reaches it carries you in. A few rounds remain. Just GET THERE.",
+  },
+  roundout: {
+    ico: "🏁",
+    name: "Hold the line",
+    text: "Someone's reached the exit — but the round plays on. Everyone still to move gets their shot at the line, so going last is no curse. Cross it together this round and you'll settle the win the old-fashioned way.",
   },
   kong: {
     ico: "🦍",
@@ -3698,6 +3709,7 @@ function makePlayers(roster){
     dizzy:false, curses:[], cuffs:0,
     trophies:0, laps:0, downs:0, itemsUsed:0,
     steps:0, coinsEarned:0, climbs:0, descents:0, interactions:0,
+    finishRound:0,
   }));
 }
 
@@ -3707,7 +3719,7 @@ function newGame(roster){
     players: makePlayers(roster),
     current:0, winner:null, over:false, busy:false, round:1, turnCount:0, autonomous: !!(roster[0] && roster[0].bot),
     mode: chosenMode, maxRounds: chosenMode === "koth" ? (chosenRounds || defaultRounds(count)) : 0,
-    finishNeed: Math.max(1, Math.min(FINISH.NEED, count)), placesTaken: 0,
+    finishNeed: Math.max(1, Math.min(FINISH.NEED, count)), placesTaken: 0, decidedRound: null,
     standings: null, marketVisits: 0, traps: [],
     family: VARIANTS.family, dualDice: VARIANTS.dualDice, manual: VARIANTS.manual,
     tour:false, legModId:null, floodRows:0, noBounce:false, windowCloseRound:0,
@@ -4256,6 +4268,8 @@ function popNote(ico, title, name, text){
       document.getElementById("reveal").classList.remove("show");
       revealResolve = null; res();
     };
+    if (game && game.autonomous && game.players.every(q => q.bot))
+      setTimeout(() => { if (revealResolve) revealResolve(); }, RULE_CARD.AUTO_MS);   // hands-off games move themselves on
   });
 }
 // The verdict box (reuses the rule-reveal modal); resolves when dismissed.
@@ -4585,6 +4599,7 @@ async function finishPlayer(p){
   if (p.finished) return;
   p.finished = true;
   p.place = ++game.placesTaken;
+  p.finishRound = game.round;
   SFX.play("win");
   log(`${p.name} reached the exit — ${MEDALS[p.place-1] || "#"+p.place}!`, "win");
   if (game.tour && game.placesTaken === 1 && !game.windowCloseRound){   // the tour's finish window opens
@@ -4592,6 +4607,18 @@ async function finishPlayer(p){
     game.noBounce = true;
     log(`⏱️ ${p.name} is home — ${TOUR.FINISH_WINDOW} rounds left to climb, and overshoot no longer bounces: any roll that reaches 90 gets you in!`);
     await revealRuleOnce("finishline");
+  }
+  // Fairness (classic, non-tour): a finish never ends the game on the spot. The
+  // current round is played out so seats after the finisher still take their
+  // turn; the game ends when that round wraps (endTurn), and same-round finishers
+  // settle their order with a roll-off (endClassic -> rankFinishers).
+  if (FINISH.PLAY_OUT_ROUND && !game.tour){
+    confettiBurst(30);
+    renderScoreboard();
+    if (game.decidedRound == null && game.placesTaken >= game.finishNeed)
+      game.decidedRound = game.round;   // this round decides it — play it out, then end
+    if (game.placesTaken === 1) await revealRuleOnce("roundout");
+    return;
   }
   const unfinished = game.players.filter(q => !q.finished);
   if (game.placesTaken < game.finishNeed && unfinished.length > 1){
@@ -4604,13 +4631,19 @@ async function finishPlayer(p){
     last.finished = true; last.place = ++game.placesTaken;
     log(`${last.name} is the only racer left — the game is over.`);
   }
-  endClassic();
+  await endClassic();
 }
 
-// The final whistle for Classic: rank finishers by place, the rest by position.
-function endClassic(){
+// The final whistle for Classic: finishers first (fairly ranked), the rest by
+// position. Fair ranking sorts finishers by the ROUND they crossed — going last
+// in a round never loses to going first — and same-round finishers roll off.
+async function endClassic(){
+  game.busy = true;
+  const finished = game.players.filter(q => q.finished);
+  const done = (FINISH.PLAY_OUT_ROUND && !game.tour)
+    ? await rankFinishers(finished)
+    : finished.sort((a,b) => a.place - b.place);
   game.over = true;
-  const done = game.players.filter(q => q.finished).sort((a,b) => a.place - b.place);
   const rest = game.players.filter(q => !q.finished).sort((a,b) => b.pos - a.pos);
   game.standings = [...done, ...rest];
   game.standings.forEach((q,idx) => { q.place = idx + 1; });
@@ -4620,6 +4653,60 @@ function endClassic(){
   recordSeriesResult();
   showStandings();
   game.busy = false; refreshHUD();
+}
+
+// Order the finishers for the podium: earlier round beats later round; players
+// who crossed in the SAME round settle it with a die roll-off.
+async function rankFinishers(finishers){
+  const rounds = [...new Set(finishers.map(p => p.finishRound))].sort((a,b) => a - b);
+  const ordered = [];
+  for (const r of rounds){
+    const grp = finishers.filter(p => p.finishRound === r);
+    ordered.push(...(grp.length > 1 ? await rollOff(grp) : grp));
+  }
+  return ordered;
+}
+// A roll-off among same-round finishers, best-first. One suspense note, then a
+// round of rolls; any die face shared by more than one player re-rolls among
+// just those (nested ties resolve the same way).
+async function rollOff(grp){
+  await popNote("⚔️", TXT.rolloffTitle, TXT.rolloff(grp.map(p => p.name)), TXT.rolloffSub);
+  const ordered = await rollOffRound(grp);
+  hidePrompt();
+  return ordered;
+}
+async function rollOffRound(grp){
+  const rolls = [];
+  for (const p of grp){
+    const v = await rollOffRoll(p);
+    rolls.push({ p, v });
+    log(TXT.rolloffRolled(p.name, v), "win");
+  }
+  const byFace = {};
+  rolls.forEach(r => (byFace[r.v] = byFace[r.v] || []).push(r.p));
+  const ordered = [];
+  for (const v of Object.keys(byFace).map(Number).sort((a,b) => b - a)){
+    const sub = byFace[v];
+    if (sub.length === 1){ ordered.push(sub[0]); continue; }
+    log(TXT.rolloffTie(v, sub.map(p => p.name)), "win");
+    ordered.push(...await rollOffRound(sub));
+  }
+  return ordered;
+}
+// One clean roll of the single die (no curses/bonuses — a fair draw).
+async function rollOffRoll(p){
+  showPrompt(TXT.rolloffRoll(p.name));
+  SFX.play("dice");
+  die2.classList.add("faded");
+  die.classList.add("rolling");
+  const end = performance.now() + ffms(ANIM.DICE);
+  while (performance.now() < end){ setDie(1 + Math.floor(Math.random()*RULES.DICE_SIDES)); await sleep(70); }
+  die.classList.remove("rolling");
+  const v = 1 + Math.floor(Math.random()*RULES.DICE_SIDES);
+  setDie(v);
+  SFX.play("click");
+  await sleep(FINISH.ROLLOFF_MS);
+  return v;
 }
 
 /* ---- match play (best of / first to; MATCH in DATA) ------------------
@@ -5560,7 +5647,10 @@ async function endTurn(){
     if (isKoth() && game.round > game.maxRounds){ await finishKoth(); return; }   // the final whistle
     if (game.tour && game.windowCloseRound && game.round > game.windowCloseRound && !game.over){
       log(`⏱️ Time! The leg is over.`);
-      endClassic(); return;
+      await endClassic(); return;
+    }
+    if (!game.tour && !isKoth() && game.decidedRound != null && game.round > game.decidedRound && !game.over){
+      await endClassic(); return;   // classic: the deciding round has been played out in full
     }
     if (game.popupRounds && game.popupRounds.length && game.round >= game.popupRounds[0] && !game.over){
       game.popupRounds.shift();                    // pop-ups ride the round wrap, one at most per round

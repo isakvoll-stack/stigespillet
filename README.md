@@ -55,6 +55,18 @@ The live to-do list and session history now live in the **`Next/`** folder
 (`Next/TASKS.md` + `Next/LOG.md`) — that's the source of truth for what's done and
 what's next.
 
+Recently shipped (2026-07-23, later): **no more first-mover advantage at the finish.**
+Reaching tile 90 no longer ends the game on the spot — **the current round is played
+out in full** so seats after the finisher still get their turn, and the game ends when
+that round wraps. Finishers are now ranked by the **round** they crossed in (round 4
+beats round 5 regardless of seat order); players who cross **in the same round** settle
+it with an animated **die roll-off** (highest wins, ties re-roll, nested ties handled),
+keeping one clean winner so match/tour/podium code is untouched. New `roundout` rule
+card + `TXT.rolloff*`; tunables in `FINISH` (`PLAY_OUT_ROUND`, `ROLLOFF_MS`); state:
+`p.finishRound`, `game.decidedRound`; `endClassic` is now async (all call sites await).
+Verified headless: 19/19 checks, 0 JS errors (ranking + 4-way roll-off unit tests, 3
+full bot games with the round-order fairness invariant asserted).
+
 Recently shipped (2026-07-23): three quick tweaks — **the Forever Night circle of
 light now scales with the table** (full size at 2 players, shrinking linearly to
 ~1.25 tiles across at 10; tuned via `NIGHT_MOD.LIGHT_*`, computed in

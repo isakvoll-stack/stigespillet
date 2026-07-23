@@ -274,13 +274,22 @@ random. They're built to bend what you take for granted:
   *(Settings in `MATCH`; live state in `series`.)*
 
 ## Goal
-Be the **first** player to land **exactly** on the final square (**tile 90**) —
-that player **wins**. By default the game then ends and everyone is ranked: 1st is
-the winner, and the rest are ordered by how far up the board they are. The end screen
-shows a **podium** for the top 3 only (1st 🥇 in the centre on a **gold** pillar, 2nd 🥈
-on **silver**, 3rd 🥉 on **bronze** — each pillar blending into the player's own colour
-at the very top), with **4th and 5th listed beside the podium** on the left, followed by
-a full **leaderboard**. *(In King of the Hill the same podium ranks by trophies instead.)*
+Land **exactly** on the final square (**tile 90**) to reach the exit. Crucially, a
+finish does **not** end the game on the spot — **the current round is played out in
+full** so that going late in the turn order is never a disadvantage: everyone still
+to move that round gets their shot at the line. The game ends once that round wraps.
+
+**Ranking is by the round you finished in**, not by seat order — someone home in
+round 4 always beats someone home in round 5. Players who cross the line **in the same
+round** settle it with a **roll-off**: each rolls the die, highest takes it, and a tie
+just rolls again (this keeps a single clean winner). Anyone still on the board is ranked
+behind the finishers by how far up they are.
+
+The end screen shows a **podium** for the top 3 (1st 🥇 in the centre on a **gold**
+pillar, 2nd 🥈 on **silver**, 3rd 🥉 on **bronze** — each pillar blending into the
+player's own colour at the very top, with **that player's own token standing on it**),
+and **4th and 5th standing beside the podium** on the left, followed by a full
+**leaderboard**. *(In King of the Hill the same podium ranks by trophies instead.)*
 
 **Under the leaderboard sits a stats table** — one row per player, one column per
 category, plain numbers for easy scanning — with a **⭐ beside the best** and a
@@ -296,10 +305,11 @@ steps, not climbs/descents; the registry lives in `END_STATS`, tunables in `STAT
 **The finish line is adjustable** (Advanced settings → 🏁 Game): a slider sets **how
 many players must finish before the game ends** (1 = the classic first-past-the-post).
 With a higher number, a finisher banks their medal and sits on tile 90 while the rest
-race on for the remaining places; the game ends when enough are home — or when only
-one racer is left, who then takes the last place automatically. A finisher gets **no
-bonus roll on a 6** — their race is run. *(Setting: `FINISH.NEED`, clamped to the seat
-count when a game starts.)*
+race on for the remaining places; the game ends after the round in which enough are
+home. A finisher gets **no bonus roll on a 6** — their race is run. *(Setting:
+`FINISH.NEED`, clamped to the seat count when a game starts. The play-out-the-round
+fairness rule and roll-off tiebreak are `FINISH.PLAY_OUT_ROUND` / `FINISH.ROLLOFF_MS`;
+you can only step onto tile 90 on a legal move — an illegal placement there is refused.)*
 
 ## The board
 - **9 × 10 = 90 tiles**, numbered 1 (bottom-left) → 90 (top-left) in a
